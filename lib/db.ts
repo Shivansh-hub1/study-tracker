@@ -118,6 +118,8 @@ async function init(): Promise<DB> {
     "ALTER TABLE users ADD COLUMN last_active_at TEXT",
     "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
+    "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
+    "ALTER TABLE web_progress ADD COLUMN revised_at TEXT",
   ]) {
     try { await db.run(sql); } catch { /* column already exists */ }
   }

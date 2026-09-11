@@ -440,7 +440,7 @@ export default function TimersPage() {
           ))}
         </div>
         {(isDsa || isWeb) && (
-          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
+          <div className={`jbox ${p.topic === journeyCurrent && journeyCurrent ? "jbox-auto" : ""}`} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
             <Route size={15} style={{ color: "var(--accent)" }} />
             <span style={{ fontSize: 13, fontWeight: 700 }}>Journey topic</span>
             {p.topic === journeyCurrent && journeyCurrent ? (

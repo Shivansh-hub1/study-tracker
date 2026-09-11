@@ -90,7 +90,7 @@ export default function SubjectsPage() {
           <EmptyState
             icon={<BookOpen size={26} />}
             title="No subjects yet"
-            hint="Create your first subject to tag study sessions and auto-generate timetables."
+            hint="Create your first subject (like DSA or Web Dev) to tag sessions and auto-track journeys."
             action={<button className="btn btn-primary" onClick={openCreate}><Plus size={15} /> Add a subject</button>}
           />
         </div>

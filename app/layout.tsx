@@ -4,7 +4,7 @@ import { Providers } from "@/components/Providers";
 
 export const metadata: Metadata = {
   title: "FocusFlow — Study Tracker",
-  description: "Deep-focus study tracker with timers, auto timetables and progress analytics.",
+  description: "Deep-focus study tracker with timers, DSA/WebDev journeys and progress analytics.",
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

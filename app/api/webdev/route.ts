@@ -9,8 +9,8 @@ export const dynamic = "force-dynamic";
 async function payload(userId: number) {
   const db = await getDb();
   await ensureWebTopics(db, userId);
-  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number }>(
-    "SELECT topic_key, status, lecture_idx FROM web_progress WHERE user_id = ?",
+  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
+    "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM web_progress WHERE user_id = ?",
     userId
   );
   const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
@@ -37,7 +37,25 @@ async function payload(userId: number) {
     null;
   const done = topics.filter((t) => t.status === "done").length;
   const total_sec = topics.reduce((a, t) => a + t.seconds, 0);
-  return { topics, current, done, total: topics.length, total_sec };
+  // Revision due: done 3+ days ago AND (never revised OR revised 7+ days ago)
+  const nowMs = Date.now();
+  const DAY = 86400000;
+  const revision_due = topics
+    .filter((t) => t.status === "done")
+    .map((t) => {
+      const r = rowMap.get(t.key);
+      const doneAt = r?.updated_at ? new Date(r.updated_at).getTime() : nowMs;
+      const revAt = r?.revised_at ? new Date(r.revised_at).getTime() : 0;
+      return {
+        key: t.key,
+        title: t.title,
+        days_ago: Math.floor((nowMs - doneAt) / DAY),
+        rev_days: revAt ? Math.floor((nowMs - revAt) / DAY) : -1,
+      };
+    })
+    .filter((x) => x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7))
+    .sort((a, b) => b.days_ago - a.days_ago);
+  return { topics, current, done, total: topics.length, total_sec, revision_due };
 }
 
 /** First remaining todo becomes the new current (only if none exists). */
@@ -125,6 +143,35 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
+  if (body.action === "complete_above") {
+    const key = body.key as string;
+    if (!key || !WEBDEV_KEY_SET.has(key)) {
+      return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
+    }
+    const db = await getDb();
+    await ensureWebTopics(db, user.id);
+    const now = new Date().toISOString();
+    const idx = WEBDEV_TOPICS.findIndex((t) => t.key === key);
+    const above = WEBDEV_TOPICS.slice(0, Math.max(0, idx)).map((t) => t.key);
+    if (above.length > 0) {
+      const ph = above.map(() => "?").join(",");
+      await db.run(
+        `UPDATE web_progress SET status = 'done', updated_at = ? WHERE user_id = ? AND topic_key IN (${ph})`,
+        now, user.id, ...above
+      );
+    }
+    return NextResponse.json(await payload(user.id));
+  }
+  if (body.action === "revise") {
+    const key = body.key as string;
+    if (!key || !WEBDEV_KEY_SET.has(key)) {
+      return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
+    }
+    const db = await getDb();
+    await ensureWebTopics(db, user.id);
+    await db.run("UPDATE web_progress SET revised_at = ? WHERE user_id = ? AND topic_key = ?", new Date().toISOString(), user.id, key);
+    return NextResponse.json(await payload(user.id));
+  }
   if (body.action !== "reset") {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }

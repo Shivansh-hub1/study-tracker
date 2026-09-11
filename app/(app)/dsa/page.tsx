@@ -14,7 +14,7 @@ function fmtDur(sec: number) {
 
 export default function DsaPage() {
   const { toast } = useToast();
-  const { data, loading, reload } = useFetch("/api/dsa");
+  const { data, setData } = useFetch("/api/dsa");
   const { data: subjectsData, reload: reloadSubjects } = useFetch("/api/subjects");
   const [expanded, setExpanded] = useState<string | null>(null);
   const topics: any[] = data?.topics || [];
@@ -30,8 +30,8 @@ export default function DsaPage() {
 
   const setStatus = async (key: string, status: string) => {
     try {
-      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) });
-      await reload();
+      const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) });
+      setData(updated);
       if (status === "done") toast("Topic done! Next one unlocked 🎉", "success");
     } catch (e: any) {
       toast(e.message, "error");
@@ -40,25 +40,31 @@ export default function DsaPage() {
 
   const setLecture = async (key: string, idx: number, len: number) => {
     try {
-      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
-      await reload();
+      const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
+      setData(updated);
       if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
   };
 
-  const completeAbove = async () => {
-    const above = topics.slice(0, currentIdx).filter((t: any) => t.status !== "done");
+  const revise = async (key: string) => {
     try {
-      for (const t of above) {
-        await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: t.key, status: "done" }) });
-      }
-      await reload();
-      toast(`${above.length} earlier modules marked done`, "success");
+      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "revise", key }) });
+      setData(updated);
+      toast("Revised! Next reminder in 7 days", "success");
     } catch (e: any) {
       toast(e.message, "error");
-      await reload();
+    }
+  };
+
+  const completeAbove = async () => {
+    try {
+      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "complete_above", key: data?.current }) });
+      setData(updated);
+      toast("Earlier modules marked done", "success");
+    } catch (e: any) {
+      toast(e.message, "error");
     }
   };
 
@@ -78,15 +84,15 @@ export default function DsaPage() {
   const reset = async () => {
     if (!confirm("Restart the whole DSA journey? Time logs stay, statuses reset.")) return;
     try {
-      await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "reset" }) });
-      await reload();
+      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "reset" }) });
+      setData(updated);
       toast("Journey restarted", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
   };
 
-  if (loading || !data) {
+  if (!data) {
     return (
       <div className="card">
         <Spinner lg />
@@ -114,7 +120,7 @@ export default function DsaPage() {
             border: "1px solid var(--border)", overflow: "hidden",
           }}
         >
-          <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent-grad)", transition: "width .4s ease" }} />
+          <div className="pbar-fill" style={{ width: `${pct}%`, height: "100%", background: "var(--accent-grad)", transition: "width .4s ease" }} />
         </div>
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
           <span className="badge">{done}/{total} topics · {pct}%</span>
@@ -129,6 +135,23 @@ export default function DsaPage() {
           )}
         </div>
       </div>
+
+            {(data.revision_due?.length || 0) > 0 && (
+        <div className="card" style={{ borderColor: "var(--warn)" }}>
+          <b style={{ fontSize: 14 }}>Revision due ({data.revision_due.length})</b>
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 10px" }}>
+            Done 3+ days ago. A quick revise now makes it permanent.
+          </p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+            {data.revision_due.map((r: any) => (
+              <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
+                <span style={{ flex: 1 }}>{r.title} <span style={{ color: "var(--muted)", fontSize: 12 }}>· {r.days_ago}d ago</span></span>
+                <button className="btn btn-sm" onClick={() => revise(r.key)}>Mark revised ✓</button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       {!hasDsaSubject && (
         <div className="card" style={{ borderColor: "var(--accent)" }}>
@@ -159,7 +182,7 @@ export default function DsaPage() {
             return (
               <div
                 key={t.key}
-                className="card"
+                className={`card jmod ${t.status === "doing" ? "jmod-current" : ""}`}
                 style={{
                   padding: "12px 14px",
                   borderColor: t.status === "doing" ? "var(--accent)" : undefined,
@@ -208,7 +231,7 @@ export default function DsaPage() {
                 </div>
 
                 {open && lectures.length > 0 && (
-                  <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+                  <div className="lec-list" style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
                     {lectures.map((l: any, li: number) => {
                       const st = t.status === "done" || li < lidx ? "done" : li === lidx ? "doing" : "todo";
                       return (

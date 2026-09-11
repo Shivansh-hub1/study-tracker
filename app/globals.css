@@ -40,6 +40,9 @@
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 10px 30px rgba(0, 0, 0, 0.35);
   --ring: rgba(129, 140, 248, 0.45);
   --chart-grid: #1d2740;
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
   color-scheme: dark;
 }
 
@@ -60,6 +63,9 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   --ring: rgba(217, 70, 239, 0.5);
   --chart-grid: #31184f;
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
   color-scheme: dark;
 }
 
@@ -80,6 +86,9 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   --ring: rgba(34, 255, 136, 0.45);
   --chart-grid: #0c3320;
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
   color-scheme: dark;
 }
 
@@ -100,6 +109,9 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
   --ring: rgba(34, 211, 238, 0.5);
   --chart-grid: #182451;
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
   color-scheme: dark;
 }
 
@@ -120,6 +132,9 @@
   --shadow: 0 8px 32px rgba(0, 0, 0, 0.55);
   --ring: rgba(251, 146, 60, 0.5);
   --chart-grid: #451c0c;
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
   color-scheme: dark;
 }
 
@@ -342,3 +357,87 @@ p { margin: 0; }
   .print-only { display: block !important; }
 }
 .print-only { display: none; }
+
+/* ============ GLASS THEMES ============ */
+:root[data-theme="glass-light"] {
+  --bg: #eef1fb;
+  --bg-grad:
+    radial-gradient(700px 500px at 12% 8%, rgba(99, 102, 241, 0.35), transparent 60%),
+    radial-gradient(800px 600px at 88% 12%, rgba(236, 72, 153, 0.3), transparent 60%),
+    radial-gradient(700px 700px at 50% 100%, rgba(34, 211, 238, 0.3), transparent 60%),
+    linear-gradient(135deg, #eef1fb, #f6eefb);
+  --surface: rgba(255, 255, 255, 0.55);
+  --surface-2: rgba(255, 255, 255, 0.35);
+  --border: rgba(255, 255, 255, 0.7);
+  --text: #0f172a;
+  --muted: #5b6b8c;
+  --accent: #4f46e5;
+  --accent-2: #db2777;
+  --accent-soft: rgba(79, 70, 229, 0.12);
+  --accent-grad: linear-gradient(135deg, #6366f1, #a855f7 60%, #ec4899);
+  --glow: 0 8px 32px rgba(99, 102, 241, 0.25);
+  --shadow: 0 8px 32px rgba(31, 38, 135, 0.12);
+  --ring: rgba(99, 102, 241, 0.35);
+  --chart-grid: rgba(15, 23, 42, 0.08);
+  --success: #10b981;
+  --danger: #ef4444;
+  --warn: #d97706;
+  color-scheme: light;
+}
+
+:root[data-theme="glass-dark"] {
+  --bg: #070b18;
+  --bg-grad:
+    radial-gradient(700px 500px at 12% 8%, rgba(129, 140, 248, 0.35), transparent 60%),
+    radial-gradient(800px 600px at 88% 12%, rgba(232, 121, 249, 0.3), transparent 60%),
+    radial-gradient(700px 700px at 50% 100%, rgba(34, 211, 238, 0.28), transparent 60%),
+    linear-gradient(135deg, #070b18, #12071f);
+  --surface: rgba(20, 26, 48, 0.55);
+  --surface-2: rgba(13, 18, 38, 0.5);
+  --border: rgba(255, 255, 255, 0.14);
+  --text: #eef1ff;
+  --muted: #93a0c4;
+  --accent: #a5b4fc;
+  --accent-2: #f0abfc;
+  --accent-soft: rgba(165, 180, 252, 0.14);
+  --accent-grad: linear-gradient(135deg, #818cf8, #c084fc 60%, #f472b6);
+  --glow: 0 8px 32px rgba(129, 140, 248, 0.35);
+  --shadow: 0 8px 32px rgba(0, 0, 0, 0.45);
+  --ring: rgba(165, 180, 252, 0.45);
+  --chart-grid: rgba(255, 255, 255, 0.08);
+  --success: #34d399;
+  --danger: #f87171;
+  --warn: #fbbf24;
+  color-scheme: dark;
+}
+
+:root[data-theme="glass-light"] .card,
+:root[data-theme="glass-dark"] .card,
+:root[data-theme="glass-light"] .sidebar,
+:root[data-theme="glass-dark"] .sidebar,
+:root[data-theme="glass-light"] .modal,
+:root[data-theme="glass-dark"] .modal,
+:root[data-theme="glass-light"] .menu,
+:root[data-theme="glass-dark"] .menu,
+:root[data-theme="glass-light"] .toast,
+:root[data-theme="glass-dark"] .toast {
+  backdrop-filter: blur(22px) saturate(1.5);
+  -webkit-backdrop-filter: blur(22px) saturate(1.5);
+  box-shadow: var(--shadow), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+}
+
+/* ============ JOURNEY UI POLISH ============ */
+.jmod { transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease; }
+.jmod:hover { transform: translateY(-1px); border-color: var(--accent); }
+.jmod-current { box-shadow: var(--glow); }
+.lec-list { animation: fadeSlideIn 0.22s ease; }
+@keyframes fadeSlideIn { from { opacity: 0; transform: translateY(-4px); } }
+.pbar-fill { position: relative; overflow: hidden; border-radius: 99px; }
+.pbar-fill::after {
+  content: ""; position: absolute; inset: 0;
+  background: linear-gradient(100deg, transparent 30%, rgba(255, 255, 255, 0.45) 50%, transparent 70%);
+  animation: sheen 2.8s infinite;
+}
+@keyframes sheen { from { transform: translateX(-100%); } to { transform: translateX(100%); } }
+.jbox { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
+.jbox-auto { border-color: var(--accent) !important; box-shadow: var(--glow); }

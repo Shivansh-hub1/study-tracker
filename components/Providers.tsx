@@ -10,6 +10,8 @@ export const THEMES = [
   { id: "matrix", name: "Matrix Neon", swatch: "linear-gradient(135deg,#10b981,#a3e635)" },
   { id: "cyber", name: "Cyber Neon", swatch: "linear-gradient(135deg,#22d3ee,#f0abfc)" },
   { id: "ember", name: "Ember Neon", swatch: "linear-gradient(135deg,#ef4444,#fbbf24)" },
+  { id: "glass-light", name: "Frost Light", swatch: "linear-gradient(135deg,#c7d2fe,#f9a8d4,#a5f3fc)" },
+  { id: "glass-dark", name: "Frost Dark", swatch: "linear-gradient(135deg,#4c1d95,#9d174d,#0e7490)" },
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };

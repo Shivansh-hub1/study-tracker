@@ -42,7 +42,7 @@ export default function SignupPage() {
         <div className="auth-hero">
           <div className="logo"><GraduationCap size={28} /></div>
           <h1 style={{ fontSize: 26 }}>Join Focus<span className="glow-text">Flow</span></h1>
-          <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>Track sessions, auto-build timetables, watch yourself grow</p>
+          <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>Track sessions, follow DSA + WebDev journeys, watch yourself grow</p>
         </div>
         <div className="card">
           <form onSubmit={submit}>
