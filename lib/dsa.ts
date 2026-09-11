@@ -1,18 +1,18 @@
-/* DSA Journey roadmap — Apna College C++ course order.
- * One entry per course module. Blurb = lecture count + video time.
- * Topic TITLES are stored on sessions (human-readable in CSV/exports),
- * so don't rename a title casually — old logs won't match anymore.
- */
+/* DSA roadmap — course order. Blurb = lecture count + video time.
+ * Topic TITLES are stored on sessions, so don't rename casually.
+ * Generated from syllabus txt. Do not hand-edit. */
 
-export type DsaStatus = "todo" | "doing" | "done";
+export type JourneyStatus = "todo" | "doing" | "done";
+export type DsaStatus = JourneyStatus;
 
-export interface DsaTopicMeta {
-  key: string;
-  title: string;
-  blurb: string;
-}
+export interface JourneyTopicMeta { key: string; title: string; blurb: string }
 
-export const DSA_TOPICS: DsaTopicMeta[] = [
+export const DSA_TOPICS: JourneyTopicMeta[] = [
+  { key: "flowcharts-pseudocode", title: "Flowcharts & Pseudocode", blurb: "7 lectures · 43m of videos" },
+  { key: "variables-data-types", title: "Variables & Data Types", blurb: "14 lectures · 1h 20m of videos" },
+  { key: "operators", title: "Operators", blurb: "9 lectures · 45m of videos" },
+  { key: "conditional-statements", title: "Conditional Statements", blurb: "8 lectures · 44m of videos" },
+  { key: "loops", title: "Loops", blurb: "14 lectures · 1h 29m of videos" },
   { key: "patterns", title: "Patterns", blurb: "11 lectures · 1h 43m of videos" },
   { key: "functions", title: "Functions", blurb: "11 lectures · 1h 2m of videos" },
   { key: "binary-number-system", title: "Binary Number System", blurb: "8 lectures · 47m of videos" },
@@ -63,9 +63,3 @@ export const DSA_TOPICS: DsaTopicMeta[] = [
 ];
 
 export const DSA_KEY_SET = new Set(DSA_TOPICS.map((t) => t.key));
-
-/** Timers treat any subject with "DSA" in its name as the DSA subject. */
-export const isDsaSubjectName = (name?: string | null) => /dsa/i.test(name || "");
-
-export const topicTitle = (key: string) =>
-  DSA_TOPICS.find((t) => t.key === key)?.title ?? key;

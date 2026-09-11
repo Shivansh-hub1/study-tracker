@@ -59,6 +59,7 @@ export default function TimersPage() {
   const { data: subjectsData } = useFetch("/api/subjects");
   const { data: settingsData } = useFetch("/api/settings");
   const { data: dsaData, reload: reloadDsa } = useFetch("/api/dsa");
+  const { data: webData, reload: reloadWeb } = useFetch("/api/webdev");
   const subjects = subjectsData?.subjects || [];
   const settings = settingsData?.settings;
 
@@ -71,12 +72,19 @@ export default function TimersPage() {
   const completedRef = useRef(false);
 
   const dsaTopics: any[] = dsaData?.topics || [];
+  const webTopics: any[] = webData?.topics || [];
   const selSubject = subjects.find((s: any) => s.id === p.subjectId);
   const isDsa = !!selSubject && /dsa/i.test(selSubject.name || "");
+  const isWeb = !!selSubject && !isDsa && /web|delta|mern/i.test(selSubject.name || "");
   const currentDsaTitle = dsaTopics.find((t: any) => t.key === dsaData?.current)?.title || "";
-  const selDsaTopic = dsaTopics.find((t: any) => t.title === p.topic) || dsaTopics.find((t: any) => t.key === dsaData?.current);
-  const selLectures: any[] = selDsaTopic?.lectures || [];
-  const selLectureIdx: number = selDsaTopic?.lecture_idx || 0;
+  const currentWebTitle = webTopics.find((t: any) => t.key === webData?.current)?.title || "";
+  const journeyTopics = isDsa ? dsaTopics : webTopics;
+  const journeyCurrent = isDsa ? currentDsaTitle : currentWebTitle;
+  const journeyEndpoint = isDsa ? "/api/dsa" : "/api/webdev";
+  const activeKey = isDsa ? dsaData?.current : webData?.current;
+  const selTopic = journeyTopics.find((t: any) => t.title === p.topic) || journeyTopics.find((t: any) => t.key === activeKey);
+  const selLectures: any[] = selTopic?.lectures || [];
+  const selLectureIdx: number = selTopic?.lecture_idx || 0;
   const selLecture = selLectureIdx < selLectures.length ? selLectures[selLectureIdx] : null;
 
   const pomoWork = (settings?.pomo_work ?? 25) * 60000;
@@ -118,13 +126,14 @@ export default function TimersPage() {
     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
   }, []);
 
-  /* -------- DSA journey: auto-select current topic -------- */
+  /* -------- Journey auto-select (DSA or WebDev) -------- */
   useEffect(() => {
-    if (!hydrated || !dsaData) return;
-    if (isDsa && !p.topic && currentDsaTitle) persist({ ...p, topic: currentDsaTitle });
-    else if (!isDsa && p.topic) persist({ ...p, topic: "" });
+    if (!hydrated || (!dsaData && !webData)) return;
+    const want = isDsa ? currentDsaTitle : isWeb ? currentWebTitle : "";
+    if ((isDsa || isWeb) && !p.topic && want) persist({ ...p, topic: want });
+    else if (!isDsa && !isWeb && p.topic) persist({ ...p, topic: "" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [hydrated, dsaData, isDsa, p.subjectId]);
+  }, [hydrated, dsaData, webData, isDsa, isWeb, p.subjectId]);
 
   /* -------- tick -------- */
   useEffect(() => {
@@ -288,16 +297,18 @@ export default function TimersPage() {
 
   const setSubject = (id: number | null) => {
     const s = subjects.find((x: any) => x.id === id);
-    const dsa = !!s && /dsa/i.test(s.name || "");
-    persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : "" });
+    const nm = s?.name || "";
+    const dsa = /dsa/i.test(nm);
+    const web = !dsa && /web|delta|mern/i.test(nm);
+    persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : web ? p.topic || currentWebTitle : "" });
   };
 
   const stepLecture = async (dir: 1 | -1) => {
-    if (!selDsaTopic) return;
+    if (!selTopic || (!isDsa && !isWeb)) return;
     const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
     try {
-      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: selDsaTopic.key, lecture_idx: next }) });
-      await reloadDsa();
+      await api(journeyEndpoint, { method: "PATCH", body: JSON.stringify({ key: selTopic.key, lecture_idx: next }) });
+      await (isDsa ? reloadDsa() : reloadWeb());
     } catch (e: any) { toast(e.message, "error"); }
   };
 
@@ -428,23 +439,23 @@ export default function TimersPage() {
             </button>
           ))}
         </div>
-        {isDsa && (
+        {(isDsa || isWeb) && (
           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
             <Route size={15} style={{ color: "var(--accent)" }} />
             <span style={{ fontSize: 13, fontWeight: 700 }}>Journey topic</span>
-            {p.topic === currentDsaTitle && currentDsaTitle ? (
+            {p.topic === journeyCurrent && journeyCurrent ? (
               <span className="badge">Auto ✓</span>
             ) : (
               <span className="badge">Manual</span>
             )}
             <select className="select" style={{ flex: 1, minWidth: 170 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
               <option value="">No topic</option>
-              {dsaTopics.map((t: any) => (
+              {journeyTopics.map((t: any) => (
                 <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
               ))}
             </select>
-            <a href="/dsa" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
-            {selDsaTopic && selLectures.length > 0 && (
+            <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+            {selTopic && selLectures.length > 0 && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
                 <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
                 {selLecture ? (

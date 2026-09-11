@@ -2,6 +2,7 @@ import fs from "fs";
 import path from "path";
 import bcrypt from "bcryptjs";
 import { DSA_TOPICS } from "./dsa";
+import { WEBDEV_TOPICS } from "./webdev";
 
 /*
  * Unified async data layer.
@@ -85,9 +86,19 @@ const SCHEMA = [
     updated_at TEXT NOT NULL,
     UNIQUE(user_id, topic_key)
   )`,
+  `CREATE TABLE IF NOT EXISTS web_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    topic_key TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'todo',
+    lecture_idx INTEGER NOT NULL DEFAULT 0,
+    updated_at TEXT NOT NULL,
+    UNIQUE(user_id, topic_key)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at)`,
   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_web_user ON web_progress(user_id)`,
 ];
 
 type Stmt = { sql: string; args: any[] };
@@ -204,6 +215,25 @@ export async function ensureDsaTopics(db: DB, userId: number) {
   );
 }
 
+/** Seed the WebDev journey (first topic starts as current). Idempotent, 1-2 queries. */
+export async function ensureWebTopics(db: DB, userId: number) {
+  const row = await db.get<{ c: number }>(
+    "SELECT COUNT(*) as c FROM web_progress WHERE user_id = ?",
+    userId
+  );
+  if ((row?.c ?? 0) >= WEBDEV_TOPICS.length) return;
+  const now = new Date().toISOString();
+  const values = WEBDEV_TOPICS.map(() => "(?,?,?,?)").join(",");
+  const args: any[] = [];
+  for (const t of WEBDEV_TOPICS) {
+    args.push(userId, t.key, t.key === WEBDEV_TOPICS[0].key ? "doing" : "todo", now);
+  }
+  await db.run(
+    `INSERT OR IGNORE INTO web_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
+    ...args
+  );
+}
+
 /** Guarantee an owner/admin account always exists. */
 async function ensureOwner(db: DB) {
   const existing = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
@@ -222,7 +252,7 @@ async function ensureOwner(db: DB) {
 
 /** Delete a user and ALL their data (admin cascade). */
 export async function deleteUserCascade(db: DB, userId: number) {
-  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress"]) {
+  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress"]) {
     await db.run(`DELETE FROM ${t} WHERE user_id = ?`, userId);
   }
   await db.run("DELETE FROM users WHERE id = ?", userId);

@@ -1,16 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb, ensureDsaTopics, DB } from "@/lib/db";
+import { getDb, ensureWebTopics, DB } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { DSA_TOPICS, DSA_KEY_SET, DsaStatus } from "@/lib/dsa";
-import { DSA_LECTURES } from "@/lib/dsa-lectures";
+import { WEBDEV_TOPICS, WEBDEV_KEY_SET, WebdevStatus } from "@/lib/webdev";
+import { WEBDEV_LECTURES } from "@/lib/webdev-lectures";
 
 export const dynamic = "force-dynamic";
 
 async function payload(userId: number) {
   const db = await getDb();
-  await ensureDsaTopics(db, userId);
+  await ensureWebTopics(db, userId);
   const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number }>(
-    "SELECT topic_key, status, lecture_idx FROM dsa_progress WHERE user_id = ?",
+    "SELECT topic_key, status, lecture_idx FROM web_progress WHERE user_id = ?",
     userId
   );
   const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
@@ -20,9 +20,9 @@ async function payload(userId: number) {
     userId
   );
   const timeMap = new Map(times.map((t) => [t.topic, Number(t.sec) || 0]));
-  const topics = DSA_TOPICS.map((t) => {
-    const lectures = DSA_LECTURES[t.key] || [];
-    const status = (rowMap.get(t.key)?.status || "todo") as DsaStatus;
+  const topics = WEBDEV_TOPICS.map((t) => {
+    const lectures = WEBDEV_LECTURES[t.key] || [];
+    const status = (rowMap.get(t.key)?.status || "todo") as WebdevStatus;
     return {
       ...t,
       status,
@@ -43,15 +43,15 @@ async function payload(userId: number) {
 /** First remaining todo becomes the new current (only if none exists). */
 async function autoAdvance(db: DB, userId: number, now: string) {
   const rows = await db.all<{ topic_key: string; status: string }>(
-    "SELECT topic_key, status FROM dsa_progress WHERE user_id = ?",
+    "SELECT topic_key, status FROM web_progress WHERE user_id = ?",
     userId
   );
   if (rows.some((r) => r.status === "doing")) return;
   const st = new Map(rows.map((r) => [r.topic_key, r.status]));
-  const next = DSA_TOPICS.map((t) => t.key).find((k) => st.get(k) === "todo");
+  const next = WEBDEV_TOPICS.map((t) => t.key).find((k) => st.get(k) === "todo");
   if (next) {
     await db.run(
-      "UPDATE dsa_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
+      "UPDATE web_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
       now, userId, next
     );
   }
@@ -59,7 +59,7 @@ async function autoAdvance(db: DB, userId: number, now: string) {
 
 async function demoteOthers(db: DB, userId: number, now: string) {
   await db.run(
-    "UPDATE dsa_progress SET status = 'todo', updated_at = ? WHERE user_id = ? AND status = 'doing'",
+    "UPDATE web_progress SET status = 'todo', updated_at = ? WHERE user_id = ? AND status = 'doing'",
     now, userId
   );
 }
@@ -74,14 +74,14 @@ export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
-  const { key, status, lecture_idx } = body as { key: string; status?: DsaStatus; lecture_idx?: number };
-  if (!key || !DSA_KEY_SET.has(key)) {
+  const { key, status, lecture_idx } = body as { key: string; status?: WebdevStatus; lecture_idx?: number };
+  if (!key || !WEBDEV_KEY_SET.has(key)) {
     return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
   }
   const db = await getDb();
-  await ensureDsaTopics(db, user.id);
+  await ensureWebTopics(db, user.id);
   const now = new Date().toISOString();
-  const len = (DSA_LECTURES[key] || []).length;
+  const len = (WEBDEV_LECTURES[key] || []).length;
 
   if (status !== undefined) {
     if (!["todo", "doing", "done"].includes(status)) {
@@ -89,7 +89,7 @@ export async function PATCH(req: NextRequest) {
     }
     if (status === "doing") await demoteOthers(db, user.id, now);
     await db.run(
-      "UPDATE dsa_progress SET status = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
+      "UPDATE web_progress SET status = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
       status, now, user.id, key
     );
     if (status === "done") await autoAdvance(db, user.id, now);
@@ -98,13 +98,13 @@ export async function PATCH(req: NextRequest) {
   if (lecture_idx !== undefined) {
     const idx = Math.max(0, Math.min(len, Math.round(Number(lecture_idx) || 0)));
     await db.run(
-      "UPDATE dsa_progress SET lecture_idx = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
+      "UPDATE web_progress SET lecture_idx = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
       idx, now, user.id, key
     );
     if (idx >= len && len > 0) {
       // Finished last lecture → module done, journey advances
       await db.run(
-        "UPDATE dsa_progress SET status = 'done', updated_at = ? WHERE user_id = ? AND topic_key = ?",
+        "UPDATE web_progress SET status = 'done', updated_at = ? WHERE user_id = ? AND topic_key = ?",
         now, user.id, key
       );
       await autoAdvance(db, user.id, now);
@@ -112,7 +112,7 @@ export async function PATCH(req: NextRequest) {
       // (Re)opened mid-module → it becomes current
       await demoteOthers(db, user.id, now);
       await db.run(
-        "UPDATE dsa_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
+        "UPDATE web_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
         now, user.id, key
       );
     }
@@ -129,15 +129,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   }
   const db = await getDb();
-  await ensureDsaTopics(db, user.id);
+  await ensureWebTopics(db, user.id);
   const now = new Date().toISOString();
   await db.run(
-    "UPDATE dsa_progress SET status = 'todo', lecture_idx = 0, updated_at = ? WHERE user_id = ?",
+    "UPDATE web_progress SET status = 'todo', lecture_idx = 0, updated_at = ? WHERE user_id = ?",
     now, user.id
   );
   await db.run(
-    "UPDATE dsa_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
-    now, user.id, DSA_TOPICS[0].key
+    "UPDATE web_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
+    now, user.id, WEBDEV_TOPICS[0].key
   );
   return NextResponse.json(await payload(user.id));
 }

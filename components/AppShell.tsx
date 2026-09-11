@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Timer, BookOpen, CalendarRange, TrendingUp, ShieldCheck,
-  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route,
+  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route, Code2,
 } from "lucide-react";
 import { THEMES, useTheme, useToast } from "./Providers";
 
@@ -14,6 +14,7 @@ const NAV = [
   { href: "/timer", label: "Focus Timers", icon: Timer },
   { href: "/subjects", label: "Subjects", icon: BookOpen },
   { href: "/dsa", label: "DSA Journey", icon: Route },
+  { href: "/webdev", label: "Web Dev", icon: Code2 },
   { href: "/timetable", label: "Timetable", icon: CalendarRange },
   { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/sessions", label: "Sessions", icon: ListChecks },

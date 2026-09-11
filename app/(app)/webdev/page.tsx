@@ -12,14 +12,14 @@ function fmtDur(sec: number) {
   return `${m}m ${s}s`;
 }
 
-export default function DsaPage() {
+export default function WebDevPage() {
   const { toast } = useToast();
-  const { data, loading, reload } = useFetch("/api/dsa");
+  const { data, loading, reload } = useFetch("/api/webdev");
   const { data: subjectsData, reload: reloadSubjects } = useFetch("/api/subjects");
   const [expanded, setExpanded] = useState<string | null>(null);
   const topics: any[] = data?.topics || [];
   const subjects: any[] = subjectsData?.subjects || [];
-  const hasDsaSubject = subjects.some((s: any) => /dsa/i.test(s.name || ""));
+  const hasWebSubject = subjects.some((s: any) => /web|delta|mern/i.test(s.name || ""));
   const done: number = data?.done || 0;
   const total: number = data?.total || topics.length || 1;
   const pct = Math.round((done / total) * 100);
@@ -30,7 +30,7 @@ export default function DsaPage() {
 
   const setStatus = async (key: string, status: string) => {
     try {
-      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) });
+      await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key, status }) });
       await reload();
       if (status === "done") toast("Topic done! Next one unlocked 🎉", "success");
     } catch (e: any) {
@@ -40,7 +40,7 @@ export default function DsaPage() {
 
   const setLecture = async (key: string, idx: number, len: number) => {
     try {
-      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
+      await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
       await reload();
       if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
     } catch (e: any) {
@@ -52,7 +52,7 @@ export default function DsaPage() {
     const above = topics.slice(0, currentIdx).filter((t: any) => t.status !== "done");
     try {
       for (const t of above) {
-        await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: t.key, status: "done" }) });
+        await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key: t.key, status: "done" }) });
       }
       await reload();
       toast(`${above.length} earlier modules marked done`, "success");
@@ -66,19 +66,19 @@ export default function DsaPage() {
     try {
       await api("/api/subjects", {
         method: "POST",
-        body: JSON.stringify({ name: "DSA", color: "#f59e0b", target_minutes: 600 }),
+        body: JSON.stringify({ name: "Web Dev", color: "#22d3ee", target_minutes: 600 }),
       });
       await reloadSubjects();
-      toast("DSA subject created — timers will now auto-pick topics", "success");
+      toast("Web Dev subject created — timers will now auto-pick topics", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
   };
 
   const reset = async () => {
-    if (!confirm("Restart the whole DSA journey? Time logs stay, statuses reset.")) return;
+    if (!confirm("Restart the whole Web Dev journey? Time logs stay, statuses reset.")) return;
     try {
-      await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "reset" }) });
+      await api("/api/webdev", { method: "POST", body: JSON.stringify({ action: "reset" }) });
       await reload();
       toast("Journey restarted", "success");
     } catch (e: any) {
@@ -99,14 +99,14 @@ export default function DsaPage() {
       <div className="card">
         <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
           <Route size={18} style={{ color: "var(--accent)" }} />
-          <h2 style={{ fontSize: 18, margin: 0 }}>DSA Journey</h2>
+          <h2 style={{ fontSize: 18, margin: 0 }}>Web Dev Journey</h2>
           <div style={{ flex: 1 }} />
           <button className="btn btn-sm" onClick={reset} title="Restart journey">
             <RotateCcw size={13} /> Restart
           </button>
         </div>
         <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
-          One topic at a time. Pick the <b>DSA</b> subject in Focus Timers and your current topic is selected automatically.
+          One topic at a time. Pick the <b>Web Dev</b> subject in Focus Timers and your current topic is selected automatically.
         </p>
         <div
           style={{
@@ -119,7 +119,7 @@ export default function DsaPage() {
         <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
           <span className="badge">{done}/{total} topics · {pct}%</span>
           <span className="badge">
-            <Clock size={12} /> {fmtMinutes(Math.round((data.total_sec || 0) / 60))} on DSA
+            <Clock size={12} /> {fmtMinutes(Math.round((data.total_sec || 0) / 60))} on Web Dev
           </span>
           {current && <span className="badge">Now: {current.title}</span>}
           {aboveCount > 0 && (
@@ -130,14 +130,14 @@ export default function DsaPage() {
         </div>
       </div>
 
-      {!hasDsaSubject && (
+      {!hasWebSubject && (
         <div className="card" style={{ borderColor: "var(--accent)" }}>
-          <b style={{ fontSize: 14 }}>Step 1: create your DSA subject</b>
+          <b style={{ fontSize: 14 }}>Step 1: create your Web Dev subject</b>
           <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 12px" }}>
-            Timers detect any subject with “DSA” in its name. Create it now and the journey plugs in automatically.
+            Timers detect any subject with “Web”, “Delta” or “MERN” in its name. Create it now and the journey plugs in automatically.
           </p>
           <button className="btn btn-primary btn-sm" onClick={createSubject}>
-            <Plus size={14} /> Create “DSA” subject
+            <Plus size={14} /> Create “Web Dev” subject
           </button>
         </div>
       )}
@@ -147,7 +147,7 @@ export default function DsaPage() {
           <Trophy size={34} style={{ color: "#f59e0b" }} />
           <h3 style={{ margin: "10px 0 4px" }}>Journey complete! 🏆</h3>
           <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
-            All {total} topics done. Time for contests — or restart and go deeper.
+            All {total} topics done. Ship projects — or restart and go deeper.
           </p>
         </div>
       ) : (

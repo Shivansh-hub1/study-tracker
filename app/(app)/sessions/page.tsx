@@ -13,6 +13,7 @@ export default function SessionsPage() {
   const { data, loading, setData } = useFetch(`/api/sessions?limit=300${subjectFilter ? `&subject_id=${subjectFilter}` : ""}`, [subjectFilter]);
   const { data: subjectsData } = useFetch("/api/subjects");
   const { data: dsaData } = useFetch("/api/dsa");
+  const { data: webData } = useFetch("/api/webdev");
   const sessions = data?.sessions || [];
   const subjects = subjectsData?.subjects || [];
 
@@ -25,7 +26,11 @@ export default function SessionsPage() {
   const [fNotes, setFNotes] = useState("");
   const [fTopic, setFTopic] = useState("");
   const dsaTopics: any[] = dsaData?.topics || [];
-  const fIsDsa = /dsa/i.test(subjects.find((s: any) => String(s.id) === fSubject)?.name || "");
+  const webTopics: any[] = webData?.topics || [];
+  const fSubName = subjects.find((s: any) => String(s.id) === fSubject)?.name || "";
+  const fIsDsa = /dsa/i.test(fSubName);
+  const fIsWeb = !fIsDsa && /web|delta|mern/i.test(fSubName);
+  const fTopics = fIsDsa ? dsaTopics : webTopics;
   const [confirmDel, setConfirmDel] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
@@ -185,12 +190,12 @@ export default function SessionsPage() {
             <option value="stopwatch">Stopwatch</option>
           </select>
         </div>
-        {fIsDsa && (
+        {(fIsDsa || fIsWeb) && (
           <div className="field">
-            <label className="label">DSA topic</label>
+            <label className="label">Journey topic</label>
             <select className="select" value={fTopic} onChange={(e) => setFTopic(e.target.value)}>
               <option value="">No topic</option>
-              {dsaTopics.map((t: any) => <option key={t.key} value={t.title}>{t.title}</option>)}
+              {fTopics.map((t: any) => <option key={t.key} value={t.title}>{t.title}</option>)}
             </select>
           </div>
         )}

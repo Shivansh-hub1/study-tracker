@@ -1,0 +1,1825 @@
+diff --git a/app/(app)/dsa/page.tsx b/app/(app)/dsa/page.tsx
+index 022de62..0c7d909 100644
+--- a/app/(app)/dsa/page.tsx
++++ b/app/(app)/dsa/page.tsx
+@@ -1,7 +1,7 @@
+ "use client";
+ 
+ import React, { useState } from "react";
+-import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown } from "lucide-react";
++import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown, CheckCheck } from "lucide-react";
+ import { useFetch, api } from "@/lib/client";
+ import { fmtMinutes } from "@/lib/utils";
+ import { Spinner } from "@/components/ui";
+@@ -25,6 +25,8 @@ export default function DsaPage() {
+   const pct = Math.round((done / total) * 100);
+   const current = topics.find((t: any) => t.key === data?.current);
+   const openKey = expanded ?? data?.current ?? null;
++  const currentIdx = topics.findIndex((t: any) => t.key === data?.current);
++  const aboveCount = currentIdx > 0 ? topics.slice(0, currentIdx).filter((t: any) => t.status !== "done").length : 0;
+ 
+   const setStatus = async (key: string, status: string) => {
+     try {
+@@ -46,6 +48,20 @@ export default function DsaPage() {
+     }
+   };
+ 
++  const completeAbove = async () => {
++    const above = topics.slice(0, currentIdx).filter((t: any) => t.status !== "done");
++    try {
++      for (const t of above) {
++        await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: t.key, status: "done" }) });
++      }
++      await reload();
++      toast(`${above.length} earlier modules marked done`, "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++      await reload();
++    }
++  };
++
+   const createSubject = async () => {
+     try {
+       await api("/api/subjects", {
+@@ -100,12 +116,17 @@ export default function DsaPage() {
+         >
+           <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent-grad)", transition: "width .4s ease" }} />
+         </div>
+-        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
++        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
+           <span className="badge">{done}/{total} topics · {pct}%</span>
+           <span className="badge">
+             <Clock size={12} /> {fmtMinutes(Math.round((data.total_sec || 0) / 60))} on DSA
+           </span>
+           {current && <span className="badge">Now: {current.title}</span>}
++          {aboveCount > 0 && (
++            <button className="btn btn-sm" onClick={completeAbove} title="Mark every module above the current one as done">
++              <CheckCheck size={13} /> Complete {aboveCount} earlier
++            </button>
++          )}
+         </div>
+       </div>
+ 
+diff --git a/app/(app)/sessions/page.tsx b/app/(app)/sessions/page.tsx
+index 1ec1a45..8d9052a 100644
+--- a/app/(app)/sessions/page.tsx
++++ b/app/(app)/sessions/page.tsx
+@@ -13,6 +13,7 @@ export default function SessionsPage() {
+   const { data, loading, setData } = useFetch(`/api/sessions?limit=300${subjectFilter ? `&subject_id=${subjectFilter}` : ""}`, [subjectFilter]);
+   const { data: subjectsData } = useFetch("/api/subjects");
+   const { data: dsaData } = useFetch("/api/dsa");
++  const { data: webData } = useFetch("/api/webdev");
+   const sessions = data?.sessions || [];
+   const subjects = subjectsData?.subjects || [];
+ 
+@@ -25,7 +26,11 @@ export default function SessionsPage() {
+   const [fNotes, setFNotes] = useState("");
+   const [fTopic, setFTopic] = useState("");
+   const dsaTopics: any[] = dsaData?.topics || [];
+-  const fIsDsa = /dsa/i.test(subjects.find((s: any) => String(s.id) === fSubject)?.name || "");
++  const webTopics: any[] = webData?.topics || [];
++  const fSubName = subjects.find((s: any) => String(s.id) === fSubject)?.name || "";
++  const fIsDsa = /dsa/i.test(fSubName);
++  const fIsWeb = !fIsDsa && /web|delta|mern/i.test(fSubName);
++  const fTopics = fIsDsa ? dsaTopics : webTopics;
+   const [confirmDel, setConfirmDel] = useState<any>(null);
+   const [busy, setBusy] = useState(false);
+ 
+@@ -185,12 +190,12 @@ export default function SessionsPage() {
+             <option value="stopwatch">Stopwatch</option>
+           </select>
+         </div>
+-        {fIsDsa && (
++        {(fIsDsa || fIsWeb) && (
+           <div className="field">
+-            <label className="label">DSA topic</label>
++            <label className="label">Journey topic</label>
+             <select className="select" value={fTopic} onChange={(e) => setFTopic(e.target.value)}>
+               <option value="">No topic</option>
+-              {dsaTopics.map((t: any) => <option key={t.key} value={t.title}>{t.title}</option>)}
++              {fTopics.map((t: any) => <option key={t.key} value={t.title}>{t.title}</option>)}
+             </select>
+           </div>
+         )}
+diff --git a/app/(app)/timer/page.tsx b/app/(app)/timer/page.tsx
+index 4f5ab9c..31bc182 100644
+--- a/app/(app)/timer/page.tsx
++++ b/app/(app)/timer/page.tsx
+@@ -59,6 +59,7 @@ export default function TimersPage() {
+   const { data: subjectsData } = useFetch("/api/subjects");
+   const { data: settingsData } = useFetch("/api/settings");
+   const { data: dsaData, reload: reloadDsa } = useFetch("/api/dsa");
++  const { data: webData, reload: reloadWeb } = useFetch("/api/webdev");
+   const subjects = subjectsData?.subjects || [];
+   const settings = settingsData?.settings;
+ 
+@@ -71,12 +72,19 @@ export default function TimersPage() {
+   const completedRef = useRef(false);
+ 
+   const dsaTopics: any[] = dsaData?.topics || [];
++  const webTopics: any[] = webData?.topics || [];
+   const selSubject = subjects.find((s: any) => s.id === p.subjectId);
+   const isDsa = !!selSubject && /dsa/i.test(selSubject.name || "");
++  const isWeb = !!selSubject && !isDsa && /web|delta|mern/i.test(selSubject.name || "");
+   const currentDsaTitle = dsaTopics.find((t: any) => t.key === dsaData?.current)?.title || "";
+-  const selDsaTopic = dsaTopics.find((t: any) => t.title === p.topic) || dsaTopics.find((t: any) => t.key === dsaData?.current);
+-  const selLectures: any[] = selDsaTopic?.lectures || [];
+-  const selLectureIdx: number = selDsaTopic?.lecture_idx || 0;
++  const currentWebTitle = webTopics.find((t: any) => t.key === webData?.current)?.title || "";
++  const journeyTopics = isDsa ? dsaTopics : webTopics;
++  const journeyCurrent = isDsa ? currentDsaTitle : currentWebTitle;
++  const journeyEndpoint = isDsa ? "/api/dsa" : "/api/webdev";
++  const activeKey = isDsa ? dsaData?.current : webData?.current;
++  const selTopic = journeyTopics.find((t: any) => t.title === p.topic) || journeyTopics.find((t: any) => t.key === activeKey);
++  const selLectures: any[] = selTopic?.lectures || [];
++  const selLectureIdx: number = selTopic?.lecture_idx || 0;
+   const selLecture = selLectureIdx < selLectures.length ? selLectures[selLectureIdx] : null;
+ 
+   const pomoWork = (settings?.pomo_work ?? 25) * 60000;
+@@ -118,13 +126,14 @@ export default function TimersPage() {
+     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
+   }, []);
+ 
+-  /* -------- DSA journey: auto-select current topic -------- */
++  /* -------- Journey auto-select (DSA or WebDev) -------- */
+   useEffect(() => {
+-    if (!hydrated || !dsaData) return;
+-    if (isDsa && !p.topic && currentDsaTitle) persist({ ...p, topic: currentDsaTitle });
+-    else if (!isDsa && p.topic) persist({ ...p, topic: "" });
++    if (!hydrated || (!dsaData && !webData)) return;
++    const want = isDsa ? currentDsaTitle : isWeb ? currentWebTitle : "";
++    if ((isDsa || isWeb) && !p.topic && want) persist({ ...p, topic: want });
++    else if (!isDsa && !isWeb && p.topic) persist({ ...p, topic: "" });
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+-  }, [hydrated, dsaData, isDsa, p.subjectId]);
++  }, [hydrated, dsaData, webData, isDsa, isWeb, p.subjectId]);
+ 
+   /* -------- tick -------- */
+   useEffect(() => {
+@@ -288,16 +297,18 @@ export default function TimersPage() {
+ 
+   const setSubject = (id: number | null) => {
+     const s = subjects.find((x: any) => x.id === id);
+-    const dsa = !!s && /dsa/i.test(s.name || "");
+-    persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : "" });
++    const nm = s?.name || "";
++    const dsa = /dsa/i.test(nm);
++    const web = !dsa && /web|delta|mern/i.test(nm);
++    persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : web ? p.topic || currentWebTitle : "" });
+   };
+ 
+   const stepLecture = async (dir: 1 | -1) => {
+-    if (!selDsaTopic) return;
++    if (!selTopic || (!isDsa && !isWeb)) return;
+     const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
+     try {
+-      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: selDsaTopic.key, lecture_idx: next }) });
+-      await reloadDsa();
++      await api(journeyEndpoint, { method: "PATCH", body: JSON.stringify({ key: selTopic.key, lecture_idx: next }) });
++      await (isDsa ? reloadDsa() : reloadWeb());
+     } catch (e: any) { toast(e.message, "error"); }
+   };
+ 
+@@ -428,23 +439,23 @@ export default function TimersPage() {
+             </button>
+           ))}
+         </div>
+-        {isDsa && (
++        {(isDsa || isWeb) && (
+           <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
+             <Route size={15} style={{ color: "var(--accent)" }} />
+             <span style={{ fontSize: 13, fontWeight: 700 }}>Journey topic</span>
+-            {p.topic === currentDsaTitle && currentDsaTitle ? (
++            {p.topic === journeyCurrent && journeyCurrent ? (
+               <span className="badge">Auto ✓</span>
+             ) : (
+               <span className="badge">Manual</span>
+             )}
+             <select className="select" style={{ flex: 1, minWidth: 170 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
+               <option value="">No topic</option>
+-              {dsaTopics.map((t: any) => (
++              {journeyTopics.map((t: any) => (
+                 <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
+               ))}
+             </select>
+-            <a href="/dsa" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+-            {selDsaTopic && selLectures.length > 0 && (
++            <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
++            {selTopic && selLectures.length > 0 && (
+               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
+                 <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
+                 {selLecture ? (
+diff --git a/app/(app)/webdev/page.tsx b/app/(app)/webdev/page.tsx
+new file mode 100644
+index 0000000..c968f5a
+--- /dev/null
++++ b/app/(app)/webdev/page.tsx
+@@ -0,0 +1,271 @@
++"use client";
++
++import React, { useState } from "react";
++import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown, CheckCheck } from "lucide-react";
++import { useFetch, api } from "@/lib/client";
++import { fmtMinutes } from "@/lib/utils";
++import { Spinner } from "@/components/ui";
++import { useToast } from "@/components/Providers";
++
++function fmtDur(sec: number) {
++  const m = Math.floor(sec / 60), s = sec % 60;
++  return `${m}m ${s}s`;
++}
++
++export default function WebDevPage() {
++  const { toast } = useToast();
++  const { data, loading, reload } = useFetch("/api/webdev");
++  const { data: subjectsData, reload: reloadSubjects } = useFetch("/api/subjects");
++  const [expanded, setExpanded] = useState<string | null>(null);
++  const topics: any[] = data?.topics || [];
++  const subjects: any[] = subjectsData?.subjects || [];
++  const hasWebSubject = subjects.some((s: any) => /web|delta|mern/i.test(s.name || ""));
++  const done: number = data?.done || 0;
++  const total: number = data?.total || topics.length || 1;
++  const pct = Math.round((done / total) * 100);
++  const current = topics.find((t: any) => t.key === data?.current);
++  const openKey = expanded ?? data?.current ?? null;
++  const currentIdx = topics.findIndex((t: any) => t.key === data?.current);
++  const aboveCount = currentIdx > 0 ? topics.slice(0, currentIdx).filter((t: any) => t.status !== "done").length : 0;
++
++  const setStatus = async (key: string, status: string) => {
++    try {
++      await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key, status }) });
++      await reload();
++      if (status === "done") toast("Topic done! Next one unlocked 🎉", "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++    }
++  };
++
++  const setLecture = async (key: string, idx: number, len: number) => {
++    try {
++      await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
++      await reload();
++      if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++    }
++  };
++
++  const completeAbove = async () => {
++    const above = topics.slice(0, currentIdx).filter((t: any) => t.status !== "done");
++    try {
++      for (const t of above) {
++        await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key: t.key, status: "done" }) });
++      }
++      await reload();
++      toast(`${above.length} earlier modules marked done`, "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++      await reload();
++    }
++  };
++
++  const createSubject = async () => {
++    try {
++      await api("/api/subjects", {
++        method: "POST",
++        body: JSON.stringify({ name: "Web Dev", color: "#22d3ee", target_minutes: 600 }),
++      });
++      await reloadSubjects();
++      toast("Web Dev subject created — timers will now auto-pick topics", "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++    }
++  };
++
++  const reset = async () => {
++    if (!confirm("Restart the whole Web Dev journey? Time logs stay, statuses reset.")) return;
++    try {
++      await api("/api/webdev", { method: "POST", body: JSON.stringify({ action: "reset" }) });
++      await reload();
++      toast("Journey restarted", "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++    }
++  };
++
++  if (loading || !data) {
++    return (
++      <div className="card">
++        <Spinner lg />
++      </div>
++    );
++  }
++
++  return (
++    <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
++      <div className="card">
++        <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 6 }}>
++          <Route size={18} style={{ color: "var(--accent)" }} />
++          <h2 style={{ fontSize: 18, margin: 0 }}>Web Dev Journey</h2>
++          <div style={{ flex: 1 }} />
++          <button className="btn btn-sm" onClick={reset} title="Restart journey">
++            <RotateCcw size={13} /> Restart
++          </button>
++        </div>
++        <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
++          One topic at a time. Pick the <b>Web Dev</b> subject in Focus Timers and your current topic is selected automatically.
++        </p>
++        <div
++          style={{
++            height: 12, borderRadius: 99, background: "var(--surface-2)",
++            border: "1px solid var(--border)", overflow: "hidden",
++          }}
++        >
++          <div style={{ width: `${pct}%`, height: "100%", background: "var(--accent-grad)", transition: "width .4s ease" }} />
++        </div>
++        <div style={{ display: "flex", gap: 8, marginTop: 12, flexWrap: "wrap", alignItems: "center" }}>
++          <span className="badge">{done}/{total} topics · {pct}%</span>
++          <span className="badge">
++            <Clock size={12} /> {fmtMinutes(Math.round((data.total_sec || 0) / 60))} on Web Dev
++          </span>
++          {current && <span className="badge">Now: {current.title}</span>}
++          {aboveCount > 0 && (
++            <button className="btn btn-sm" onClick={completeAbove} title="Mark every module above the current one as done">
++              <CheckCheck size={13} /> Complete {aboveCount} earlier
++            </button>
++          )}
++        </div>
++      </div>
++
++      {!hasWebSubject && (
++        <div className="card" style={{ borderColor: "var(--accent)" }}>
++          <b style={{ fontSize: 14 }}>Step 1: create your Web Dev subject</b>
++          <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 12px" }}>
++            Timers detect any subject with “Web”, “Delta” or “MERN” in its name. Create it now and the journey plugs in automatically.
++          </p>
++          <button className="btn btn-primary btn-sm" onClick={createSubject}>
++            <Plus size={14} /> Create “Web Dev” subject
++          </button>
++        </div>
++      )}
++
++      {done === total ? (
++        <div className="card" style={{ textAlign: "center", padding: "32px 20px" }}>
++          <Trophy size={34} style={{ color: "#f59e0b" }} />
++          <h3 style={{ margin: "10px 0 4px" }}>Journey complete! 🏆</h3>
++          <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
++            All {total} topics done. Ship projects — or restart and go deeper.
++          </p>
++        </div>
++      ) : (
++        <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
++          {topics.map((t: any, i: number) => {
++            const lectures: any[] = t.lectures || [];
++            const lidx: number = t.lecture_idx || 0;
++            const open = openKey === t.key;
++            return (
++              <div
++                key={t.key}
++                className="card"
++                style={{
++                  padding: "12px 14px",
++                  borderColor: t.status === "doing" ? "var(--accent)" : undefined,
++                }}
++              >
++                <div
++                  style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}
++                  onClick={() => setExpanded(open ? "__none__" : t.key)}
++                  title={open ? "Collapse lectures" : "Expand lectures"}
++                >
++                  <div
++                    style={{
++                      width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
++                      fontWeight: 800, fontSize: 14, flexShrink: 0,
++                      background: t.status === "done" ? "#10b981" : t.status === "doing" ? "var(--accent)" : "var(--surface-2)",
++                      color: t.status === "todo" ? "var(--muted)" : "#fff",
++                      border: t.status === "todo" ? "1px solid var(--border)" : "none",
++                    }}
++                  >
++                    {t.status === "done" ? <Check size={16} strokeWidth={3} /> : i + 1}
++                  </div>
++                  <div style={{ flex: 1, minWidth: 0 }}>
++                    <div style={{ fontWeight: 700, fontSize: 14 }}>
++                      {t.title}{" "}
++                      {t.status === "doing" && (
++                        <span className="badge" style={{ marginLeft: 6 }}>current</span>
++                      )}
++                    </div>
++                    <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
++                      {t.blurb}
++                      {t.status !== "done" && lectures.length > 0 && (
++                        <> · lecture {Math.min(lidx + 1, lectures.length)}/{lectures.length}</>
++                      )}
++                    </div>
++                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
++                      {t.seconds > 0 ? `${fmtMinutes(Math.round(t.seconds / 60))} logged` : "no time yet"}
++                    </div>
++                  </div>
++                  <ChevronDown
++                    size={18}
++                    style={{
++                      color: "var(--muted)", flexShrink: 0,
++                      transform: open ? "rotate(180deg)" : "none", transition: "transform .2s",
++                    }}
++                  />
++                </div>
++
++                {open && lectures.length > 0 && (
++                  <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
++                    {lectures.map((l: any, li: number) => {
++                      const st = t.status === "done" || li < lidx ? "done" : li === lidx ? "doing" : "todo";
++                      return (
++                        <div
++                          key={li}
++                          onClick={() => li !== lidx && setLecture(t.key, li, lectures.length)}
++                          title={li !== lidx ? "Jump here" : "Current lecture"}
++                          style={{
++                            display: "flex", gap: 10, alignItems: "center", padding: "7px 8px",
++                            borderRadius: 8, fontSize: 13.5, cursor: li !== lidx ? "pointer" : "default",
++                            background: st === "doing" ? "var(--accent-soft)" : "transparent",
++                          }}
++                        >
++                          <span
++                            style={{
++                              width: 22, height: 22, borderRadius: "50%", display: "grid", placeItems: "center",
++                              fontSize: 11, fontWeight: 700, flexShrink: 0,
++                              background: st === "done" ? "#10b981" : st === "doing" ? "var(--accent)" : "var(--surface-2)",
++                              color: st === "todo" ? "var(--muted)" : "#fff",
++                            }}
++                          >
++                            {st === "done" ? <Check size={12} strokeWidth={3} /> : li + 1}
++                          </span>
++                          <span style={{ flex: 1, color: st === "todo" ? "var(--muted)" : "var(--text)" }}>{l.title}</span>
++                          <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{fmtDur(l.secs)}</span>
++                        </div>
++                      );
++                    })}
++                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
++                      {t.status === "todo" && (
++                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "doing")}>
++                          <Play size={13} /> Start
++                        </button>
++                      )}
++                      {lidx < lectures.length && (
++                        <button className="btn btn-sm btn-primary" onClick={() => setLecture(t.key, lidx + 1, lectures.length)}>
++                          <Check size={13} /> Next lecture
++                        </button>
++                      )}
++                      {t.status !== "done" && (
++                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "done")}>
++                          Skip to done
++                        </button>
++                      )}
++                      {t.status === "done" && (
++                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "todo")}>
++                          Reopen
++                        </button>
++                      )}
++                    </div>
++                  </div>
++                )}
++              </div>
++            );
++          })}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/app/api/dsa/route.ts b/app/api/dsa/route.ts
+index c7c357c..525042a 100644
+--- a/app/api/dsa/route.ts
++++ b/app/api/dsa/route.ts
+@@ -40,12 +40,13 @@ async function payload(userId: number) {
+   return { topics, current, done, total: topics.length, total_sec };
+ }
+ 
+-/** First remaining todo becomes the new current. */
++/** First remaining todo becomes the new current (only if none exists). */
+ async function autoAdvance(db: DB, userId: number, now: string) {
+   const rows = await db.all<{ topic_key: string; status: string }>(
+     "SELECT topic_key, status FROM dsa_progress WHERE user_id = ?",
+     userId
+   );
++  if (rows.some((r) => r.status === "doing")) return;
+   const st = new Map(rows.map((r) => [r.topic_key, r.status]));
+   const next = DSA_TOPICS.map((t) => t.key).find((k) => st.get(k) === "todo");
+   if (next) {
+diff --git a/app/api/webdev/route.ts b/app/api/webdev/route.ts
+new file mode 100644
+index 0000000..aa5197e
+--- /dev/null
++++ b/app/api/webdev/route.ts
+@@ -0,0 +1,143 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getDb, ensureWebTopics, DB } from "@/lib/db";
++import { getSessionUser } from "@/lib/auth";
++import { WEBDEV_TOPICS, WEBDEV_KEY_SET, WebdevStatus } from "@/lib/webdev";
++import { WEBDEV_LECTURES } from "@/lib/webdev-lectures";
++
++export const dynamic = "force-dynamic";
++
++async function payload(userId: number) {
++  const db = await getDb();
++  await ensureWebTopics(db, userId);
++  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number }>(
++    "SELECT topic_key, status, lecture_idx FROM web_progress WHERE user_id = ?",
++    userId
++  );
++  const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
++  // Time logged per topic (sessions store the topic TITLE)
++  const times = await db.all<{ topic: string; sec: number }>(
++    "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
++    userId
++  );
++  const timeMap = new Map(times.map((t) => [t.topic, Number(t.sec) || 0]));
++  const topics = WEBDEV_TOPICS.map((t) => {
++    const lectures = WEBDEV_LECTURES[t.key] || [];
++    const status = (rowMap.get(t.key)?.status || "todo") as WebdevStatus;
++    return {
++      ...t,
++      status,
++      lectures,
++      lecture_idx: status === "done" ? lectures.length : (rowMap.get(t.key)?.lecture_idx || 0),
++      seconds: timeMap.get(t.title) || 0,
++    };
++  });
++  const current =
++    topics.find((t) => t.status === "doing")?.key ||
++    topics.find((t) => t.status === "todo")?.key ||
++    null;
++  const done = topics.filter((t) => t.status === "done").length;
++  const total_sec = topics.reduce((a, t) => a + t.seconds, 0);
++  return { topics, current, done, total: topics.length, total_sec };
++}
++
++/** First remaining todo becomes the new current (only if none exists). */
++async function autoAdvance(db: DB, userId: number, now: string) {
++  const rows = await db.all<{ topic_key: string; status: string }>(
++    "SELECT topic_key, status FROM web_progress WHERE user_id = ?",
++    userId
++  );
++  if (rows.some((r) => r.status === "doing")) return;
++  const st = new Map(rows.map((r) => [r.topic_key, r.status]));
++  const next = WEBDEV_TOPICS.map((t) => t.key).find((k) => st.get(k) === "todo");
++  if (next) {
++    await db.run(
++      "UPDATE web_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
++      now, userId, next
++    );
++  }
++}
++
++async function demoteOthers(db: DB, userId: number, now: string) {
++  await db.run(
++    "UPDATE web_progress SET status = 'todo', updated_at = ? WHERE user_id = ? AND status = 'doing'",
++    now, userId
++  );
++}
++
++export async function GET() {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  return NextResponse.json(await payload(user.id));
++}
++
++export async function PATCH(req: NextRequest) {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  const body = await req.json().catch(() => ({}));
++  const { key, status, lecture_idx } = body as { key: string; status?: WebdevStatus; lecture_idx?: number };
++  if (!key || !WEBDEV_KEY_SET.has(key)) {
++    return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
++  }
++  const db = await getDb();
++  await ensureWebTopics(db, user.id);
++  const now = new Date().toISOString();
++  const len = (WEBDEV_LECTURES[key] || []).length;
++
++  if (status !== undefined) {
++    if (!["todo", "doing", "done"].includes(status)) {
++      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
++    }
++    if (status === "doing") await demoteOthers(db, user.id, now);
++    await db.run(
++      "UPDATE web_progress SET status = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
++      status, now, user.id, key
++    );
++    if (status === "done") await autoAdvance(db, user.id, now);
++  }
++
++  if (lecture_idx !== undefined) {
++    const idx = Math.max(0, Math.min(len, Math.round(Number(lecture_idx) || 0)));
++    await db.run(
++      "UPDATE web_progress SET lecture_idx = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
++      idx, now, user.id, key
++    );
++    if (idx >= len && len > 0) {
++      // Finished last lecture → module done, journey advances
++      await db.run(
++        "UPDATE web_progress SET status = 'done', updated_at = ? WHERE user_id = ? AND topic_key = ?",
++        now, user.id, key
++      );
++      await autoAdvance(db, user.id, now);
++    } else if (idx < len) {
++      // (Re)opened mid-module → it becomes current
++      await demoteOthers(db, user.id, now);
++      await db.run(
++        "UPDATE web_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
++        now, user.id, key
++      );
++    }
++  }
++
++  return NextResponse.json(await payload(user.id));
++}
++
++export async function POST(req: NextRequest) {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  const body = await req.json().catch(() => ({}));
++  if (body.action !== "reset") {
++    return NextResponse.json({ error: "Unknown action" }, { status: 400 });
++  }
++  const db = await getDb();
++  await ensureWebTopics(db, user.id);
++  const now = new Date().toISOString();
++  await db.run(
++    "UPDATE web_progress SET status = 'todo', lecture_idx = 0, updated_at = ? WHERE user_id = ?",
++    now, user.id
++  );
++  await db.run(
++    "UPDATE web_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
++    now, user.id, WEBDEV_TOPICS[0].key
++  );
++  return NextResponse.json(await payload(user.id));
++}
+diff --git a/components/AppShell.tsx b/components/AppShell.tsx
+index 8542a4c..901b45b 100644
+--- a/components/AppShell.tsx
++++ b/components/AppShell.tsx
+@@ -5,7 +5,7 @@ import Link from "next/link";
+ import { usePathname, useRouter } from "next/navigation";
+ import {
+   LayoutDashboard, Timer, BookOpen, CalendarRange, TrendingUp, ShieldCheck,
+-  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route,
++  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route, Code2,
+ } from "lucide-react";
+ import { THEMES, useTheme, useToast } from "./Providers";
+ 
+@@ -14,6 +14,7 @@ const NAV = [
+   { href: "/timer", label: "Focus Timers", icon: Timer },
+   { href: "/subjects", label: "Subjects", icon: BookOpen },
+   { href: "/dsa", label: "DSA Journey", icon: Route },
++  { href: "/webdev", label: "Web Dev", icon: Code2 },
+   { href: "/timetable", label: "Timetable", icon: CalendarRange },
+   { href: "/progress", label: "Progress", icon: TrendingUp },
+   { href: "/sessions", label: "Sessions", icon: ListChecks },
+diff --git a/lib/db.ts b/lib/db.ts
+index e52a0b6..fa65774 100644
+--- a/lib/db.ts
++++ b/lib/db.ts
+@@ -2,6 +2,7 @@ import fs from "fs";
+ import path from "path";
+ import bcrypt from "bcryptjs";
+ import { DSA_TOPICS } from "./dsa";
++import { WEBDEV_TOPICS } from "./webdev";
+ 
+ /*
+  * Unified async data layer.
+@@ -85,9 +86,19 @@ const SCHEMA = [
+     updated_at TEXT NOT NULL,
+     UNIQUE(user_id, topic_key)
+   )`,
++  `CREATE TABLE IF NOT EXISTS web_progress (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    user_id INTEGER NOT NULL,
++    topic_key TEXT NOT NULL,
++    status TEXT NOT NULL DEFAULT 'todo',
++    lecture_idx INTEGER NOT NULL DEFAULT 0,
++    updated_at TEXT NOT NULL,
++    UNIQUE(user_id, topic_key)
++  )`,
+   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at)`,
+   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
+   `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
++  `CREATE INDEX IF NOT EXISTS idx_web_user ON web_progress(user_id)`,
+ ];
+ 
+ type Stmt = { sql: string; args: any[] };
+@@ -204,6 +215,25 @@ export async function ensureDsaTopics(db: DB, userId: number) {
+   );
+ }
+ 
++/** Seed the WebDev journey (first topic starts as current). Idempotent, 1-2 queries. */
++export async function ensureWebTopics(db: DB, userId: number) {
++  const row = await db.get<{ c: number }>(
++    "SELECT COUNT(*) as c FROM web_progress WHERE user_id = ?",
++    userId
++  );
++  if ((row?.c ?? 0) >= WEBDEV_TOPICS.length) return;
++  const now = new Date().toISOString();
++  const values = WEBDEV_TOPICS.map(() => "(?,?,?,?)").join(",");
++  const args: any[] = [];
++  for (const t of WEBDEV_TOPICS) {
++    args.push(userId, t.key, t.key === WEBDEV_TOPICS[0].key ? "doing" : "todo", now);
++  }
++  await db.run(
++    `INSERT OR IGNORE INTO web_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
++    ...args
++  );
++}
++
+ /** Guarantee an owner/admin account always exists. */
+ async function ensureOwner(db: DB) {
+   const existing = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
+@@ -222,7 +252,7 @@ async function ensureOwner(db: DB) {
+ 
+ /** Delete a user and ALL their data (admin cascade). */
+ export async function deleteUserCascade(db: DB, userId: number) {
+-  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress"]) {
++  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress"]) {
+     await db.run(`DELETE FROM ${t} WHERE user_id = ?`, userId);
+   }
+   await db.run("DELETE FROM users WHERE id = ?", userId);
+diff --git a/lib/dsa-lectures.ts b/lib/dsa-lectures.ts
+index 919768d..762c198 100644
+--- a/lib/dsa-lectures.ts
++++ b/lib/dsa-lectures.ts
+@@ -1,6 +1,68 @@
+-/* Lecture list per module — generated from course-syllabus.txt. Do not hand-edit. */
+-export interface DsaLecture { title: string; secs: number }
+-export const DSA_LECTURES: Record<string, DsaLecture[]> = {
++/* Lecture list per module — generated. Do not hand-edit. */
++export interface JourneyLecture { title: string; secs: number }
++export const DSA_LECTURES: Record<string, JourneyLecture[]> = {
++  "flowcharts-pseudocode": [
++    { title: "What are Flowcharts?", secs: 359 },
++    { title: "Components of Flowchart", secs: 338 },
++    { title: "Sum of 2 Numbers", secs: 302 },
++    { title: "Calculate Simple Interest", secs: 171 },
++    { title: "Max of 2 Numbers", secs: 327 },
++    { title: "Print N Natural Numbers", secs: 547 },
++    { title: "Sum of N Natural Numbers", secs: 562 },
++  ],
++  "variables-data-types": [
++    { title: "Boilerplate Code in C++", secs: 402 },
++    { title: "How does code run?", secs: 323 },
++    { title: "Preprocessor Directive", secs: 349 },
++    { title: "Main Function in C++", secs: 123 },
++    { title: "What is Namespace?", secs: 406 },
++    { title: "Output in C++", secs: 514 },
++    { title: "Print the Pattern", secs: 127 },
++    { title: "Variables in C++", secs: 769 },
++    { title: "Naming Conventions", secs: 230 },
++    { title: "Identify Valid Names", secs: 114 },
++    { title: "Data Types in C++", secs: 755 },
++    { title: "Comments", secs: 156 },
++    { title: "Input in C++", secs: 355 },
++    { title: "Print Average Marks", secs: 223 },
++  ],
++  "operators": [
++    { title: "Constants", secs: 476 },
++    { title: "Implicit Type Conversion", secs: 377 },
++    { title: "Explicit Typecasting", secs: 163 },
++    { title: "Practice Qs", secs: 196 },
++    { title: "Arithmetic Operators", secs: 322 },
++    { title: "Unary Arithmetic Operators", secs: 384 },
++    { title: "Assignment Operators", secs: 216 },
++    { title: "Relational Operators", secs: 243 },
++    { title: "Logical Operators", secs: 355 },
++  ],
++  "conditional-statements": [
++    { title: "If else Statements", secs: 507 },
++    { title: "Practice Qs", secs: 347 },
++    { title: "Else if Statements", secs: 264 },
++    { title: "Practice Qs", secs: 262 },
++    { title: "Practice Qs", secs: 166 },
++    { title: "Ternary Operator", secs: 312 },
++    { title: "Switch Statement", secs: 393 },
++    { title: "Build a Calculator", secs: 408 },
++  ],
++  "loops": [
++    { title: "for Loop (in Detail)", secs: 1038 },
++    { title: "Print \"apna college\"", secs: 303 },
++    { title: "Print N Natural Numbers", secs: 162 },
++    { title: "Sum of N Natural Numbers", secs: 210 },
++    { title: "while Loop", secs: 239 },
++    { title: "Practice Qs", secs: 329 },
++    { title: "Practice Qs", secs: 1131 },
++    { title: "do while Loop", secs: 255 },
++    { title: "break Statement", secs: 102 },
++    { title: "Practice Qs (break)", secs: 196 },
++    { title: "continue Statement", secs: 93 },
++    { title: "Practice Qs (continue)", secs: 75 },
++    { title: "Check for Prime", secs: 767 },
++    { title: "Check for Prime (Optimized)", secs: 467 },
++  ],
+   "patterns": [
+     { title: "Nested Loops", secs: 777 },
+     { title: "Nested Loops (Dry Run)", secs: 638 },
+diff --git a/lib/dsa.ts b/lib/dsa.ts
+index 560c7c8..441ca68 100644
+--- a/lib/dsa.ts
++++ b/lib/dsa.ts
+@@ -1,18 +1,18 @@
+-/* DSA Journey roadmap — Apna College C++ course order.
+- * One entry per course module. Blurb = lecture count + video time.
+- * Topic TITLES are stored on sessions (human-readable in CSV/exports),
+- * so don't rename a title casually — old logs won't match anymore.
+- */
++/* DSA roadmap — course order. Blurb = lecture count + video time.
++ * Topic TITLES are stored on sessions, so don't rename casually.
++ * Generated from syllabus txt. Do not hand-edit. */
+ 
+-export type DsaStatus = "todo" | "doing" | "done";
++export type JourneyStatus = "todo" | "doing" | "done";
++export type DsaStatus = JourneyStatus;
+ 
+-export interface DsaTopicMeta {
+-  key: string;
+-  title: string;
+-  blurb: string;
+-}
++export interface JourneyTopicMeta { key: string; title: string; blurb: string }
+ 
+-export const DSA_TOPICS: DsaTopicMeta[] = [
++export const DSA_TOPICS: JourneyTopicMeta[] = [
++  { key: "flowcharts-pseudocode", title: "Flowcharts & Pseudocode", blurb: "7 lectures · 43m of videos" },
++  { key: "variables-data-types", title: "Variables & Data Types", blurb: "14 lectures · 1h 20m of videos" },
++  { key: "operators", title: "Operators", blurb: "9 lectures · 45m of videos" },
++  { key: "conditional-statements", title: "Conditional Statements", blurb: "8 lectures · 44m of videos" },
++  { key: "loops", title: "Loops", blurb: "14 lectures · 1h 29m of videos" },
+   { key: "patterns", title: "Patterns", blurb: "11 lectures · 1h 43m of videos" },
+   { key: "functions", title: "Functions", blurb: "11 lectures · 1h 2m of videos" },
+   { key: "binary-number-system", title: "Binary Number System", blurb: "8 lectures · 47m of videos" },
+@@ -63,9 +63,3 @@ export const DSA_TOPICS: DsaTopicMeta[] = [
+ ];
+ 
+ export const DSA_KEY_SET = new Set(DSA_TOPICS.map((t) => t.key));
+-
+-/** Timers treat any subject with "DSA" in its name as the DSA subject. */
+-export const isDsaSubjectName = (name?: string | null) => /dsa/i.test(name || "");
+-
+-export const topicTitle = (key: string) =>
+-  DSA_TOPICS.find((t) => t.key === key)?.title ?? key;
+diff --git a/lib/webdev-lectures.ts b/lib/webdev-lectures.ts
+new file mode 100644
+index 0000000..13714f8
+--- /dev/null
++++ b/lib/webdev-lectures.ts
+@@ -0,0 +1,868 @@
++/* Lecture list per module — generated. Do not hand-edit. */
++export interface JourneyLecture { title: string; secs: number }
++export const WEBDEV_LECTURES: Record<string, JourneyLecture[]> = {
++  "introduction": [
++    { title: "Welcome to Delta!", secs: 564 },
++    { title: "What is the Internet?", secs: 669 },
++    { title: "What is Web Development?", secs: 577 },
++    { title: "What will we learn?", secs: 112 },
++  ],
++  "prerequisites": [
++    { title: "Prerequisites", secs: 362 },
++  ],
++  "live-sessions": [
++    { title: "Orientation Session (Recording)", secs: 6720 },
++    { title: "Extra Live Session 1 (Recording)", secs: 7740 },
++    { title: "Extra Live Session 2 (Recording)", secs: 4500 },
++    { title: "Linkedin Mentorship Session by Aman sir", secs: 11640 },
++    { title: "Placement & Internships Season 2025-26", secs: 10740 },
++    { title: "GSoC Mentorship Session", secs: 10380 },
++    { title: "Resume Building Mentorship Session", secs: 9120 },
++  ],
++  "html-level-1-part-a": [
++    { title: "Introduction to HTML", secs: 282 },
++    { title: "HTML Elements & Tags", secs: 269 },
++    { title: "Hello World", secs: 466 },
++    { title: "Paragraph Element", secs: 262 },
++    { title: "Heading Elements", secs: 278 },
++    { title: "Practice Qs", secs: 403 },
++    { title: "Boilerplate Code", secs: 721 },
++  ],
++  "html-level-1-part-b": [
++    { title: "Lists in HTML", secs: 348 },
++    { title: "Attributes in HTML", secs: 154 },
++    { title: "Anchor Element", secs: 444 },
++    { title: "Image Element", secs: 674 },
++    { title: "Practice Qs", secs: 244 },
++    { title: "More HTML Tags", secs: 260 },
++    { title: "Comments in HTML", secs: 491 },
++    { title: "Is HTML Case Sensitive?", secs: 182 },
++    { title: "Practice Qs", secs: 693 },
++  ],
++  "html-level-2": [
++    { title: "Inline v/s Block", secs: 625 },
++    { title: "Div Element", secs: 296 },
++    { title: "Span Element", secs: 159 },
++    { title: "Hr Tag", secs: 188 },
++    { title: "Sup & Sub Tags", secs: 272 },
++    { title: "Practice Qs", secs: 112 },
++    { title: "Semantic Markup", secs: 412 },
++    { title: "Semantic Tags", secs: 617 },
++    { title: "Practice Qs", secs: 247 },
++    { title: "HTML Entities", secs: 665 },
++    { title: "Practice Qs", secs: 172 },
++    { title: "Emmets", secs: 719 },
++    { title: "Further Understanding HTML", secs: 321 },
++  ],
++  "html-level-3": [
++    { title: "Tables in HTML", secs: 852 },
++    { title: "Semantics in Tables", secs: 182 },
++    { title: "Colspan & Rowspan Attributes", secs: 585 },
++    { title: "Practice Qs", secs: 474 },
++    { title: "Forms in HTML", secs: 312 },
++    { title: "Input - Form Element", secs: 480 },
++    { title: "Placeholders & Labels", secs: 571 },
++    { title: "Button Element", secs: 585 },
++    { title: "Name Attribute", secs: 624 },
++    { title: "Practice Qs", secs: 169 },
++    { title: "Checkbox - Input Element", secs: 247 },
++    { title: "Radio - Input Element", secs: 527 },
++    { title: "Select - Input Element", secs: 253 },
++    { title: "Range - Input Element", secs: 304 },
++    { title: "Text Area", secs: 197 },
++    { title: "Practice Qs", secs: 406 },
++  ],
++  "css-getting-started": [
++    { title: "What is CSS?", secs: 431 },
++    { title: "Basic CSS Format", secs: 262 },
++    { title: "Including CSS", secs: 891 },
++    { title: "Color Property", secs: 343 },
++    { title: "Background Color Property", secs: 154 },
++    { title: "Practice Qs", secs: 183 },
++    { title: "Color Systems (Name & RGB)", secs: 770 },
++    { title: "Hex Codes", secs: 681 },
++    { title: "Practice Qs", secs: 114 },
++    { title: "Text Align Property", secs: 602 },
++    { title: "Font Weight & Text Decoration", secs: 632 },
++    { title: "Line Height & Letter Spacing", secs: 276 },
++    { title: "Units in CSS (Pixel)", secs: 420 },
++    { title: "Font Family", secs: 421 },
++    { title: "Practice Qs", secs: 404 },
++  ],
++  "css-part-2": [
++    { title: "How to download?", secs: 40 },
++    { title: "Universal Selector", secs: 395 },
++    { title: "Element Selector", secs: 157 },
++    { title: "Id Selector", secs: 250 },
++    { title: "Class Selector", secs: 270 },
++    { title: "Practice Qs", secs: 325 },
++    { title: "Descendant Selector", secs: 484 },
++    { title: "Sibling Combinator", secs: 291 },
++    { title: "Child Combinator", secs: 239 },
++    { title: "Attribute Selector", secs: 291 },
++    { title: "Practice Qs", secs: 206 },
++    { title: "Pseudo Class", secs: 981 },
++    { title: "Pseudo Element", secs: 291 },
++    { title: "Cascading & Specificity", secs: 882 },
++    { title: "Practice Qs", secs: 377 },
++    { title: "!important in CSS", secs: 99 },
++    { title: "Inheritance", secs: 901 },
++  ],
++  "css-part-3": [
++    { title: "Box Model", secs: 268 },
++    { title: "Height & Width", secs: 454 },
++    { title: "Border", secs: 549 },
++    { title: "Border Radius", secs: 337 },
++    { title: "Padding Property", secs: 707 },
++    { title: "Margin Property", secs: 384 },
++    { title: "Practice Qs", secs: 421 },
++    { title: "Display Property", secs: 721 },
++    { title: "Inline-Block", secs: 245 },
++    { title: "Relative Units (Percentage)", secs: 427 },
++    { title: "Em & Rem in Units", secs: 766 },
++  ],
++  "css-part-4": [
++    { title: "Alpha & Opacity", secs: 459 },
++    { title: "Transitions in CSS", secs: 605 },
++    { title: "Transform - Rotate", secs: 302 },
++    { title: "Tranform - Scale", secs: 192 },
++    { title: "Transform - Translate", secs: 113 },
++    { title: "Transform - Skew", secs: 169 },
++    { title: "Box Shadow", secs: 201 },
++    { title: "Background Image", secs: 271 },
++    { title: "Card Hover Effect", secs: 502 },
++    { title: "Position Property", secs: 855 },
++    { title: "Simple Smiley Face", secs: 766 },
++  ],
++  "css-part-5": [
++    { title: "What is Flexbox?", secs: 403 },
++    { title: "Display Flex", secs: 490 },
++    { title: "Flex Direction", secs: 279 },
++    { title: "Justify Content", secs: 484 },
++    { title: "Flex Wrap", secs: 303 },
++    { title: "Align Items", secs: 323 },
++    { title: "Align Content", secs: 200 },
++    { title: "Align Self", secs: 146 },
++    { title: "Flex Sizing", secs: 669 },
++    { title: "Flex Shorthand", secs: 194 },
++  ],
++  "css-part-6": [
++    { title: "What is Grid?", secs: 380 },
++    { title: "Grid Model", secs: 215 },
++    { title: "Grid Template", secs: 529 },
++    { title: "Grid Template (repeat)", secs: 291 },
++    { title: "Grid Gaps", secs: 190 },
++    { title: "Grid Columns", secs: 290 },
++    { title: "Grid Rows", secs: 150 },
++    { title: "Grid Properties", secs: 323 },
++    { title: "Animation in CSS", secs: 672 },
++    { title: "Animation Shorthand", secs: 150 },
++    { title: "% in Animation", secs: 108 },
++    { title: "Media Queries", secs: 792 },
++    { title: "Media Queries (Orientation)", secs: 91 },
++    { title: "Pet Adoption Page", secs: 501 },
++    { title: "z-index", secs: 572 },
++  ],
++  "mini-project-css": [
++    { title: "Color Theory", secs: 741 },
++    { title: "Typography", secs: 212 },
++    { title: "Google Fonts", secs: 398 },
++    { title: "Icons", secs: 336 },
++    { title: "Introduction", secs: 443 },
++    { title: "Setting Style", secs: 409 },
++    { title: "Sidebar Menu", secs: 908 },
++    { title: "Hover Changes", secs: 244 },
++    { title: "Configuring Checkbox", secs: 460 },
++  ],
++  "bootstrap": [
++    { title: "What is Bootstrap?", secs: 740 },
++    { title: "Using Bootstrap", secs: 547 },
++    { title: "Container (Layout)", secs: 373 },
++    { title: "Button (Component)", secs: 401 },
++    { title: "Badge (Component)", secs: 331 },
++    { title: "Alert (Component)", secs: 385 },
++    { title: "Button Group (Component)", secs: 198 },
++    { title: "Navbar (Component)", secs: 971 },
++    { title: "Card (Component)", secs: 235 },
++    { title: "Grid (Layout)", secs: 769 },
++    { title: "Grid (Vertical Alignment)", secs: 170 },
++    { title: "Form Controls in Bootstrap", secs: 382 },
++    { title: "Select in Form", secs: 150 },
++    { title: "Checkbox & Radio in Form", secs: 229 },
++    { title: "Form Layout", secs: 143 },
++  ],
++  "project-css": [
++    { title: "Setting up", secs: 467 },
++    { title: "Basics", secs: 679 },
++    { title: "Layout", secs: 568 },
++    { title: "Sidebar (Nav)", secs: 631 },
++    { title: "Sidebar (Library)", secs: 592 },
++    { title: "Library Boxes", secs: 773 },
++    { title: "Sticky Nav", secs: 883 },
++    { title: "Cards", secs: 815 },
++    { title: "Footer Line", secs: 233 },
++    { title: "Setting up Player", secs: 428 },
++    { title: "Player Controls", secs: 321 },
++    { title: "Playback Bar", secs: 693 },
++    { title: "Tailwind CSS", secs: 45 },
++  ],
++  "javascript-part-1": [
++    { title: "Introduction", secs: 266 },
++    { title: "Using the Console", secs: 459 },
++    { title: "What is a Variable?", secs: 458 },
++    { title: "Data Types in JS", secs: 357 },
++    { title: "Numbers in JS", secs: 434 },
++    { title: "Operations in JS", secs: 443 },
++    { title: "NaN in JS", secs: 153 },
++    { title: "Operator Precedence", secs: 379 },
++    { title: "let, const & var Keywords", secs: 842 },
++    { title: "Practice Qs", secs: 311 },
++    { title: "Assignment Operators", secs: 163 },
++    { title: "Unary Operators", secs: 448 },
++    { title: "Practice Qs", secs: 135 },
++    { title: "Identifier Rules", secs: 459 },
++    { title: "Boolean in JS", secs: 221 },
++    { title: "What is TypeScript?", secs: 136 },
++    { title: "Practice Qs", secs: 103 },
++    { title: "String in JS", secs: 422 },
++    { title: "String Indices", secs: 572 },
++    { title: "null & undefined in JS", secs: 274 },
++    { title: "Practice Qs", secs: 293 },
++  ],
++  "javascript-part-2": [
++    { title: "console.log( )", secs: 297 },
++    { title: "Linking JS File", secs: 483 },
++    { title: "Template Literals", secs: 426 },
++    { title: "Operators in JS", secs: 370 },
++    { title: "Comparison Operators", secs: 606 },
++    { title: "Comparison for Non-numbers", secs: 271 },
++    { title: "Conditional Statements", secs: 190 },
++    { title: "if Statement", secs: 489 },
++    { title: "Practice Qs", secs: 320 },
++    { title: "else if Statement", secs: 520 },
++    { title: "else Statement", secs: 226 },
++    { title: "Practice Qs", secs: 236 },
++    { title: "Nested if-else", secs: 169 },
++    { title: "Logical Operators", secs: 692 },
++    { title: "Practice Qs", secs: 734 },
++    { title: "truthy & falsy", secs: 449 },
++    { title: "Switch Statement", secs: 485 },
++    { title: "Practice Qs", secs: 265 },
++    { title: "Alerts & Prompts", secs: 548 },
++  ],
++  "javascript-part-3": [
++    { title: "String Methods", secs: 158 },
++    { title: "Trim Method", secs: 317 },
++    { title: "Strings are Immutable in JS", secs: 81 },
++    { title: "ToUpperCase and ToLowerCase", secs: 119 },
++    { title: "Methods with Arguments - indexOf", secs: 290 },
++    { title: "Method Chaining", secs: 168 },
++    { title: "Slice Method", secs: 398 },
++    { title: "Replace & Repeat Method", secs: 244 },
++    { title: "Practice Qs", secs: 480 },
++    { title: "Array (Data Structure)", secs: 370 },
++    { title: "Visualizing Arrays", secs: 245 },
++    { title: "Creating Arrays", secs: 263 },
++    { title: "Arrays are Mutable", secs: 250 },
++    { title: "Array Methods", secs: 422 },
++    { title: "Practice Qs", secs: 191 },
++    { title: "indexOf & includes Method", secs: 227 },
++    { title: "Concatenation & Reverse", secs: 258 },
++    { title: "Slice in Arrays", secs: 324 },
++    { title: "Splice in Arrays", secs: 548 },
++    { title: "Sort in Arrays", secs: 196 },
++    { title: "Practice Qs", secs: 264 },
++    { title: "Arrays References", secs: 594 },
++    { title: "Constant Arrays", secs: 288 },
++    { title: "Nested Arrays", secs: 401 },
++    { title: "Practice Qs", secs: 292 },
++  ],
++  "javascript-part-4": [
++    { title: "for Loops", secs: 476 },
++    { title: "Dry Run", secs: 560 },
++    { title: "Print Odd Numbers", secs: 328 },
++    { title: "Print Even Numbers", secs: 226 },
++    { title: "Infinite Loops", secs: 239 },
++    { title: "Print Multiplication Table", secs: 326 },
++    { title: "Nested for Loop", secs: 538 },
++    { title: "while Loops", secs: 299 },
++    { title: "Favorite Movie", secs: 652 },
++    { title: "break Keyword", secs: 252 },
++    { title: "Loops with Arrays", secs: 420 },
++    { title: "Loops with Nested Arrays", secs: 512 },
++    { title: "for-of Loops", secs: 254 },
++    { title: "Nested for-of Loop", secs: 98 },
++    { title: "Todo App (only JS)", secs: 882 },
++  ],
++  "javascript-part-5": [
++    { title: "Object Literals", secs: 239 },
++    { title: "Creating Object Literals", secs: 463 },
++    { title: "Creating a Post", secs: 178 },
++    { title: "Get Values", secs: 266 },
++    { title: "Conversion in Get Values", secs: 265 },
++    { title: "Add / Update Values", secs: 320 },
++    { title: "Nested Objects", secs: 228 },
++    { title: "Array of Objects", secs: 225 },
++    { title: "Math Object", secs: 485 },
++    { title: "Random Integers", secs: 384 },
++    { title: "Practice Qs", secs: 179 },
++    { title: "Guessing Game", secs: 876 },
++  ],
++  "javascript-part-6": [
++    { title: "What are functions?", secs: 536 },
++    { title: "Practice Qs1", secs: 71 },
++    { title: "Practice Qs 2", secs: 207 },
++    { title: "Functions with Arguments", secs: 478 },
++    { title: "Practice Qs 3", secs: 206 },
++    { title: "Practice Qs 4", secs: 154 },
++    { title: "return Keyword", secs: 604 },
++    { title: "Practice Qs 5", secs: 226 },
++    { title: "Practice Qs 6", secs: 261 },
++    { title: "What is Scope?", secs: 349 },
++    { title: "Block Scope", secs: 249 },
++    { title: "Lexical Scope", secs: 297 },
++    { title: "Practice Qs 7", secs: 291 },
++    { title: "Functions Expressions", secs: 235 },
++    { title: "Higher Order Functions", secs: 348 },
++    { title: "Higher Order Functions (Returns)", secs: 413 },
++    { title: "Methods", secs: 422 },
++  ],
++  "javascript-part-7": [
++    { title: "'this' in JavaScript", secs: 491 },
++    { title: "Try & Catch", secs: 385 },
++    { title: "Arrow Functions", secs: 518 },
++    { title: "Implicit Return in Arrow Functions", secs: 272 },
++    { title: "Set TimeOut Function", secs: 318 },
++    { title: "Set Interval Function", secs: 236 },
++    { title: "this with Arrow Functions", secs: 805 },
++    { title: "Practice Qs", secs: 329 },
++  ],
++  "javascript-part-8": [
++    { title: "Array Methods", secs: 285 },
++    { title: "Map & Filter", secs: 477 },
++    { title: "Every & Sum", secs: 159 },
++    { title: "Reduce Method", secs: 604 },
++    { title: "Maximum in Array", secs: 287 },
++    { title: "Practice Qs", secs: 260 },
++    { title: "Default Parameters", secs: 265 },
++    { title: "Spread", secs: 295 },
++    { title: "Spread (Array Literals)", secs: 210 },
++    { title: "Spread (Object Literals)", secs: 269 },
++    { title: "Rest", secs: 631 },
++    { title: "Destructuring", secs: 237 },
++    { title: "Destructuring (Objects)", secs: 354 },
++  ],
++  "javascript-part-9": [
++    { title: "Introduction", secs: 102 },
++    { title: "What is DOM?", secs: 292 },
++    { title: "Download Starter Code", secs: 568 },
++    { title: "Selecting Element by ID", secs: 378 },
++    { title: "Selecting Elements by Class Name", secs: 326 },
++    { title: "Selecting Elements by Tag Name", secs: 130 },
++    { title: "Query Selectors", secs: 379 },
++    { title: "Setting Content in Objects", secs: 647 },
++    { title: "Manipulating Attributes", secs: 280 },
++    { title: "Manipulating Style (with style attribute)", secs: 518 },
++    { title: "classList Property", secs: 726 },
++    { title: "Navigation on Page", secs: 506 },
++    { title: "Adding Elements on Page", secs: 740 },
++    { title: "Removing Elements from Page", secs: 107 },
++    { title: "Practice Qs", secs: 409 },
++  ],
++  "javascript-part-10": [
++    { title: "DOM Events", secs: 309 },
++    { title: "Mouse/ Pointer Events", secs: 536 },
++    { title: "Event Listeners", secs: 412 },
++    { title: "Activity", secs: 618 },
++    { title: "Event Listeners for Elements", secs: 163 },
++    { title: "this in Event Listeners", secs: 469 },
++    { title: "Keyboard Events", secs: 901 },
++    { title: "Form Events", secs: 250 },
++    { title: "Extracting Form Data", secs: 575 },
++    { title: "More Events", secs: 475 },
++  ],
++  "javascript-mini-project": [
++    { title: "Event Bubbling", secs: 214 },
++    { title: "Building Todo with DOM", secs: 688 },
++    { title: "Event Delegation", secs: 521 },
++    { title: "What is Simon Say Game?", secs: 0 },
++    { title: "Setting up Project", secs: 551 },
++    { title: "Start Game", secs: 493 },
++    { title: "Flash Buttons & Level Up", secs: 521 },
++    { title: "Button Event Listeners", secs: 309 },
++    { title: "Matching Sequence", secs: 806 },
++    { title: "Reset Game", secs: 147 },
++    { title: "Display Score", secs: 242 },
++  ],
++  "javascript-part-11": [
++    { title: "JS Call Stack", secs: 659 },
++    { title: "Visualizing the Call stack", secs: 414 },
++    { title: "Breakpoints", secs: 446 },
++    { title: "JS is Single Threaded", secs: 649 },
++    { title: "Callback Hell", secs: 699 },
++    { title: "Setting up for Promises", secs: 680 },
++    { title: "Refactoring with Promises", secs: 474 },
++    { title: "then( ) and catch( ) methods", secs: 291 },
++    { title: "Promise chaining", secs: 450 },
++    { title: "Results & Errors in Promises", secs: 206 },
++    { title: "Refactoring old code", secs: 456 },
++  ],
++  "javascript-part-12": [
++    { title: "async Functions", secs: 452 },
++    { title: "await Keyword", secs: 476 },
++    { title: "Handing Rejections", secs: 272 },
++    { title: "What is an API?", secs: 389 },
++    { title: "Accessing some APIs", secs: 471 },
++    { title: "What is JSON?", secs: 294 },
++    { title: "Accessing JSON data", secs: 282 },
++    { title: "API Testing Tools", secs: 269 },
++    { title: "What is Ajax?", secs: 195 },
++    { title: "Https Verbs", secs: 100 },
++    { title: "Status Codes", secs: 179 },
++    { title: "Adding Information in URLs", secs: 685 },
++    { title: "Https Headers", secs: 407 },
++    { title: "Our First API request", secs: 639 },
++    { title: "Using Fetch with async-await", secs: 206 },
++  ],
++  "javascript-part-13": [
++    { title: "Using Axios", secs: 566 },
++    { title: "DogPictures API", secs: 321 },
++    { title: "Sending Headers with API requests", secs: 165 },
++    { title: "Activity using Query Strings", secs: 779 },
++  ],
++  "terminal": [
++    { title: "What is the Terminal?", secs: 297 },
++    { title: "Different Terms related to Terminal", secs: 348 },
++    { title: "(Window Users Only) Installing Git Bash", secs: 166 },
++    { title: "Basic Commands", secs: 332 },
++    { title: "Navigation Commands", secs: 357 },
++    { title: "Paths in Navigation", secs: 290 },
++    { title: "Making Directories", secs: 275 },
++    { title: "What are Flags?", secs: 410 },
++    { title: "Touch Command", secs: 157 },
++    { title: "Deleting Files & Folders", secs: 375 },
++  ],
++  "git-github": [
++    { title: "What is Git & Github?", secs: 515 },
++    { title: "Creating a Github Account", secs: 153 },
++    { title: "Using Github", secs: 851 },
++    { title: "Using Git", secs: 171 },
++    { title: "Configuring Git", secs: 133 },
++    { title: "Git with VSCode", secs: 130 },
++    { title: "Clone command", secs: 359 },
++    { title: "Status command", secs: 287 },
++    { title: "Add & Commit Commands", secs: 363 },
++    { title: "Push command", secs: 268 },
++    { title: "Init Command", secs: 137 },
++    { title: "Pushing Local repo", secs: 652 },
++    { title: "Workflow", secs: 86 },
++    { title: "Git branches", secs: 382 },
++    { title: "Branch Commands", secs: 178 },
++    { title: "Merging Branches", secs: 596 },
++    { title: "Pull command", secs: 122 },
++    { title: "Merge Conflicts", secs: 352 },
++    { title: "Fixing Mistakes", secs: 370 },
++    { title: "What is Forking?", secs: 371 },
++  ],
++  "backend-1-node-js": [
++    { title: "What is node.js?", secs: 205 },
++    { title: "Node Installation", secs: 110 },
++    { title: "Node REPL", secs: 214 },
++    { title: "Node Files", secs: 154 },
++    { title: "Process in Node", secs: 416 },
++    { title: "Export in Files", secs: 592 },
++    { title: "Export in Directories", secs: 377 },
++    { title: "What is npm?", secs: 240 },
++    { title: "Installing Packages", secs: 592 },
++    { title: "package.json", secs: 509 },
++    { title: "Local v/s Global Installation", secs: 200 },
++    { title: "import modules", secs: 495 },
++  ],
++  "backend-2-node-express": [
++    { title: "What is Express?", secs: 259 },
++    { title: "Getting started with Express", secs: 636 },
++    { title: "Handling requests", secs: 255 },
++    { title: "Sending a Response", secs: 405 },
++    { title: "Routing", secs: 543 },
++    { title: "Installing Nodemon", secs: 163 },
++    { title: "Path Parameters", secs: 404 },
++    { title: "Query Strings", secs: 342 },
++  ],
++  "backend-3-node-ejs": [
++    { title: "What is Templating?", secs: 397 },
++    { title: "Using EJS", secs: 558 },
++    { title: "Views Directory", secs: 123 },
++    { title: "Interpolation Syntax", secs: 402 },
++    { title: "Passing data to EJS", secs: 287 },
++    { title: "Instagram EJS", secs: 246 },
++    { title: "Conditional Statements", secs: 219 },
++    { title: "Loops", secs: 214 },
++    { title: "Instagram Page with EJS", secs: 826 },
++    { title: "Serving Static Files", secs: 564 },
++    { title: "Includes", secs: 440 },
++  ],
++  "miscellaneous": [
++    { title: "GET & POST Request", secs: 797 },
++    { title: "Handling POST requests", secs: 370 },
++    { title: "Revisiting JS (OOPS)", secs: 489 },
++    { title: "Object Prototypes", secs: 804 },
++    { title: "Factory Functions", secs: 331 },
++    { title: "New Operator", secs: 600 },
++    { title: "Classes in JS", secs: 219 },
++    { title: "Inheritance", secs: 788 },
++  ],
++  "backend-4-rest": [
++    { title: "What is REST?", secs: 663 },
++    { title: "CRUD Operations", secs: 194 },
++    { title: "Creating RESTful APIs", secs: 465 },
++    { title: "Index Route", secs: 523 },
++    { title: "Create & New Route", secs: 576 },
++    { title: "Redirect", secs: 297 },
++    { title: "Show Route", secs: 629 },
++    { title: "Creating Ids (UUID)", secs: 255 },
++    { title: "Update Route", secs: 396 },
++    { title: "Edit Route", secs: 843 },
++    { title: "Destroy Route", secs: 482 },
++  ],
++  "starting-with-sql": [
++    { title: "What is a Database?", secs: 318 },
++    { title: "SQL v/s NoSQL", secs: 388 },
++    { title: "What is SQL?", secs: 346 },
++    { title: "What is a Table?", secs: 232 },
++    { title: "(For Windows) Installation", secs: 232 },
++    { title: "(For Mac) Installation", secs: 269 },
++    { title: "Our First Database", secs: 432 },
++    { title: "Our First Table", secs: 280 },
++    { title: "Database Queries", secs: 199 },
++    { title: "CREATE Table", secs: 538 },
++    { title: "What are Constraints?", secs: 340 },
++    { title: "Key Constraints", secs: 669 },
++    { title: "Primary & Foreign Keys", secs: 197 },
++    { title: "INSERT into Table", secs: 337 },
++    { title: "SELECT Command", secs: 165 },
++  ],
++  "sql-part-2": [
++    { title: "Where Clause", secs: 160 },
++    { title: "Operators in Where", secs: 285 },
++    { title: "Frequently Used Operators", secs: 389 },
++    { title: "Limit Clause", secs: 98 },
++    { title: "Order By Clause", secs: 137 },
++    { title: "Aggregate Functions", secs: 230 },
++    { title: "Group By Clause", secs: 302 },
++    { title: "Having Clause", secs: 153 },
++    { title: "General Order", secs: 80 },
++    { title: "UPDATE Table", secs: 183 },
++    { title: "DELETE Table", secs: 68 },
++    { title: "ALTER Table", secs: 430 },
++    { title: "TRUNCATE Table", secs: 211 },
++    { title: "Practice Qs1", secs: 540 },
++    { title: "Practice Qs2", secs: 461 },
++  ],
++  "backend-5-node-with-sql": [
++    { title: "Using Faker", secs: 357 },
++    { title: "MySQL Package", secs: 804 },
++    { title: "Using SQL from CLI", secs: 189 },
++    { title: "CREATE Table user", secs: 358 },
++    { title: "INSERT INTO user", secs: 419 },
++    { title: "Insert in Bulk", secs: 286 },
++    { title: "Routing", secs: 253 },
++    { title: "Home Route", secs: 487 },
++    { title: "Add Template", secs: 287 },
++    { title: "Show Route", secs: 486 },
++    { title: "Edit Route", secs: 756 },
++    { title: "Update Route", secs: 793 },
++  ],
++  "mongodb-part-1": [
++    { title: "The Mongo Shell", secs: 502 },
++    { title: "How we store data? (BSON)", secs: 185 },
++    { title: "Document & Collection", secs: 168 },
++    { title: "INSERT in DB (InsertOne)", secs: 455 },
++    { title: "INSERT in DB (InsertMany)", secs: 107 },
++    { title: "FIND in DB", secs: 335 },
++    { title: "Query Operators", secs: 523 },
++    { title: "UPDATE in DB", secs: 440 },
++    { title: "Nesting", secs: 161 },
++    { title: "DELETE in DB", secs: 252 },
++  ],
++  "mongodb-part-2": [
++    { title: "What is mongoose?", secs: 163 },
++    { title: "Installation & Setup", secs: 626 },
++    { title: "Schema", secs: 290 },
++    { title: "Models", secs: 373 },
++    { title: "Insert in Mongoose", secs: 448 },
++    { title: "Insert Multiple", secs: 286 },
++    { title: "Find in Mongoose", secs: 479 },
++    { title: "Update in Mongoose", secs: 256 },
++    { title: "FindAndUpdate", secs: 221 },
++    { title: "Delete in Mongoose", secs: 245 },
++    { title: "Schema Validations", secs: 867 },
++    { title: "SchemaType Options", secs: 535 },
++    { title: "Validation in Updation & Errors", secs: 368 },
++  ],
++  "mongodb-with-express": [
++    { title: "Basic Set Up", secs: 353 },
++    { title: "Creating our Model (Chat)", secs: 700 },
++    { title: "Initialize Database", secs: 259 },
++    { title: "Index Route", secs: 714 },
++    { title: "New Route", secs: 375 },
++    { title: "Create Route", secs: 392 },
++    { title: "Using Date", secs: 360 },
++    { title: "Edit Route", secs: 421 },
++    { title: "Update Route", secs: 488 },
++    { title: "Destroy Route", secs: 328 },
++  ],
++  "project-phase-1-part-a": [
++    { title: "Basic Set up", secs: 535 },
++    { title: "Listing Model", secs: 949 },
++    { title: "Initialize Database", secs: 321 },
++    { title: "Index Route", secs: 434 },
++    { title: "READ (Show Route)", secs: 344 },
++    { title: "CREATE (New & Create Route)", secs: 631 },
++    { title: "UPDATE (Edit & Update Route)", secs: 572 },
++    { title: "DELETE (Delete Route)", secs: 177 },
++  ],
++  "project-phase-1-part-b": [
++    { title: "Creating Boilerplate", secs: 576 },
++    { title: "Navbar", secs: 705 },
++    { title: "Footer", secs: 566 },
++    { title: "Styling Index", secs: 873 },
++    { title: "Styling New Listing", secs: 625 },
++    { title: "Styling Edit Listing", secs: 287 },
++    { title: "Styling Show Listing", secs: 577 },
++  ],
++  "backend-6-middlewares": [
++    { title: "What are Middlewares?", secs: 464 },
++    { title: "Our 1st Middleware", secs: 405 },
++    { title: "Using next( )", secs: 492 },
++    { title: "Creating Utility Middleware", secs: 487 },
++    { title: "Exploring app.use( )", secs: 346 },
++    { title: "API Token as Query String", secs: 271 },
++    { title: "Passing multiple Middlewares", secs: 77 },
++    { title: "Error Handling (Express Default)", secs: 474 },
++  ],
++  "backend-7-errors": [
++    { title: "Error Handling Middleware", secs: 386 },
++    { title: "Custom Error Class", secs: 461 },
++    { title: "Default Status & Message", secs: 341 },
++    { title: "Activity", secs: 114 },
++    { title: "Handling Async Errors", secs: 652 },
++    { title: "Using try-catch", secs: 465 },
++    { title: "Using wrapAsync", secs: 545 },
++    { title: "Mongoose Errors", secs: 362 },
++  ],
++  "project-phase-1-part-c": [
++    { title: "Client-Side Validation (Form)", secs: 576 },
++    { title: "Success & Failure Text", secs: 562 },
++    { title: "Custom Error Handling", secs: 247 },
++    { title: "Add wrapAsync", secs: 195 },
++    { title: "Add ExpressError", secs: 554 },
++    { title: "Error.ejs", secs: 356 },
++    { title: "Validation for Schema", secs: 914 },
++    { title: "Validation for Schema (Middleware)", secs: 246 },
++  ],
++  "database-relationships": [
++    { title: "SQL Relationships (One to One)", secs: 328 },
++    { title: "SQL Relationships (One to Many & Many to Many)", secs: 512 },
++    { title: "One to Few (in Detail)", secs: 474 },
++    { title: "One to Few (Implementation)", secs: 529 },
++    { title: "One to Many (in Detail)", secs: 246 },
++    { title: "One to Many (Implementation)", secs: 758 },
++    { title: "using Populate", secs: 198 },
++    { title: "One to Squillions (in Detail)", secs: 788 },
++    { title: "Reading Docs", secs: 608 },
++  ],
++  "project-phase-2-part-a": [
++    { title: "Handling Deletion", secs: 563 },
++    { title: "Mongoose Middlewares", secs: 677 },
++    { title: "Creating Review Model", secs: 498 },
++    { title: "Create Reviews (Step 1)", secs: 403 },
++    { title: "Create Reviews (Step 2)", secs: 614 },
++    { title: "Validation for Reviews", secs: 595 },
++    { title: "Render Reviews", secs: 324 },
++    { title: "Styling Reviews", secs: 335 },
++    { title: "Deleting Reviews", secs: 521 },
++    { title: "Handling : Delete Listing", secs: 321 },
++  ],
++  "project-phase-2-part-b": [
++    { title: "What is Express Router", secs: 539 },
++    { title: "Using Express Router", secs: 523 },
++    { title: "Restructuring Listings", secs: 397 },
++    { title: "Restructuring Reviews", secs: 544 },
++    { title: "Web Cookies", secs: 373 },
++    { title: "Sending Cookies", secs: 205 },
++    { title: "Cookie Parser", secs: 293 },
++    { title: "Signed Cookies", secs: 551 },
++  ],
++  "project-phase-2-part-c": [
++    { title: "What is State?", secs: 268 },
++    { title: "Express Sessions", secs: 782 },
++    { title: "Exploring Session Options", secs: 580 },
++    { title: "Storing & Using Session Info", secs: 400 },
++    { title: "Using connect-flash", secs: 577 },
++    { title: "Using res.locals", secs: 303 },
++    { title: "Implement Sessions in Project", secs: 143 },
++    { title: "Cookie in SessionOptions", secs: 387 },
++    { title: "Implement Flash in Project", secs: 234 },
++    { title: "Flash Success Includes", secs: 527 },
++    { title: "Flash Failure Includes", secs: 284 },
++  ],
++  "project-phase-2-part-d": [
++    { title: "Authentication v/s Authorization", secs: 205 },
++    { title: "How are passwords stored?", secs: 447 },
++    { title: "What is Hashing?", secs: 557 },
++    { title: "What is Salting?", secs: 355 },
++    { title: "Passport - Getting started", secs: 337 },
++    { title: "User Model", secs: 322 },
++    { title: "Configuring Strategy", secs: 424 },
++    { title: "Demo User", secs: 345 },
++    { title: "SignUp User - GET", secs: 528 },
++    { title: "SignUp User - POST", secs: 455 },
++    { title: "Login User", secs: 474 },
++  ],
++  "project-phase-2-part-e": [
++    { title: "Connecting Login Route", secs: 562 },
++    { title: "LogOut User", secs: 203 },
++    { title: "Add Styling", secs: 346 },
++    { title: "Login after SignUp", secs: 291 },
++    { title: "post-Login Page", secs: 685 },
++    { title: "Listing Owner", secs: 660 },
++    { title: "Starting with Authorization", secs: 409 },
++    { title: "Authorization for /listings", secs: 672 },
++    { title: "Authorization for /reviews (part1)", secs: 405 },
++    { title: "Authorization for /reviews (part2)", secs: 558 },
++  ],
++  "project-phase-3-part-a": [
++    { title: "MVC - Model, View, Controller", secs: 413 },
++    { title: "MVC for Listings", secs: 232 },
++    { title: "MVC for Reviews & Users", secs: 434 },
++    { title: "Router.route", secs: 446 },
++    { title: "Re-style Ratings", secs: 691 },
++    { title: "Image Upload", secs: 536 },
++    { title: "Manipulating Form", secs: 638 },
++    { title: "Cloud Setup", secs: 612 },
++    { title: "Store Files", secs: 628 },
++    { title: "Save Link in Mongo", secs: 456 },
++    { title: "Display Image", secs: 293 },
++  ],
++  "project-phase-3-part-b": [
++    { title: "Edit Listing Image", secs: 424 },
++    { title: "Image Preview for Edit Page", secs: 530 },
++    { title: "Getting Started with Maps", secs: 376 },
++    { title: "Our First Map", secs: 1085 },
++    { title: "Geocoding", secs: 1163 },
++    { title: "Storing Coordinates", secs: 495 },
++    { title: "Map Marker", secs: 462 },
++    { title: "Map Popup", secs: 472 },
++  ],
++  "project-phase-3-part-c": [
++    { title: "Fixing Home Page", secs: 227 },
++    { title: "Add UI for Filters", secs: 554 },
++    { title: "Add UI for Tax Switch", secs: 502 },
++    { title: "Making Tax Switch Functional", secs: 612 },
++    { title: "Add UI for Search", secs: 512 },
++  ],
++  "project-phase-3-part-d": [
++    { title: "Using Mongo Atlas", secs: 971 },
++    { title: "Mongo Session Store", secs: 680 },
++    { title: "Deployment with Render", secs: 236 },
++    { title: "Push code to Github", secs: 398 },
++    { title: "Connect Render with Github", secs: 253 },
++    { title: "Create New Service", secs: 527 },
++  ],
++  "react-part-1": [
++    { title: "What is React?", secs: 784 },
++    { title: "What is JSX?", secs: 221 },
++    { title: "Set up Local Environment", secs: 404 },
++    { title: "Understanding our App", secs: 502 },
++    { title: "Re-write App", secs: 195 },
++    { title: "Our 1st Component", secs: 526 },
++    { title: "Import-Export", secs: 285 },
++    { title: "Writing Markup in JSX", secs: 352 },
++    { title: "React Fragment", secs: 110 },
++    { title: "JSX with Curly Braces", secs: 147 },
++    { title: "Structuring Components", secs: 353 },
++    { title: "Style Components", secs: 349 },
++  ],
++  "react-part-2": [
++    { title: "React Props", secs: 714 },
++    { title: "Passing Arrays to Props", secs: 348 },
++    { title: "Rendering Arrays", secs: 257 },
++    { title: "Conditionals", secs: 435 },
++    { title: "Dynamic Component Styling", secs: 305 },
++    { title: "Activity", secs: 247 },
++    { title: "Install React Developer Tools", secs: 254 },
++    { title: "Activity : Amazon Cards", secs: 1397 },
++  ],
++  "react-part-3": [
++    { title: "Handling Click Events", secs: 272 },
++    { title: "Handling Non-Click Events", secs: 278 },
++    { title: "Event Object", secs: 387 },
++    { title: "State in React", secs: 540 },
++    { title: "Hooks", secs: 103 },
++    { title: "useState( )", secs: 578 },
++    { title: "Activity : Create LikeButton", secs: 717 },
++    { title: "Closure in JS", secs: 363 },
++    { title: "Re-render : How does it work?", secs: 305 },
++    { title: "Callback in Set State Function", secs: 314 },
++    { title: "More about State", secs: 377 },
++  ],
++  "react-part-4": [
++    { title: "Objects & State", secs: 890 },
++    { title: "Arrays & State", secs: 239 },
++    { title: "Activity : Create a Todo", secs: 974 },
++    { title: "Unique Key for List Items", secs: 370 },
++    { title: "Deleting from Arrays", secs: 534 },
++    { title: "Update All in Array", secs: 347 },
++    { title: "Update One in Array", secs: 220 },
++    { title: "Add a \"Mark as Done\" Feature to Todo", secs: 155 },
++  ],
++  "react-part-5": [
++    { title: "Todo Solution - Mark as Done Feature", secs: 476 },
++    { title: "Lottery Game (Part a)", secs: 609 },
++    { title: "Lottery Game (Part b)", secs: 384 },
++    { title: "Changes to Lottery Game", secs: 769 },
++    { title: "Component Types", secs: 324 },
++    { title: "Ticket Component", secs: 538 },
++    { title: "Lottery Component", secs: 298 },
++    { title: "Functions as Props", secs: 589 },
++  ],
++  "react-part-6": [
++    { title: "Forms in React", secs: 851 },
++    { title: "Labels in React", secs: 122 },
++    { title: "Handling Multiple Inputs", secs: 1039 },
++    { title: "Comments Form", secs: 674 },
++    { title: "Show Comments", secs: 861 },
++    { title: "Validations", secs: 769 },
++    { title: "useEffect( )", secs: 431 },
++    { title: "Dependencies in useEffect( )", secs: 213 },
++    { title: "Use Cases", secs: 739 },
++  ],
++  "react-major-project": [
++    { title: "Material UI", secs: 948 },
++    { title: "Building Search Box", secs: 684 },
++    { title: "Using Weather API", secs: 888 },
++    { title: "Building Info Box", secs: 715 },
++    { title: "Weather App Component", secs: 731 },
++    { title: "Added Feature", secs: 418 },
++  ],
++  "tailwind": [
++    { title: "Introduction to Tailwind", secs: 719 },
++    { title: "Tailwind CLI", secs: 586 },
++    { title: "Typography & Styling", secs: 699 },
++    { title: "Colors & Spacing", secs: 1272 },
++    { title: "Breakpoints in Tailwind", secs: 253 },
++    { title: "Apply Directive", secs: 342 },
++    { title: "Design a Card in Tailwind", secs: 1041 },
++  ],
++  "supplement-redux-redux-toolkit": [
++    { title: "What is Redux?", secs: 875 },
++    { title: "Understanding Terms", secs: 245 },
++    { title: "Setup Project", secs: 211 },
++    { title: "Configuring Store", secs: 402 },
++    { title: "Deciding Actions", secs: 284 },
++    { title: "Creating Reducers", secs: 1168 },
++    { title: "Todo Component (Provider & useSelector)", secs: 511 },
++    { title: "AddTodo (Dispatching Actions)", secs: 515 },
++    { title: "Delete Todo", secs: 463 },
++  ],
++};
+diff --git a/lib/webdev.ts b/lib/webdev.ts
+new file mode 100644
+index 0000000..a6f2455
+--- /dev/null
++++ b/lib/webdev.ts
+@@ -0,0 +1,80 @@
++/* WebDev roadmap — course order. Blurb = lecture count + video time.
++ * Topic TITLES are stored on sessions, so don't rename casually.
++ * Generated from syllabus txt. Do not hand-edit. */
++
++export type JourneyStatus = "todo" | "doing" | "done";
++export type WebdevStatus = JourneyStatus;
++
++export interface JourneyTopicMeta { key: string; title: string; blurb: string }
++
++export const WEBDEV_TOPICS: JourneyTopicMeta[] = [
++  { key: "introduction", title: "Introduction", blurb: "4 lectures · 32m of videos" },
++  { key: "prerequisites", title: "Prerequisites", blurb: "1 lectures · 6m of videos" },
++  { key: "live-sessions", title: "Live Sessions", blurb: "7 lectures · 16h 54m of videos" },
++  { key: "html-level-1-part-a", title: "HTML (Level 1) - Part A", blurb: "7 lectures · 44m of videos" },
++  { key: "html-level-1-part-b", title: "HTML (Level 1) - Part B", blurb: "9 lectures · 58m of videos" },
++  { key: "html-level-2", title: "HTML (Level 2)", blurb: "13 lectures · 1h 20m of videos" },
++  { key: "html-level-3", title: "HTML (Level 3)", blurb: "16 lectures · 1h 52m of videos" },
++  { key: "css-getting-started", title: "CSS - Getting Started", blurb: "15 lectures · 1h 49m of videos" },
++  { key: "css-part-2", title: "CSS - Part 2", blurb: "17 lectures · 1h 47m of videos" },
++  { key: "css-part-3", title: "CSS - Part 3", blurb: "11 lectures · 1h 27m of videos" },
++  { key: "css-part-4", title: "CSS - Part 4", blurb: "11 lectures · 1h 13m of videos" },
++  { key: "css-part-5", title: "CSS - Part 5", blurb: "10 lectures · 58m of videos" },
++  { key: "css-part-6", title: "CSS - Part 6", blurb: "15 lectures · 1h 27m of videos" },
++  { key: "mini-project-css", title: "Mini Project (CSS)", blurb: "9 lectures · 1h 9m of videos" },
++  { key: "bootstrap", title: "Bootstrap", blurb: "15 lectures · 1h 40m of videos" },
++  { key: "project-css", title: "Project (CSS)", blurb: "13 lectures · 1h 58m of videos" },
++  { key: "javascript-part-1", title: "JavaScript (Part 1)", blurb: "21 lectures · 2h 2m of videos" },
++  { key: "javascript-part-2", title: "JavaScript (Part 2)", blurb: "19 lectures · 2h 9m of videos" },
++  { key: "javascript-part-3", title: "JavaScript (Part 3)", blurb: "25 lectures · 2h 3m of videos" },
++  { key: "javascript-part-4", title: "JavaScript (Part 4)", blurb: "15 lectures · 1h 41m of videos" },
++  { key: "javascript-part-5", title: "JavaScript (Part 5)", blurb: "12 lectures · 1h 8m of videos" },
++  { key: "javascript-part-6", title: "JavaScript (Part 6)", blurb: "17 lectures · 1h 29m of videos" },
++  { key: "javascript-part-7", title: "JavaScript (Part 7)", blurb: "8 lectures · 55m of videos" },
++  { key: "javascript-part-8", title: "JavaScript (Part 8)", blurb: "13 lectures · 1h 12m of videos" },
++  { key: "javascript-part-9", title: "JavaScript (Part 9)", blurb: "15 lectures · 1h 41m of videos" },
++  { key: "javascript-part-10", title: "JavaScript (Part 10)", blurb: "10 lectures · 1h 18m of videos" },
++  { key: "javascript-mini-project", title: "JavaScript (Mini-Project)", blurb: "11 lectures · 1h 14m of videos" },
++  { key: "javascript-part-11", title: "JavaScript (Part 11)", blurb: "11 lectures · 1h 30m of videos" },
++  { key: "javascript-part-12", title: "JavaScript (Part 12)", blurb: "15 lectures · 1h 28m of videos" },
++  { key: "javascript-part-13", title: "JavaScript (Part 13)", blurb: "4 lectures · 30m of videos" },
++  { key: "terminal", title: "Terminal", blurb: "10 lectures · 50m of videos" },
++  { key: "git-github", title: "Git & Github", blurb: "20 lectures · 1h 47m of videos" },
++  { key: "backend-1-node-js", title: "Backend 1 (Node.js)", blurb: "12 lectures · 1h 8m of videos" },
++  { key: "backend-2-node-express", title: "Backend 2 (Node : Express)", blurb: "8 lectures · 50m of videos" },
++  { key: "backend-3-node-ejs", title: "Backend 3 (Node : EJS)", blurb: "11 lectures · 1h 11m of videos" },
++  { key: "miscellaneous", title: "Miscellaneous", blurb: "8 lectures · 1h 13m of videos" },
++  { key: "backend-4-rest", title: "Backend 4 (REST)", blurb: "11 lectures · 1h 28m of videos" },
++  { key: "starting-with-sql", title: "Starting with SQL", blurb: "15 lectures · 1h 22m of videos" },
++  { key: "sql-part-2", title: "SQL (Part 2)", blurb: "15 lectures · 1h 2m of videos" },
++  { key: "backend-5-node-with-sql", title: "Backend 5 (Node with SQL)", blurb: "12 lectures · 1h 31m of videos" },
++  { key: "mongodb-part-1", title: "MongoDB (Part 1)", blurb: "10 lectures · 52m of videos" },
++  { key: "mongodb-part-2", title: "MongoDB (Part 2)", blurb: "13 lectures · 1h 25m of videos" },
++  { key: "mongodb-with-express", title: "MongoDB with Express", blurb: "10 lectures · 1h 13m of videos" },
++  { key: "project-phase-1-part-a", title: "Project - Phase 1 (Part a)", blurb: "8 lectures · 1h 6m of videos" },
++  { key: "project-phase-1-part-b", title: "Project - Phase 1 (Part b)", blurb: "7 lectures · 1h 10m of videos" },
++  { key: "backend-6-middlewares", title: "Backend 6 (Middlewares)", blurb: "8 lectures · 50m of videos" },
++  { key: "backend-7-errors", title: "Backend 7 (Errors)", blurb: "8 lectures · 55m of videos" },
++  { key: "project-phase-1-part-c", title: "Project - Phase 1 (Part c)", blurb: "8 lectures · 1h 0m of videos" },
++  { key: "database-relationships", title: "Database Relationships", blurb: "9 lectures · 1h 14m of videos" },
++  { key: "project-phase-2-part-a", title: "Project - Phase 2 (Part a)", blurb: "10 lectures · 1h 20m of videos" },
++  { key: "project-phase-2-part-b", title: "Project - Phase 2 (Part b)", blurb: "8 lectures · 57m of videos" },
++  { key: "project-phase-2-part-c", title: "Project - Phase 2 (Part c)", blurb: "11 lectures · 1h 14m of videos" },
++  { key: "project-phase-2-part-d", title: "Project - Phase 2 (Part d)", blurb: "11 lectures · 1h 14m of videos" },
++  { key: "project-phase-2-part-e", title: "Project - Phase 2 (Part e)", blurb: "10 lectures · 1h 19m of videos" },
++  { key: "project-phase-3-part-a", title: "Project - Phase 3 (Part a)", blurb: "11 lectures · 1h 29m of videos" },
++  { key: "project-phase-3-part-b", title: "Project - Phase 3 (Part b)", blurb: "8 lectures · 1h 23m of videos" },
++  { key: "project-phase-3-part-c", title: "Project - Phase 3 (Part c)", blurb: "5 lectures · 40m of videos" },
++  { key: "project-phase-3-part-d", title: "Project - Phase 3 (Part d)", blurb: "6 lectures · 51m of videos" },
++  { key: "react-part-1", title: "React (Part 1)", blurb: "12 lectures · 1h 10m of videos" },
++  { key: "react-part-2", title: "React (Part 2)", blurb: "8 lectures · 1h 5m of videos" },
++  { key: "react-part-3", title: "React (Part 3)", blurb: "11 lectures · 1h 10m of videos" },
++  { key: "react-part-4", title: "React (Part 4)", blurb: "8 lectures · 1h 2m of videos" },
++  { key: "react-part-5", title: "React (Part 5)", blurb: "8 lectures · 1h 6m of videos" },
++  { key: "react-part-6", title: "React (Part 6)", blurb: "9 lectures · 1h 34m of videos" },
++  { key: "react-major-project", title: "React (Major-Project)", blurb: "6 lectures · 1h 13m of videos" },
++  { key: "tailwind", title: "Tailwind", blurb: "7 lectures · 1h 21m of videos" },
++  { key: "supplement-redux-redux-toolkit", title: "Supplement : Redux & Redux Toolkit", blurb: "9 lectures · 1h 17m of videos" },
++];
++
++export const WEBDEV_KEY_SET = new Set(WEBDEV_TOPICS.map((t) => t.key));
