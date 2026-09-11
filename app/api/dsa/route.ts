@@ -37,10 +37,10 @@ async function payload(userId: number) {
     null;
   const done = topics.filter((t) => t.status === "done").length;
   const total_sec = topics.reduce((a, t) => a + t.seconds, 0);
-  // Revision due: done 3+ days ago AND (never revised OR revised 7+ days ago)
+  // Revision: due = done 3+ days ago AND (never revised OR revised 7+ days ago)
   const nowMs = Date.now();
   const DAY = 86400000;
-  const revision_due = topics
+  const revInfo = topics
     .filter((t) => t.status === "done")
     .map((t) => {
       const r = rowMap.get(t.key);
@@ -52,10 +52,15 @@ async function payload(userId: number) {
         days_ago: Math.floor((nowMs - doneAt) / DAY),
         rev_days: revAt ? Math.floor((nowMs - revAt) / DAY) : -1,
       };
-    })
+    });
+  const revision_due = revInfo
     .filter((x) => x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7))
     .sort((a, b) => b.days_ago - a.days_ago);
-  return { topics, current, done, total: topics.length, total_sec, revision_due };
+  const revision_upcoming = revInfo
+    .filter((x) => !(x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7)))
+    .map((x) => ({ key: x.key, title: x.title, days_left: x.rev_days === -1 ? Math.max(1, 3 - x.days_ago) : Math.max(1, 7 - x.rev_days) }))
+    .sort((a, b) => a.days_left - b.days_left);
+  return { topics, current, done, total: topics.length, total_sec, revision_due, revision_upcoming };
 }
 
 /** First remaining todo becomes the new current (only if none exists). */

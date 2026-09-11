@@ -1,0 +1,182 @@
+diff --git a/app/(app)/dsa/page.tsx b/app/(app)/dsa/page.tsx
+index 77716b2..3ac48b5 100644
+--- a/app/(app)/dsa/page.tsx
++++ b/app/(app)/dsa/page.tsx
+@@ -136,20 +136,37 @@ export default function DsaPage() {
+         </div>
+       </div>
+ 
+-            {(data.revision_due?.length || 0) > 0 && (
+-        <div className="card" style={{ borderColor: "var(--warn)" }}>
+-          <b style={{ fontSize: 14 }}>Revision due ({data.revision_due.length})</b>
+-          <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 10px" }}>
+-            Done 3+ days ago. A quick revise now makes it permanent.
+-          </p>
+-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+-            {data.revision_due.map((r: any) => (
+-              <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
+-                <span style={{ flex: 1 }}>{r.title} <span style={{ color: "var(--muted)", fontSize: 12 }}>· {r.days_ago}d ago</span></span>
+-                <button className="btn btn-sm" onClick={() => revise(r.key)}>Mark revised ✓</button>
+-              </div>
+-            ))}
+-          </div>
++            {done > 0 && (
++        <div className="card" style={{ borderColor: (data.revision_due?.length || 0) > 0 ? "var(--warn)" : undefined }}>
++          <b style={{ fontSize: 14 }}>🔁 Revision</b>
++          {(data.revision_due?.length || 0) === 0 ? (
++            <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0" }}>
++              All caught up ✅ Nothing due right now.
++            </p>
++          ) : (
++            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
++              {data.revision_due.map((r: any) => (
++                <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
++                  <span style={{ flex: 1 }}>{r.title} <span style={{ color: "var(--muted)", fontSize: 12 }}>· {r.days_ago}d ago</span></span>
++                  <button className="btn btn-sm" onClick={() => revise(r.key)}>Mark revised ✓</button>
++                </div>
++              ))}
++            </div>
++          )}
++          {(data.revision_upcoming?.length || 0) > 0 && (
++            <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
++              <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 4, fontWeight: 700 }}>UPCOMING</div>
++              {data.revision_upcoming.slice(0, 5).map((r: any) => (
++                <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: "var(--muted)", padding: "3px 0" }}>
++                  <span style={{ flex: 1 }}>{r.title}</span>
++                  <span style={{ fontSize: 12 }}>in {r.days_left}d</span>
++                </div>
++              ))}
++              {data.revision_upcoming.length > 5 && (
++                <div style={{ fontSize: 12, color: "var(--muted)" }}>+{data.revision_upcoming.length - 5} more</div>
++              )}
++            </div>
++          )}
+         </div>
+       )}
+ 
+diff --git a/app/(app)/webdev/page.tsx b/app/(app)/webdev/page.tsx
+index 025a721..4249f47 100644
+--- a/app/(app)/webdev/page.tsx
++++ b/app/(app)/webdev/page.tsx
+@@ -136,20 +136,37 @@ export default function WebDevPage() {
+         </div>
+       </div>
+ 
+-            {(data.revision_due?.length || 0) > 0 && (
+-        <div className="card" style={{ borderColor: "var(--warn)" }}>
+-          <b style={{ fontSize: 14 }}>Revision due ({data.revision_due.length})</b>
+-          <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 10px" }}>
+-            Done 3+ days ago. A quick revise now makes it permanent.
+-          </p>
+-          <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
+-            {data.revision_due.map((r: any) => (
+-              <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
+-                <span style={{ flex: 1 }}>{r.title} <span style={{ color: "var(--muted)", fontSize: 12 }}>· {r.days_ago}d ago</span></span>
+-                <button className="btn btn-sm" onClick={() => revise(r.key)}>Mark revised ✓</button>
+-              </div>
+-            ))}
+-          </div>
++            {done > 0 && (
++        <div className="card" style={{ borderColor: (data.revision_due?.length || 0) > 0 ? "var(--warn)" : undefined }}>
++          <b style={{ fontSize: 14 }}>🔁 Revision</b>
++          {(data.revision_due?.length || 0) === 0 ? (
++            <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0" }}>
++              All caught up ✅ Nothing due right now.
++            </p>
++          ) : (
++            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
++              {data.revision_due.map((r: any) => (
++                <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
++                  <span style={{ flex: 1 }}>{r.title} <span style={{ color: "var(--muted)", fontSize: 12 }}>· {r.days_ago}d ago</span></span>
++                  <button className="btn btn-sm" onClick={() => revise(r.key)}>Mark revised ✓</button>
++                </div>
++              ))}
++            </div>
++          )}
++          {(data.revision_upcoming?.length || 0) > 0 && (
++            <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
++              <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 4, fontWeight: 700 }}>UPCOMING</div>
++              {data.revision_upcoming.slice(0, 5).map((r: any) => (
++                <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: "var(--muted)", padding: "3px 0" }}>
++                  <span style={{ flex: 1 }}>{r.title}</span>
++                  <span style={{ fontSize: 12 }}>in {r.days_left}d</span>
++                </div>
++              ))}
++              {data.revision_upcoming.length > 5 && (
++                <div style={{ fontSize: 12, color: "var(--muted)" }}>+{data.revision_upcoming.length - 5} more</div>
++              )}
++            </div>
++          )}
+         </div>
+       )}
+ 
+diff --git a/app/api/dsa/route.ts b/app/api/dsa/route.ts
+index c9ae02e..6c0e9e6 100644
+--- a/app/api/dsa/route.ts
++++ b/app/api/dsa/route.ts
+@@ -37,10 +37,10 @@ async function payload(userId: number) {
+     null;
+   const done = topics.filter((t) => t.status === "done").length;
+   const total_sec = topics.reduce((a, t) => a + t.seconds, 0);
+-  // Revision due: done 3+ days ago AND (never revised OR revised 7+ days ago)
++  // Revision: due = done 3+ days ago AND (never revised OR revised 7+ days ago)
+   const nowMs = Date.now();
+   const DAY = 86400000;
+-  const revision_due = topics
++  const revInfo = topics
+     .filter((t) => t.status === "done")
+     .map((t) => {
+       const r = rowMap.get(t.key);
+@@ -52,10 +52,15 @@ async function payload(userId: number) {
+         days_ago: Math.floor((nowMs - doneAt) / DAY),
+         rev_days: revAt ? Math.floor((nowMs - revAt) / DAY) : -1,
+       };
+-    })
++    });
++  const revision_due = revInfo
+     .filter((x) => x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7))
+     .sort((a, b) => b.days_ago - a.days_ago);
+-  return { topics, current, done, total: topics.length, total_sec, revision_due };
++  const revision_upcoming = revInfo
++    .filter((x) => !(x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7)))
++    .map((x) => ({ key: x.key, title: x.title, days_left: x.rev_days === -1 ? Math.max(1, 3 - x.days_ago) : Math.max(1, 7 - x.rev_days) }))
++    .sort((a, b) => a.days_left - b.days_left);
++  return { topics, current, done, total: topics.length, total_sec, revision_due, revision_upcoming };
+ }
+ 
+ /** First remaining todo becomes the new current (only if none exists). */
+diff --git a/app/api/webdev/route.ts b/app/api/webdev/route.ts
+index 809975d..f5be801 100644
+--- a/app/api/webdev/route.ts
++++ b/app/api/webdev/route.ts
+@@ -37,10 +37,10 @@ async function payload(userId: number) {
+     null;
+   const done = topics.filter((t) => t.status === "done").length;
+   const total_sec = topics.reduce((a, t) => a + t.seconds, 0);
+-  // Revision due: done 3+ days ago AND (never revised OR revised 7+ days ago)
++  // Revision: due = done 3+ days ago AND (never revised OR revised 7+ days ago)
+   const nowMs = Date.now();
+   const DAY = 86400000;
+-  const revision_due = topics
++  const revInfo = topics
+     .filter((t) => t.status === "done")
+     .map((t) => {
+       const r = rowMap.get(t.key);
+@@ -52,10 +52,15 @@ async function payload(userId: number) {
+         days_ago: Math.floor((nowMs - doneAt) / DAY),
+         rev_days: revAt ? Math.floor((nowMs - revAt) / DAY) : -1,
+       };
+-    })
++    });
++  const revision_due = revInfo
+     .filter((x) => x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7))
+     .sort((a, b) => b.days_ago - a.days_ago);
+-  return { topics, current, done, total: topics.length, total_sec, revision_due };
++  const revision_upcoming = revInfo
++    .filter((x) => !(x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7)))
++    .map((x) => ({ key: x.key, title: x.title, days_left: x.rev_days === -1 ? Math.max(1, 3 - x.days_ago) : Math.max(1, 7 - x.rev_days) }))
++    .sort((a, b) => a.days_left - b.days_left);
++  return { topics, current, done, total: topics.length, total_sec, revision_due, revision_upcoming };
+ }
+ 
+ /** First remaining todo becomes the new current (only if none exists). */
