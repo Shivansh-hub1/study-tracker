@@ -30,7 +30,7 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const body = await req.json().catch(() => ({}));
-  const { subject_id, type, started_at, ended_at, duration_sec, notes } = body;
+  const { subject_id, type, started_at, ended_at, duration_sec, notes, topic } = body;
   const dur = Math.max(1, Math.round(Number(duration_sec) || 0));
   if (!dur) return NextResponse.json({ error: "duration_sec must be positive" }, { status: 400 });
   const started = started_at ? new Date(started_at) : new Date(Date.now() - dur * 1000);
@@ -45,8 +45,8 @@ export async function POST(req: NextRequest) {
   }
   const now = new Date().toISOString();
   const info = await db.run(
-    "INSERT INTO sessions (user_id, subject_id, type, started_at, ended_at, duration_sec, notes, created_at) VALUES (?,?,?,?,?,?,?,?)",
-    user.id, subject_id ? Number(subject_id) : null, type || "manual", started.toISOString(), ended.toISOString(), dur, String(notes || ""), now
+    "INSERT INTO sessions (user_id, subject_id, type, started_at, ended_at, duration_sec, notes, topic, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+    user.id, subject_id ? Number(subject_id) : null, type || "manual", started.toISOString(), ended.toISOString(), dur, String(notes || ""), String(topic || "").slice(0, 80), now
   );
   const row = await db.get(
     `SELECT se.*, s.name as subject_name, s.color as subject_color FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.id = ?`,

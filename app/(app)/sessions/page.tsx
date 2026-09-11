@@ -12,6 +12,7 @@ export default function SessionsPage() {
   const [subjectFilter, setSubjectFilter] = useState("");
   const { data, loading, setData } = useFetch(`/api/sessions?limit=300${subjectFilter ? `&subject_id=${subjectFilter}` : ""}`, [subjectFilter]);
   const { data: subjectsData } = useFetch("/api/subjects");
+  const { data: dsaData } = useFetch("/api/dsa");
   const sessions = data?.sessions || [];
   const subjects = subjectsData?.subjects || [];
 
@@ -22,6 +23,9 @@ export default function SessionsPage() {
   const [fDur, setFDur] = useState("45");
   const [fType, setFType] = useState("manual");
   const [fNotes, setFNotes] = useState("");
+  const [fTopic, setFTopic] = useState("");
+  const dsaTopics: any[] = dsaData?.topics || [];
+  const fIsDsa = /dsa/i.test(subjects.find((s: any) => String(s.id) === fSubject)?.name || "");
   const [confirmDel, setConfirmDel] = useState<any>(null);
   const [busy, setBusy] = useState(false);
 
@@ -29,7 +33,7 @@ export default function SessionsPage() {
     setFSubject(subjects[0]?.id ? String(subjects[0].id) : "");
     setFDate(localDateKey(new Date()));
     setFTime(new Date().toTimeString().slice(0, 5));
-    setFDur("45"); setFType("manual"); setFNotes("");
+    setFDur("45"); setFType("manual"); setFNotes(""); setFTopic("");
     setModal({});
   };
   const openEdit = (s: any) => {
@@ -38,7 +42,7 @@ export default function SessionsPage() {
     setFDate(localDateKey(d));
     setFTime(d.toTimeString().slice(0, 5));
     setFDur(String(Math.round(s.duration_sec / 60)));
-    setFType(s.type); setFNotes(s.notes || "");
+    setFType(s.type); setFNotes(s.notes || ""); setFTopic(s.topic || "");
     setModal({ id: s.id });
   };
 
@@ -52,6 +56,7 @@ export default function SessionsPage() {
       started_at: started.toISOString(),
       duration_sec: durSec,
       notes: fNotes,
+      topic: fTopic,
     };
     const prev = sessions;
     try {
@@ -120,7 +125,7 @@ export default function SessionsPage() {
           <div style={{ overflowX: "auto" }}>
             <table className="table">
               <thead>
-                <tr><th>Subject</th><th>Type</th><th>Started</th><th>Duration</th><th>Notes</th><th style={{ width: 90 }}></th></tr>
+                <tr><th>Subject</th><th>Topic</th><th>Type</th><th>Started</th><th>Duration</th><th>Notes</th><th style={{ width: 90 }}></th></tr>
               </thead>
               <tbody>
                 {sessions.map((s: any) => (
@@ -130,6 +135,7 @@ export default function SessionsPage() {
                         <Dot color={s.subject_color || "#64748b"} /> {s.subject_name || "Unassigned"}
                       </span>
                     </td>
+                    <td>{s.topic ? <span className="badge">{s.topic}</span> : <span style={{ color: "var(--muted)" }}>—</span>}</td>
                     <td><span className="badge" style={{ textTransform: "capitalize" }}>{s.type}</span></td>
                     <td style={{ color: "var(--muted)", fontSize: 13, whiteSpace: "nowrap" }}>{prettyDT(s.started_at)}</td>
                     <td style={{ fontWeight: 600, fontVariantNumeric: "tabular-nums" }}>{fmtMinutes(Math.round(s.duration_sec / 60))}</td>
@@ -179,6 +185,15 @@ export default function SessionsPage() {
             <option value="stopwatch">Stopwatch</option>
           </select>
         </div>
+        {fIsDsa && (
+          <div className="field">
+            <label className="label">DSA topic</label>
+            <select className="select" value={fTopic} onChange={(e) => setFTopic(e.target.value)}>
+              <option value="">No topic</option>
+              {dsaTopics.map((t: any) => <option key={t.key} value={t.title}>{t.title}</option>)}
+            </select>
+          </div>
+        )}
         <div className="field">
           <label className="label">Notes</label>
           <textarea className="input" rows={2} value={fNotes} onChange={(e) => setFNotes(e.target.value)} placeholder="What did you cover?" />

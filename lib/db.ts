@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import bcrypt from "bcryptjs";
+import { DSA_TOPICS } from "./dsa";
 
 /*
  * Unified async data layer.
@@ -76,8 +77,17 @@ const SCHEMA = [
     auto_next INTEGER NOT NULL DEFAULT 1,
     week_start INTEGER NOT NULL DEFAULT 1
   )`,
+  `CREATE TABLE IF NOT EXISTS dsa_progress (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    topic_key TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'todo',
+    updated_at TEXT NOT NULL,
+    UNIQUE(user_id, topic_key)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at)`,
   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
 ];
 
 type Stmt = { sql: string; args: any[] };
@@ -95,6 +105,7 @@ async function init(): Promise<DB> {
   for (const sql of [
     "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
     "ALTER TABLE users ADD COLUMN last_active_at TEXT",
+    "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
   ]) {
     try { await db.run(sql); } catch { /* column already exists */ }
   }
@@ -171,6 +182,17 @@ export async function ensureSettings(db: DB, userId: number) {
   await db.run(`INSERT OR IGNORE INTO settings (user_id) VALUES (?)`, userId);
 }
 
+/** Seed the DSA journey (first topic starts as current). Idempotent. */
+export async function ensureDsaTopics(db: DB, userId: number) {
+  const now = new Date().toISOString();
+  for (const t of DSA_TOPICS) {
+    await db.run(
+      `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES (?,?,?,?)`,
+      userId, t.key, t.key === DSA_TOPICS[0].key ? "doing" : "todo", now
+    );
+  }
+}
+
 /** Guarantee an owner/admin account always exists. */
 async function ensureOwner(db: DB) {
   const existing = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
@@ -189,7 +211,7 @@ async function ensureOwner(db: DB) {
 
 /** Delete a user and ALL their data (admin cascade). */
 export async function deleteUserCascade(db: DB, userId: number) {
-  for (const t of ["sessions", "subjects", "goals", "timetables", "settings"]) {
+  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress"]) {
     await db.run(`DELETE FROM ${t} WHERE user_id = ?`, userId);
   }
   await db.run("DELETE FROM users WHERE id = ?", userId);

@@ -16,15 +16,15 @@ export async function GET(req: NextRequest) {
   const db = await getDb();
 
   const sessions = (await db.all(
-    `SELECT se.id, s.name as subject, se.type, se.started_at, se.ended_at, se.duration_sec, se.notes
+    `SELECT se.id, s.name as subject, se.topic as topic, se.type, se.started_at, se.ended_at, se.duration_sec, se.notes
      FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at DESC`,
     user.id
   )) as any[];
 
   if (format === "csv") {
-    const header = "id,subject,type,started_at,ended_at,duration_minutes,notes\n";
+    const header = "id,subject,topic,type,started_at,ended_at,duration_minutes,notes\n";
     const body = sessions
-      .map((r) => [r.id, r.subject || "Unassigned", r.type, r.started_at, r.ended_at, Math.round(r.duration_sec / 60), r.notes].map(csvEsc).join(","))
+      .map((r) => [r.id, r.subject || "Unassigned", r.topic || "", r.type, r.started_at, r.ended_at, Math.round(r.duration_sec / 60), r.notes].map(csvEsc).join(","))
       .join("\n");
     return new NextResponse(header + body, {
       headers: {

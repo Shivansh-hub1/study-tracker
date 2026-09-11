@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, RotateCcw, Timer as TimerIcon, Hourglass, Watch, Bell, BellOff,
-  Coffee, Moon, Zap, Flag, BookOpen, Check,
+  Coffee, Moon, Zap, Flag, BookOpen, Check, Route,
 } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
 import { fmtClock, pad } from "@/lib/utils";
@@ -26,6 +26,7 @@ type Persisted = {
   startedAt: number | null; // epoch ms when stopwatch (re)started
   accumMs: number; // accumulated before current run
   laps: number[];
+  topic: string;
 };
 
 const LS_KEY = "ff_timer_v1";
@@ -33,7 +34,7 @@ const LS_KEY = "ff_timer_v1";
 const DEFAULT_P: Persisted = {
   mode: "pomodoro", status: "idle", subjectId: null,
   endsAt: null, remainingMs: 25 * 60000, durationMs: 25 * 60000,
-  phase: "work", round: 0, startedAt: null, accumMs: 0, laps: [],
+  phase: "work", round: 0, startedAt: null, accumMs: 0, laps: [], topic: "",
 };
 
 function beep(times = 3) {
@@ -57,6 +58,7 @@ export default function TimersPage() {
   const { toast } = useToast();
   const { data: subjectsData } = useFetch("/api/subjects");
   const { data: settingsData } = useFetch("/api/settings");
+  const { data: dsaData } = useFetch("/api/dsa");
   const subjects = subjectsData?.subjects || [];
   const settings = settingsData?.settings;
 
@@ -67,6 +69,11 @@ export default function TimersPage() {
   const [cdMin, setCdMin] = useState("45");
   const [notif, setNotif] = useState(false);
   const completedRef = useRef(false);
+
+  const dsaTopics: any[] = dsaData?.topics || [];
+  const selSubject = subjects.find((s: any) => s.id === p.subjectId);
+  const isDsa = !!selSubject && /dsa/i.test(selSubject.name || "");
+  const currentDsaTitle = dsaTopics.find((t: any) => t.key === dsaData?.current)?.title || "";
 
   const pomoWork = (settings?.pomo_work ?? 25) * 60000;
   const pomoShort = (settings?.pomo_short ?? 5) * 60000;
@@ -107,6 +114,14 @@ export default function TimersPage() {
     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
   }, []);
 
+  /* -------- DSA journey: auto-select current topic -------- */
+  useEffect(() => {
+    if (!hydrated || !dsaData) return;
+    if (isDsa && !p.topic && currentDsaTitle) persist({ ...p, topic: currentDsaTitle });
+    else if (!isDsa && p.topic) persist({ ...p, topic: "" });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [hydrated, dsaData, isDsa, p.subjectId]);
+
   /* -------- tick -------- */
   useEffect(() => {
     if (p.status !== "running") return;
@@ -143,12 +158,13 @@ export default function TimersPage() {
             started_at: new Date(Date.now() - durMs).toISOString(),
             ended_at: new Date().toISOString(),
             notes: type === "pomodoro" ? `Pomodoro (${p.phase === "work" ? "focus" : "break"})` : `${type} session`,
+            topic: p.topic || "",
           }),
         });
         toast(`Logged ${fmtClock(seconds)} of focus time`, "success");
       } catch { /* offline-safe: silently drop */ }
     },
-    [p.subjectId, p.phase, toast]
+    [p.subjectId, p.phase, p.topic, toast]
   );
 
   const notify = useCallback((title: string, body: string) => {
@@ -266,7 +282,11 @@ export default function TimersPage() {
     persist({ ...p, laps: [swElapsed, ...p.laps].slice(0, 20) });
   };
 
-  const setSubject = (id: number | null) => persist({ ...p, subjectId: id });
+  const setSubject = (id: number | null) => {
+    const s = subjects.find((x: any) => x.id === id);
+    const dsa = !!s && /dsa/i.test(s.name || "");
+    persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : "" });
+  };
 
   const requestNotif = async () => {
     if (typeof Notification === "undefined") return;
@@ -395,6 +415,24 @@ export default function TimersPage() {
             </button>
           ))}
         </div>
+        {isDsa && (
+          <div style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
+            <Route size={15} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: 13, fontWeight: 700 }}>Journey topic</span>
+            {p.topic === currentDsaTitle && currentDsaTitle ? (
+              <span className="badge">Auto ✓</span>
+            ) : (
+              <span className="badge">Manual</span>
+            )}
+            <select className="select" style={{ flex: 1, minWidth: 170 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
+              <option value="">No topic</option>
+              {dsaTopics.map((t: any) => (
+                <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
+              ))}
+            </select>
+            <a href="/dsa" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+          </div>
+        )}
       </div>
 
       {/* Side panel */}

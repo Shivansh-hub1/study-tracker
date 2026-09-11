@@ -22,13 +22,14 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (!ok) subjectId = existing.subject_id;
   }
   await db.run(
-    "UPDATE sessions SET subject_id = ?, type = ?, started_at = ?, ended_at = ?, duration_sec = ?, notes = ? WHERE id = ?",
+    "UPDATE sessions SET subject_id = ?, type = ?, started_at = ?, ended_at = ?, duration_sec = ?, notes = ?, topic = ? WHERE id = ?",
     subjectId ?? null,
     body.type || existing.type,
     started.toISOString(),
     ended.toISOString(),
     dur,
     body.notes !== undefined ? String(body.notes) : existing.notes,
+    body.topic !== undefined ? String(body.topic).slice(0, 80) : existing.topic,
     id
   );
   const row = await db.get(
