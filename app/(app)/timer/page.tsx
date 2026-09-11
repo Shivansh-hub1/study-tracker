@@ -58,7 +58,7 @@ export default function TimersPage() {
   const { toast } = useToast();
   const { data: subjectsData } = useFetch("/api/subjects");
   const { data: settingsData } = useFetch("/api/settings");
-  const { data: dsaData } = useFetch("/api/dsa");
+  const { data: dsaData, reload: reloadDsa } = useFetch("/api/dsa");
   const subjects = subjectsData?.subjects || [];
   const settings = settingsData?.settings;
 
@@ -74,6 +74,10 @@ export default function TimersPage() {
   const selSubject = subjects.find((s: any) => s.id === p.subjectId);
   const isDsa = !!selSubject && /dsa/i.test(selSubject.name || "");
   const currentDsaTitle = dsaTopics.find((t: any) => t.key === dsaData?.current)?.title || "";
+  const selDsaTopic = dsaTopics.find((t: any) => t.title === p.topic) || dsaTopics.find((t: any) => t.key === dsaData?.current);
+  const selLectures: any[] = selDsaTopic?.lectures || [];
+  const selLectureIdx: number = selDsaTopic?.lecture_idx || 0;
+  const selLecture = selLectureIdx < selLectures.length ? selLectures[selLectureIdx] : null;
 
   const pomoWork = (settings?.pomo_work ?? 25) * 60000;
   const pomoShort = (settings?.pomo_short ?? 5) * 60000;
@@ -157,14 +161,14 @@ export default function TimersPage() {
             duration_sec: seconds,
             started_at: new Date(Date.now() - durMs).toISOString(),
             ended_at: new Date().toISOString(),
-            notes: type === "pomodoro" ? `Pomodoro (${p.phase === "work" ? "focus" : "break"})` : `${type} session`,
+            notes: (type === "pomodoro" ? `Pomodoro (${p.phase === "work" ? "focus" : "break"})` : `${type} session`) + (p.topic && selLecture ? ` · ${selLecture.title}` : ""),
             topic: p.topic || "",
           }),
         });
         toast(`Logged ${fmtClock(seconds)} of focus time`, "success");
       } catch { /* offline-safe: silently drop */ }
     },
-    [p.subjectId, p.phase, p.topic, toast]
+    [p.subjectId, p.phase, p.topic, selLecture?.title, toast]
   );
 
   const notify = useCallback((title: string, body: string) => {
@@ -286,6 +290,15 @@ export default function TimersPage() {
     const s = subjects.find((x: any) => x.id === id);
     const dsa = !!s && /dsa/i.test(s.name || "");
     persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : "" });
+  };
+
+  const stepLecture = async (dir: 1 | -1) => {
+    if (!selDsaTopic) return;
+    const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
+    try {
+      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: selDsaTopic.key, lecture_idx: next }) });
+      await reloadDsa();
+    } catch (e: any) { toast(e.message, "error"); }
   };
 
   const requestNotif = async () => {
@@ -431,6 +444,17 @@ export default function TimersPage() {
               ))}
             </select>
             <a href="/dsa" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+            {selDsaTopic && selLectures.length > 0 && (
+              <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
+                <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
+                {selLecture ? (
+                  <span style={{ color: "var(--muted)" }}>Lec {selLectureIdx + 1}/{selLectures.length}: <b style={{ color: "var(--text)" }}>{selLecture.title}</b></span>
+                ) : (
+                  <span className="badge">Module complete ✓</span>
+                )}
+                <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(1)} disabled={selLectureIdx >= selLectures.length}>›</button>
+              </div>
+            )}
           </div>
         )}
       </div>

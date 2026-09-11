@@ -1,0 +1,1122 @@
+diff --git a/app/(app)/dsa/page.tsx b/app/(app)/dsa/page.tsx
+index 6a87471..022de62 100644
+--- a/app/(app)/dsa/page.tsx
++++ b/app/(app)/dsa/page.tsx
+@@ -1,16 +1,22 @@
+ "use client";
+ 
+-import React from "react";
+-import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock } from "lucide-react";
++import React, { useState } from "react";
++import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown } from "lucide-react";
+ import { useFetch, api } from "@/lib/client";
+ import { fmtMinutes } from "@/lib/utils";
+ import { Spinner } from "@/components/ui";
+ import { useToast } from "@/components/Providers";
+ 
++function fmtDur(sec: number) {
++  const m = Math.floor(sec / 60), s = sec % 60;
++  return `${m}m ${s}s`;
++}
++
+ export default function DsaPage() {
+   const { toast } = useToast();
+   const { data, loading, reload } = useFetch("/api/dsa");
+   const { data: subjectsData, reload: reloadSubjects } = useFetch("/api/subjects");
++  const [expanded, setExpanded] = useState<string | null>(null);
+   const topics: any[] = data?.topics || [];
+   const subjects: any[] = subjectsData?.subjects || [];
+   const hasDsaSubject = subjects.some((s: any) => /dsa/i.test(s.name || ""));
+@@ -18,6 +24,7 @@ export default function DsaPage() {
+   const total: number = data?.total || topics.length || 1;
+   const pct = Math.round((done / total) * 100);
+   const current = topics.find((t: any) => t.key === data?.current);
++  const openKey = expanded ?? data?.current ?? null;
+ 
+   const setStatus = async (key: string, status: string) => {
+     try {
+@@ -29,6 +36,16 @@ export default function DsaPage() {
+     }
+   };
+ 
++  const setLecture = async (key: string, idx: number, len: number) => {
++    try {
++      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
++      await reload();
++      if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
++    } catch (e: any) {
++      toast(e.message, "error");
++    }
++  };
++
+   const createSubject = async () => {
+     try {
+       await api("/api/subjects", {
+@@ -114,55 +131,118 @@ export default function DsaPage() {
+         </div>
+       ) : (
+         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+-          {topics.map((t: any, i: number) => (
+-            <div
+-              key={t.key}
+-              className="card"
+-              style={{
+-                display: "flex", gap: 12, alignItems: "center", padding: "12px 14px",
+-                borderColor: t.status === "doing" ? "var(--accent)" : undefined,
+-              }}
+-            >
++          {topics.map((t: any, i: number) => {
++            const lectures: any[] = t.lectures || [];
++            const lidx: number = t.lecture_idx || 0;
++            const open = openKey === t.key;
++            return (
+               <div
++                key={t.key}
++                className="card"
+                 style={{
+-                  width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
+-                  fontWeight: 800, fontSize: 14, flexShrink: 0,
+-                  background: t.status === "done" ? "#10b981" : t.status === "doing" ? "var(--accent)" : "var(--surface-2)",
+-                  color: t.status === "todo" ? "var(--muted)" : "#fff",
+-                  border: t.status === "todo" ? "1px solid var(--border)" : "none",
++                  padding: "12px 14px",
++                  borderColor: t.status === "doing" ? "var(--accent)" : undefined,
+                 }}
+               >
+-                {t.status === "done" ? <Check size={16} strokeWidth={3} /> : i + 1}
+-              </div>
+-              <div style={{ flex: 1, minWidth: 0 }}>
+-                <div style={{ fontWeight: 700, fontSize: 14 }}>
+-                  {t.title}{" "}
+-                  {t.status === "doing" && (
+-                    <span className="badge" style={{ marginLeft: 6 }}>current</span>
+-                  )}
+-                </div>
+-                <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t.blurb}</div>
+-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+-                  {t.seconds > 0 ? `${fmtMinutes(Math.round(t.seconds / 60))} logged` : "no time yet"}
++                <div
++                  style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}
++                  onClick={() => setExpanded(open ? "__none__" : t.key)}
++                  title={open ? "Collapse lectures" : "Expand lectures"}
++                >
++                  <div
++                    style={{
++                      width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
++                      fontWeight: 800, fontSize: 14, flexShrink: 0,
++                      background: t.status === "done" ? "#10b981" : t.status === "doing" ? "var(--accent)" : "var(--surface-2)",
++                      color: t.status === "todo" ? "var(--muted)" : "#fff",
++                      border: t.status === "todo" ? "1px solid var(--border)" : "none",
++                    }}
++                  >
++                    {t.status === "done" ? <Check size={16} strokeWidth={3} /> : i + 1}
++                  </div>
++                  <div style={{ flex: 1, minWidth: 0 }}>
++                    <div style={{ fontWeight: 700, fontSize: 14 }}>
++                      {t.title}{" "}
++                      {t.status === "doing" && (
++                        <span className="badge" style={{ marginLeft: 6 }}>current</span>
++                      )}
++                    </div>
++                    <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
++                      {t.blurb}
++                      {t.status !== "done" && lectures.length > 0 && (
++                        <> · lecture {Math.min(lidx + 1, lectures.length)}/{lectures.length}</>
++                      )}
++                    </div>
++                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
++                      {t.seconds > 0 ? `${fmtMinutes(Math.round(t.seconds / 60))} logged` : "no time yet"}
++                    </div>
++                  </div>
++                  <ChevronDown
++                    size={18}
++                    style={{
++                      color: "var(--muted)", flexShrink: 0,
++                      transform: open ? "rotate(180deg)" : "none", transition: "transform .2s",
++                    }}
++                  />
+                 </div>
++
++                {open && lectures.length > 0 && (
++                  <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
++                    {lectures.map((l: any, li: number) => {
++                      const st = t.status === "done" || li < lidx ? "done" : li === lidx ? "doing" : "todo";
++                      return (
++                        <div
++                          key={li}
++                          onClick={() => li !== lidx && setLecture(t.key, li, lectures.length)}
++                          title={li !== lidx ? "Jump here" : "Current lecture"}
++                          style={{
++                            display: "flex", gap: 10, alignItems: "center", padding: "7px 8px",
++                            borderRadius: 8, fontSize: 13.5, cursor: li !== lidx ? "pointer" : "default",
++                            background: st === "doing" ? "var(--accent-soft)" : "transparent",
++                          }}
++                        >
++                          <span
++                            style={{
++                              width: 22, height: 22, borderRadius: "50%", display: "grid", placeItems: "center",
++                              fontSize: 11, fontWeight: 700, flexShrink: 0,
++                              background: st === "done" ? "#10b981" : st === "doing" ? "var(--accent)" : "var(--surface-2)",
++                              color: st === "todo" ? "var(--muted)" : "#fff",
++                            }}
++                          >
++                            {st === "done" ? <Check size={12} strokeWidth={3} /> : li + 1}
++                          </span>
++                          <span style={{ flex: 1, color: st === "todo" ? "var(--muted)" : "var(--text)" }}>{l.title}</span>
++                          <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{fmtDur(l.secs)}</span>
++                        </div>
++                      );
++                    })}
++                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
++                      {t.status === "todo" && (
++                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "doing")}>
++                          <Play size={13} /> Start
++                        </button>
++                      )}
++                      {lidx < lectures.length && (
++                        <button className="btn btn-sm btn-primary" onClick={() => setLecture(t.key, lidx + 1, lectures.length)}>
++                          <Check size={13} /> Next lecture
++                        </button>
++                      )}
++                      {t.status !== "done" && (
++                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "done")}>
++                          Skip to done
++                        </button>
++                      )}
++                      {t.status === "done" && (
++                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "todo")}>
++                          Reopen
++                        </button>
++                      )}
++                    </div>
++                  </div>
++                )}
+               </div>
+-              {t.status === "todo" && (
+-                <button className="btn btn-sm" onClick={() => setStatus(t.key, "doing")}>
+-                  <Play size={13} /> Start
+-                </button>
+-              )}
+-              {t.status === "doing" && (
+-                <button className="btn btn-sm btn-primary" onClick={() => setStatus(t.key, "done")}>
+-                  <Check size={13} /> Done
+-                </button>
+-              )}
+-              {t.status === "done" && (
+-                <button className="btn btn-sm" onClick={() => setStatus(t.key, "todo")}>
+-                  Reopen
+-                </button>
+-              )}
+-            </div>
+-          ))}
++            );
++          })}
+         </div>
+       )}
+     </div>
+diff --git a/app/(app)/timer/page.tsx b/app/(app)/timer/page.tsx
+index d5d2f1c..4f5ab9c 100644
+--- a/app/(app)/timer/page.tsx
++++ b/app/(app)/timer/page.tsx
+@@ -58,7 +58,7 @@ export default function TimersPage() {
+   const { toast } = useToast();
+   const { data: subjectsData } = useFetch("/api/subjects");
+   const { data: settingsData } = useFetch("/api/settings");
+-  const { data: dsaData } = useFetch("/api/dsa");
++  const { data: dsaData, reload: reloadDsa } = useFetch("/api/dsa");
+   const subjects = subjectsData?.subjects || [];
+   const settings = settingsData?.settings;
+ 
+@@ -74,6 +74,10 @@ export default function TimersPage() {
+   const selSubject = subjects.find((s: any) => s.id === p.subjectId);
+   const isDsa = !!selSubject && /dsa/i.test(selSubject.name || "");
+   const currentDsaTitle = dsaTopics.find((t: any) => t.key === dsaData?.current)?.title || "";
++  const selDsaTopic = dsaTopics.find((t: any) => t.title === p.topic) || dsaTopics.find((t: any) => t.key === dsaData?.current);
++  const selLectures: any[] = selDsaTopic?.lectures || [];
++  const selLectureIdx: number = selDsaTopic?.lecture_idx || 0;
++  const selLecture = selLectureIdx < selLectures.length ? selLectures[selLectureIdx] : null;
+ 
+   const pomoWork = (settings?.pomo_work ?? 25) * 60000;
+   const pomoShort = (settings?.pomo_short ?? 5) * 60000;
+@@ -157,14 +161,14 @@ export default function TimersPage() {
+             duration_sec: seconds,
+             started_at: new Date(Date.now() - durMs).toISOString(),
+             ended_at: new Date().toISOString(),
+-            notes: type === "pomodoro" ? `Pomodoro (${p.phase === "work" ? "focus" : "break"})` : `${type} session`,
++            notes: (type === "pomodoro" ? `Pomodoro (${p.phase === "work" ? "focus" : "break"})` : `${type} session`) + (p.topic && selLecture ? ` · ${selLecture.title}` : ""),
+             topic: p.topic || "",
+           }),
+         });
+         toast(`Logged ${fmtClock(seconds)} of focus time`, "success");
+       } catch { /* offline-safe: silently drop */ }
+     },
+-    [p.subjectId, p.phase, p.topic, toast]
++    [p.subjectId, p.phase, p.topic, selLecture?.title, toast]
+   );
+ 
+   const notify = useCallback((title: string, body: string) => {
+@@ -288,6 +292,15 @@ export default function TimersPage() {
+     persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : "" });
+   };
+ 
++  const stepLecture = async (dir: 1 | -1) => {
++    if (!selDsaTopic) return;
++    const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
++    try {
++      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key: selDsaTopic.key, lecture_idx: next }) });
++      await reloadDsa();
++    } catch (e: any) { toast(e.message, "error"); }
++  };
++
+   const requestNotif = async () => {
+     if (typeof Notification === "undefined") return;
+     const perm = await Notification.requestPermission();
+@@ -431,6 +444,17 @@ export default function TimersPage() {
+               ))}
+             </select>
+             <a href="/dsa" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
++            {selDsaTopic && selLectures.length > 0 && (
++              <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
++                <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
++                {selLecture ? (
++                  <span style={{ color: "var(--muted)" }}>Lec {selLectureIdx + 1}/{selLectures.length}: <b style={{ color: "var(--text)" }}>{selLecture.title}</b></span>
++                ) : (
++                  <span className="badge">Module complete ✓</span>
++                )}
++                <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(1)} disabled={selLectureIdx >= selLectures.length}>›</button>
++              </div>
++            )}
+           </div>
+         )}
+       </div>
+diff --git a/app/api/dsa/route.ts b/app/api/dsa/route.ts
+index e851bdb..c7c357c 100644
+--- a/app/api/dsa/route.ts
++++ b/app/api/dsa/route.ts
+@@ -1,29 +1,36 @@
+ import { NextRequest, NextResponse } from "next/server";
+-import { getDb, ensureDsaTopics } from "@/lib/db";
++import { getDb, ensureDsaTopics, DB } from "@/lib/db";
+ import { getSessionUser } from "@/lib/auth";
+ import { DSA_TOPICS, DSA_KEY_SET, DsaStatus } from "@/lib/dsa";
++import { DSA_LECTURES } from "@/lib/dsa-lectures";
+ 
+ export const dynamic = "force-dynamic";
+ 
+ async function payload(userId: number) {
+   const db = await getDb();
+   await ensureDsaTopics(db, userId);
+-  const rows = await db.all<{ topic_key: string; status: string }>(
+-    "SELECT topic_key, status FROM dsa_progress WHERE user_id = ?",
++  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number }>(
++    "SELECT topic_key, status, lecture_idx FROM dsa_progress WHERE user_id = ?",
+     userId
+   );
+-  const statusMap = new Map(rows.map((r) => [r.topic_key, r.status as DsaStatus]));
++  const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
+   // Time logged per topic (sessions store the topic TITLE)
+   const times = await db.all<{ topic: string; sec: number }>(
+     "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
+     userId
+   );
+   const timeMap = new Map(times.map((t) => [t.topic, Number(t.sec) || 0]));
+-  const topics = DSA_TOPICS.map((t) => ({
+-    ...t,
+-    status: statusMap.get(t.key) || ("todo" as DsaStatus),
+-    seconds: timeMap.get(t.title) || 0,
+-  }));
++  const topics = DSA_TOPICS.map((t) => {
++    const lectures = DSA_LECTURES[t.key] || [];
++    const status = (rowMap.get(t.key)?.status || "todo") as DsaStatus;
++    return {
++      ...t,
++      status,
++      lectures,
++      lecture_idx: status === "done" ? lectures.length : (rowMap.get(t.key)?.lecture_idx || 0),
++      seconds: timeMap.get(t.title) || 0,
++    };
++  });
+   const current =
+     topics.find((t) => t.status === "doing")?.key ||
+     topics.find((t) => t.status === "todo")?.key ||
+@@ -33,6 +40,29 @@ async function payload(userId: number) {
+   return { topics, current, done, total: topics.length, total_sec };
+ }
+ 
++/** First remaining todo becomes the new current. */
++async function autoAdvance(db: DB, userId: number, now: string) {
++  const rows = await db.all<{ topic_key: string; status: string }>(
++    "SELECT topic_key, status FROM dsa_progress WHERE user_id = ?",
++    userId
++  );
++  const st = new Map(rows.map((r) => [r.topic_key, r.status]));
++  const next = DSA_TOPICS.map((t) => t.key).find((k) => st.get(k) === "todo");
++  if (next) {
++    await db.run(
++      "UPDATE dsa_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
++      now, userId, next
++    );
++  }
++}
++
++async function demoteOthers(db: DB, userId: number, now: string) {
++  await db.run(
++    "UPDATE dsa_progress SET status = 'todo', updated_at = ? WHERE user_id = ? AND status = 'doing'",
++    now, userId
++  );
++}
++
+ export async function GET() {
+   const user = await getSessionUser();
+   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+@@ -43,42 +73,50 @@ export async function PATCH(req: NextRequest) {
+   const user = await getSessionUser();
+   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+   const body = await req.json().catch(() => ({}));
+-  const { key, status } = body as { key: string; status: DsaStatus };
++  const { key, status, lecture_idx } = body as { key: string; status?: DsaStatus; lecture_idx?: number };
+   if (!key || !DSA_KEY_SET.has(key)) {
+     return NextResponse.json({ error: "Invalid topic" }, { status: 400 });
+   }
+-  if (!["todo", "doing", "done"].includes(status)) {
+-    return NextResponse.json({ error: "Invalid status" }, { status: 400 });
+-  }
+   const db = await getDb();
+   await ensureDsaTopics(db, user.id);
+   const now = new Date().toISOString();
+-  if (status === "doing") {
+-    // One current topic at a time — demote any other "doing"
++  const len = (DSA_LECTURES[key] || []).length;
++
++  if (status !== undefined) {
++    if (!["todo", "doing", "done"].includes(status)) {
++      return NextResponse.json({ error: "Invalid status" }, { status: 400 });
++    }
++    if (status === "doing") await demoteOthers(db, user.id, now);
+     await db.run(
+-      "UPDATE dsa_progress SET status = 'todo', updated_at = ? WHERE user_id = ? AND status = 'doing'",
+-      now, user.id
++      "UPDATE dsa_progress SET status = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
++      status, now, user.id, key
+     );
++    if (status === "done") await autoAdvance(db, user.id, now);
+   }
+-  await db.run(
+-    "UPDATE dsa_progress SET status = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
+-    status, now, user.id, key
+-  );
+-  if (status === "done") {
+-    // Auto-advance: first remaining todo becomes the new current
+-    const rows = await db.all<{ topic_key: string; status: string }>(
+-      "SELECT topic_key, status FROM dsa_progress WHERE user_id = ?",
+-      user.id
++
++  if (lecture_idx !== undefined) {
++    const idx = Math.max(0, Math.min(len, Math.round(Number(lecture_idx) || 0)));
++    await db.run(
++      "UPDATE dsa_progress SET lecture_idx = ?, updated_at = ? WHERE user_id = ? AND topic_key = ?",
++      idx, now, user.id, key
+     );
+-    const st = new Map(rows.map((r) => [r.topic_key, r.status]));
+-    const next = DSA_TOPICS.map((t) => t.key).find((k) => st.get(k) === "todo");
+-    if (next) {
++    if (idx >= len && len > 0) {
++      // Finished last lecture → module done, journey advances
++      await db.run(
++        "UPDATE dsa_progress SET status = 'done', updated_at = ? WHERE user_id = ? AND topic_key = ?",
++        now, user.id, key
++      );
++      await autoAdvance(db, user.id, now);
++    } else if (idx < len) {
++      // (Re)opened mid-module → it becomes current
++      await demoteOthers(db, user.id, now);
+       await db.run(
+         "UPDATE dsa_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
+-        now, user.id, next
++        now, user.id, key
+       );
+     }
+   }
++
+   return NextResponse.json(await payload(user.id));
+ }
+ 
+@@ -92,7 +130,10 @@ export async function POST(req: NextRequest) {
+   const db = await getDb();
+   await ensureDsaTopics(db, user.id);
+   const now = new Date().toISOString();
+-  await db.run("UPDATE dsa_progress SET status = 'todo', updated_at = ? WHERE user_id = ?", now, user.id);
++  await db.run(
++    "UPDATE dsa_progress SET status = 'todo', lecture_idx = 0, updated_at = ? WHERE user_id = ?",
++    now, user.id
++  );
+   await db.run(
+     "UPDATE dsa_progress SET status = 'doing', updated_at = ? WHERE user_id = ? AND topic_key = ?",
+     now, user.id, DSA_TOPICS[0].key
+diff --git a/lib/db.ts b/lib/db.ts
+index 418de93..e52a0b6 100644
+--- a/lib/db.ts
++++ b/lib/db.ts
+@@ -106,6 +106,7 @@ async function init(): Promise<DB> {
+     "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
+     "ALTER TABLE users ADD COLUMN last_active_at TEXT",
+     "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
++    "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
+   ]) {
+     try { await db.run(sql); } catch { /* column already exists */ }
+   }
+@@ -182,15 +183,25 @@ export async function ensureSettings(db: DB, userId: number) {
+   await db.run(`INSERT OR IGNORE INTO settings (user_id) VALUES (?)`, userId);
+ }
+ 
+-/** Seed the DSA journey (first topic starts as current). Idempotent. */
++/** Seed the DSA journey (first topic starts as current). Idempotent.
++ * Fast path: 1 COUNT query when already seeded (was: 47 sequential INSERTs). */
+ export async function ensureDsaTopics(db: DB, userId: number) {
++  const row = await db.get<{ c: number }>(
++    "SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ?",
++    userId
++  );
++  if ((row?.c ?? 0) >= DSA_TOPICS.length) return;
++  // Single multi-row INSERT: 1 round trip instead of 47
+   const now = new Date().toISOString();
++  const values = DSA_TOPICS.map(() => "(?,?,?,?)").join(",");
++  const args: any[] = [];
+   for (const t of DSA_TOPICS) {
+-    await db.run(
+-      `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES (?,?,?,?)`,
+-      userId, t.key, t.key === DSA_TOPICS[0].key ? "doing" : "todo", now
+-    );
++    args.push(userId, t.key, t.key === DSA_TOPICS[0].key ? "doing" : "todo", now);
+   }
++  await db.run(
++    `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
++    ...args
++  );
+ }
+ 
+ /** Guarantee an owner/admin account always exists. */
+diff --git a/lib/dsa-lectures.ts b/lib/dsa-lectures.ts
+new file mode 100644
+index 0000000..919768d
+--- /dev/null
++++ b/lib/dsa-lectures.ts
+@@ -0,0 +1,618 @@
++/* Lecture list per module — generated from course-syllabus.txt. Do not hand-edit. */
++export interface DsaLecture { title: string; secs: number }
++export const DSA_LECTURES: Record<string, DsaLecture[]> = {
++  "patterns": [
++    { title: "Nested Loops", secs: 777 },
++    { title: "Nested Loops (Dry Run)", secs: 638 },
++    { title: "Star Pattern", secs: 464 },
++    { title: "Inverted Star Pattern", secs: 647 },
++    { title: "Half Pyramid Pattern", secs: 367 },
++    { title: "Character Pyramid Pattern", secs: 350 },
++    { title: "Hollow Rectangle Pattern", secs: 519 },
++    { title: "Inverted & Rotated Half-Pyramid Pattern", secs: 511 },
++    { title: "Floyd's Triangle Pattern", secs: 213 },
++    { title: "Diamond Pattern", secs: 856 },
++    { title: "Butterfly Pattern", secs: 893 },
++  ],
++  "functions": [
++    { title: "What are Functions?", secs: 543 },
++    { title: "Forward Declaration", secs: 211 },
++    { title: "Syntax with Parameters", secs: 449 },
++    { title: "Practice Qs", secs: 176 },
++    { title: "Practice Qs (Factorial)", secs: 314 },
++    { title: "Function call in Memory", secs: 415 },
++    { title: "Scope (Local & Global)", secs: 331 },
++    { title: "Practice Qs (Prime Number)", secs: 348 },
++    { title: "Practice Qs (Binomial Coefficient)", secs: 309 },
++    { title: "Function Overloading", secs: 334 },
++    { title: "Practice Qs (Primes in Range)", secs: 310 },
++  ],
++  "binary-number-system": [
++    { title: "What is Binary Number System?", secs: 402 },
++    { title: "Convert Binary to Decimal", secs: 168 },
++    { title: "Convert Decimal to Binary", secs: 115 },
++    { title: "Question (Decimal to Binary)", secs: 341 },
++    { title: "Common Numbers in Binary", secs: 351 },
++    { title: "Data Type Modifiers", secs: 733 },
++    { title: "Binary to Decimal (Code)", secs: 259 },
++    { title: "Decimal to Binary (Code)", secs: 462 },
++  ],
++  "introduction-to-pointers": [
++    { title: "Basic Concepts of Memory", secs: 224 },
++    { title: "AddressOf (&) Operator", secs: 147 },
++    { title: "What are Pointers?", secs: 533 },
++    { title: "Dereference Operator", secs: 264 },
++    { title: "Null Pointers", secs: 183 },
++    { title: "Passing Arguments (Value vs Reference)", secs: 421 },
++    { title: "Reference Variables", secs: 350 },
++    { title: "Practice Qs", secs: 170 },
++    { title: "Practice Qs", secs: 132 },
++  ],
++  "arrays-part-i": [
++    { title: "Basics of Array", secs: 427 },
++    { title: "Creating an Array", secs: 630 },
++    { title: "Output & Input Array", secs: 657 },
++    { title: "Find Largest in Array", secs: 347 },
++    { title: "Arrays are passed by Reference", secs: 767 },
++    { title: "Linear Search", secs: 659 },
++    { title: "Reverse an Array", secs: 1159 },
++    { title: "Binary Search", secs: 707 },
++    { title: "Binary Search Code", secs: 188 },
++    { title: "Binary Search (Time Complexity)", secs: 481 },
++    { title: "Array Pointer", secs: 119 },
++    { title: "Pointer Arithmetic 1", secs: 379 },
++    { title: "Pointer Arithmetic 2", secs: 436 },
++    { title: "Pointer Arithmetic 3", secs: 303 },
++    { title: "Pointer Arithmetic 4", secs: 89 },
++  ],
++  "arrays-part-ii": [
++    { title: "Print Subarrays", secs: 865 },
++    { title: "Max Sum Subarray (Brute Force)", secs: 709 },
++    { title: "Max Sum Subarray (Slightly Optimized)", secs: 397 },
++    { title: "Kadane's Algorithm for Max Sum Subarray", secs: 428 },
++    { title: "Buy & Sell Stocks", secs: 707 },
++    { title: "Buy & Sell Stocks (Code)", secs: 460 },
++    { title: "Trapping Rainwater", secs: 1048 },
++    { title: "Trapping Rainwater (Code)", secs: 901 },
++  ],
++  "basic-sorting-algorithms": [
++    { title: "Bubble Sort", secs: 661 },
++    { title: "Bubble Sort (Code)", secs: 469 },
++    { title: "Selection Sort", secs: 329 },
++    { title: "Selection Sort (Code)", secs: 220 },
++    { title: "Insertion Sort", secs: 623 },
++    { title: "Insertion Sort (Code)", secs: 139 },
++    { title: "Counting Sort", secs: 613 },
++    { title: "Counting Sort (Code)", secs: 269 },
++    { title: "In-built Sort in C++", secs: 244 },
++    { title: "Practice Qs", secs: 232 },
++  ],
++  "2d-arrays": [
++    { title: "Introduction to 2D Arrays", secs: 609 },
++    { title: "Input & Output a 2D Array", secs: 311 },
++    { title: "2D Arrays in Memory", secs: 224 },
++    { title: "Spiral Matrix", secs: 687 },
++    { title: "Spiral Matrix (Code)", secs: 1054 },
++    { title: "Diagonal Sum", secs: 403 },
++    { title: "Diagonal Sum (Code)", secs: 346 },
++    { title: "Search in Sorted Matrix", secs: 970 },
++    { title: "Search in Sorted Matrix (Code)", secs: 378 },
++    { title: "Matrix Pointers", secs: 394 },
++    { title: "Matrix Pointers in Functions", secs: 598 },
++  ],
++  "char-arrays-strings": [
++    { title: "Revisit Char Data Type", secs: 419 },
++    { title: "Character Array", secs: 728 },
++    { title: "Input Char Array", secs: 270 },
++    { title: "Convert to UpperCase", secs: 440 },
++    { title: "Reverse a Char Array", secs: 318 },
++    { title: "Valid Palindrome", secs: 462 },
++    { title: "cstring Functions", secs: 388 },
++    { title: "OOPs Intro (for Strings)", secs: 398 },
++    { title: "C++ Strings", secs: 393 },
++    { title: "for each Loop", secs: 193 },
++    { title: "String Member Functions", secs: 423 },
++    { title: "Valid Anagram", secs: 609 },
++    { title: "Valid Anagram (Code)", secs: 469 },
++  ],
++  "vectors": [
++    { title: "Creating a Dynamic Array", secs: 327 },
++    { title: "Dynamic Memory Allocation", secs: 684 },
++    { title: "Static v/s Dynamic Allocation", secs: 62 },
++    { title: "Memory Leak", secs: 387 },
++    { title: "2D Dynamic Arrays", secs: 849 },
++    { title: "What is STL?", secs: 291 },
++    { title: "Vector Introduction", secs: 338 },
++    { title: "Vector Implementation in Memory", secs: 477 },
++    { title: "Pair Sum", secs: 696 },
++    { title: "2D Vectors", secs: 561 },
++    { title: "Practice Qs", secs: 228 },
++  ],
++  "bit-manipulation": [
++    { title: "Bitwise Operators", secs: 459 },
++    { title: "One's Complement", secs: 671 },
++    { title: "Bitwise Shift Operators", secs: 431 },
++    { title: "Practice Qs", secs: 133 },
++    { title: "Check if Odd or Even", secs: 638 },
++    { title: "Get ith Bit", secs: 423 },
++    { title: "Set ith Bit", secs: 211 },
++    { title: "Clear ith Bit", secs: 305 },
++    { title: "Check for Power of 2", secs: 387 },
++    { title: "Update ith Bit", secs: 373 },
++    { title: "Clear Last i Bits", secs: 283 },
++    { title: "Count Set Bits", secs: 311 },
++    { title: "Fast Exponentiation", secs: 428 },
++    { title: "Fast Exponentiation (Code)", secs: 233 },
++  ],
++  "oops-part-1": [
++    { title: "Classes & Objects", secs: 816 },
++    { title: "Access Modifiers", secs: 357 },
++    { title: "Getters & Setters", secs: 230 },
++    { title: "Encapsulation", secs: 159 },
++    { title: "Constructor", secs: 884 },
++    { title: "Practice Qs", secs: 279 },
++    { title: "Copy Constructor", secs: 410 },
++    { title: "Shallow & Deep Copy", secs: 741 },
++    { title: "Destructor", secs: 309 },
++    { title: "Inheritance", secs: 317 },
++    { title: "Mode of Inheritance", secs: 450 },
++    { title: "Single Inheritance", secs: 66 },
++    { title: "Multi-level Inheritance", secs: 275 },
++    { title: "Multiple Inheritance", secs: 237 },
++    { title: "Hierarchical & Hybrid Inheritance", secs: 146 },
++  ],
++  "oops-part-2": [
++    { title: "Polymorphism", secs: 144 },
++    { title: "Function Overloading", secs: 202 },
++    { title: "Operator Overloading", secs: 675 },
++    { title: "Function Overriding", secs: 195 },
++    { title: "Virtual Functions", secs: 290 },
++    { title: "Abstraction", secs: 415 },
++    { title: "Pure Virtual Function", secs: 256 },
++    { title: "Static Keyword", secs: 589 },
++    { title: "Static Objects", secs: 184 },
++    { title: "Friend Functions & Class", secs: 294 },
++    { title: "Practice Qs", secs: 244 },
++    { title: "Practice Qs", secs: 219 },
++  ],
++  "recursion-part-1": [
++    { title: "What is Recursion?", secs: 403 },
++    { title: "Dive Deep into Recursion", secs: 920 },
++    { title: "Recursion in Memory", secs: 405 },
++    { title: "Numbers in Decreasing Order", secs: 377 },
++    { title: "Dry Run with Call Stack", secs: 339 },
++    { title: "Stack Overflow", secs: 197 },
++    { title: "Sum of N Natural Numbers", secs: 418 },
++    { title: "Nth Fibonacci", secs: 421 },
++    { title: "Nth Fibonacci (Code)", secs: 362 },
++    { title: "Check if Array Sorted", secs: 501 },
++    { title: "First Occurrence", secs: 486 },
++    { title: "Last Occurrence", secs: 403 },
++    { title: "Print X to the power N", secs: 426 },
++    { title: "X to the power N (Code)", secs: 236 },
++  ],
++  "recursion-part-2": [
++    { title: "Tiling Problem", secs: 1165 },
++    { title: "Tiling Problem (Code)", secs: 302 },
++    { title: "Remove Duplicates in String", secs: 940 },
++    { title: "Remove Duplicates (Code)", secs: 511 },
++    { title: "Friends Pairing Problem", secs: 613 },
++    { title: "Friends Pairing (Code)", secs: 114 },
++    { title: "Binary Strings Problem", secs: 542 },
++    { title: "Binary Strings (Code)", secs: 254 },
++    { title: "Binary Strings (Dry Run)", secs: 312 },
++  ],
++  "divide-conquer": [
++    { title: "Merge Sort Algorithm", secs: 783 },
++    { title: "Merge / Combine Step", secs: 738 },
++    { title: "Merge Sort (Code)", secs: 591 },
++    { title: "Merge Sort (Summary)", secs: 228 },
++    { title: "Quick Sort Algorithm", secs: 1238 },
++    { title: "Quick Sort (Code)", secs: 235 },
++    { title: "Worst Case Time Complexity - Quick Sort", secs: 321 },
++    { title: "Search in Rotated Sorted Array", secs: 1138 },
++    { title: "Rotated Sorted (Pseudocode)", secs: 377 },
++    { title: "Rotated Sorted (Code)", secs: 341 },
++  ],
++  "time-space-complexity-part-1": [
++    { title: "Introduction", secs: 307 },
++    { title: "What is Time Complexity?", secs: 649 },
++    { title: "Constant Time Complexity", secs: 584 },
++    { title: "Big O Notation", secs: 388 },
++    { title: "Big O from Functions", secs: 339 },
++    { title: "Big O Math Formula (Optional)", secs: 283 },
++    { title: "Other Notations", secs: 249 },
++    { title: "What is Space Complexity?", secs: 489 },
++    { title: "Common Time Complexities", secs: 220 },
++    { title: "Constant & Linear TC", secs: 213 },
++    { title: "Quadratic TC", secs: 277 },
++    { title: "Practice Qs 1", secs: 326 },
++    { title: "Practice Qs 2", secs: 185 },
++    { title: "Practice Qs 3", secs: 366 },
++    { title: "Bubble Sort Analysis", secs: 196 },
++    { title: "Logarithmic TC (Binary Search Analysis)", secs: 543 },
++    { title: "O(n) vs O(logn) - Linear vs Log", secs: 307 },
++  ],
++  "time-space-complexity-part-2": [
++    { title: "Recursion Time Complexity", secs: 284 },
++    { title: "Recursive Sum of N Numbers", secs: 732 },
++    { title: "Recursive Factorial of N", secs: 350 },
++    { title: "Recursive Nth Fibonacci", secs: 686 },
++    { title: "Merge Sort Analysis", secs: 1126 },
++    { title: "Power Function Analysis", secs: 221 },
++    { title: "Practice Qs", secs: 184 },
++    { title: "How to approach Coding Qs?", secs: 674 },
++  ],
++  "backtracking": [
++    { title: "Introduction", secs: 335 },
++    { title: "Backtracking on Arrays", secs: 484 },
++    { title: "Find Subsets", secs: 789 },
++    { title: "Find Subsets (Code)", secs: 297 },
++    { title: "Find Permutations", secs: 574 },
++    { title: "Find Permutations (Code)", secs: 389 },
++    { title: "N Queens Qs Discussion", secs: 353 },
++    { title: "N Queens (Approach)", secs: 916 },
++    { title: "isSafe in N Queens (Approach)", secs: 781 },
++    { title: "N Queens (Time Complexity)", secs: 80 },
++    { title: "N Queens Variations", secs: 149 },
++    { title: "Grid Ways", secs: 460 },
++    { title: "Grid Ways (Code)", secs: 183 },
++    { title: "Grid Ways (Dry Run)", secs: 358 },
++    { title: "Grid Ways (Time Complexity)", secs: 192 },
++    { title: "Grid Ways (Optimization)", secs: 303 },
++    { title: "Sudoku Solver", secs: 703 },
++    { title: "Sudoku Solver (Code)", secs: 515 },
++    { title: "isSafe in Sudoku Solver", secs: 846 },
++  ],
++  "linked-list-part-1": [
++    { title: "Introduction to Linked List", secs: 457 },
++    { title: "LL Implementation", secs: 410 },
++    { title: "Push Front in LL", secs: 883 },
++    { title: "Push Back in LL", secs: 212 },
++    { title: "Print LL", secs: 420 },
++    { title: "Insert in Middle of a LL", secs: 533 },
++    { title: "Deleting the Linked List", secs: 444 },
++    { title: "Pop Front in LL", secs: 240 },
++    { title: "Pop Back in LL", secs: 332 },
++    { title: "Iterative Search in LL", secs: 205 },
++    { title: "Recursive Search in LL", secs: 559 },
++    { title: "Reverse a Linked List", secs: 760 },
++    { title: "Find & Remove Nth Node from End", secs: 469 },
++    { title: "Find & Remove Nth (Code)", secs: 238 },
++  ],
++  "linked-list-part-2": [
++    { title: "Detect Cycle in a LL", secs: 910 },
++    { title: "Detect a Cycle (Code)", secs: 262 },
++    { title: "Removing Cycle in LL", secs: 754 },
++    { title: "Removing Cycle (Code)", secs: 299 },
++    { title: "Removing Cycle (Math Proof)", secs: 656 },
++    { title: "List in STL", secs: 726 },
++    { title: "Merge Sort on a LL", secs: 484 },
++    { title: "Merge Sort (Split At Mid)", secs: 536 },
++    { title: "Merging 2 Sorted Lists", secs: 440 },
++    { title: "Zig Zag Linked List", secs: 601 },
++    { title: "Zig Zag LL (Alternate Merging)", secs: 818 },
++    { title: "Doubly Linked List (Push Front)", secs: 616 },
++    { title: "Doubly Linked List (Pop Front)", secs: 246 },
++  ],
++  "stacks-part-1": [
++    { title: "Introduction to Stack", secs: 349 },
++    { title: "Stack using Vector", secs: 872 },
++    { title: "Stack using Vector & Class Template", secs: 377 },
++    { title: "Stack using LinkedList", secs: 884 },
++    { title: "Stack in STL", secs: 86 },
++    { title: "Push at Bottom of Stack", secs: 448 },
++    { title: "Push at Bottom (Code)", secs: 183 },
++    { title: "Reverse a String using Stack", secs: 255 },
++    { title: "Reverse a Stack", secs: 451 },
++    { title: "Stock Span", secs: 475 },
++    { title: "Stock Span (Approach)", secs: 1144 },
++    { title: "Stock Span (Code)", secs: 243 },
++  ],
++  "stacks-part-2": [
++    { title: "Next Greater Element", secs: 481 },
++    { title: "Next Greater Element (Code)", secs: 238 },
++    { title: "Valid Parentheses", secs: 879 },
++    { title: "Valid Parentheses (Code)", secs: 328 },
++    { title: "Duplicate Parentheses", secs: 700 },
++    { title: "Duplicate Parentheses (Code)", secs: 229 },
++    { title: "Max Area in Histogram", secs: 749 },
++    { title: "Max Area in Histogram (nextSmaller Logic)", secs: 841 },
++    { title: "Max Area in Histogram (Code)", secs: 405 },
++  ],
++  "queue": [
++    { title: "Queue Introduction", secs: 300 },
++    { title: "Implementation using LinkedList", secs: 523 },
++    { title: "Circular Queue using Array", secs: 1090 },
++    { title: "Queue in STL", secs: 71 },
++    { title: "Queue using 2 Stacks", secs: 834 },
++    { title: "Stack using 2 Queues", secs: 440 },
++    { title: "First non-repeating letter", secs: 577 },
++    { title: "First non-repeating letter (Code)", secs: 212 },
++    { title: "Interleave 2 Queues", secs: 360 },
++    { title: "Interleave 2 Queues (Code)", secs: 228 },
++    { title: "Queue Reversal", secs: 194 },
++    { title: "Double Ended Queue", secs: 276 },
++    { title: "Queue using Deque", secs: 219 },
++    { title: "Stack using Deque", secs: 263 },
++  ],
++  "greedy-algorithms": [
++    { title: "Greedy Approach Introduction", secs: 535 },
++    { title: "Activity Selection Problem", secs: 401 },
++    { title: "Activity Selection (Approach)", secs: 858 },
++    { title: "Activity Selection (Code)", secs: 244 },
++    { title: "Activity Selection (Proof)", secs: 441 },
++    { title: "Pairs in C++", secs: 961 },
++    { title: "Fractional Knapsack", secs: 1324 },
++    { title: "Fractional Knapsack (Code)", secs: 462 },
++    { title: "Min Absolute Difference of Pairs", secs: 691 },
++    { title: "Max Chain Length", secs: 605 },
++    { title: "Max Chain Length (Code)", secs: 243 },
++    { title: "Indian Coins", secs: 796 },
++    { title: "Indian Coins (Code)", secs: 204 },
++    { title: "Job Sequencing Problem", secs: 815 },
++    { title: "Job Sequencing Variation", secs: 748 },
++  ],
++  "binary-trees-part-1": [
++    { title: "Binary Trees Introduction", secs: 810 },
++    { title: "Levels & Subtrees", secs: 243 },
++    { title: "Practice Quiz", secs: 133 },
++    { title: "Build Tree from Preorder", secs: 1456 },
++    { title: "Preorder Traversal", secs: 689 },
++    { title: "Inorder Traversal", secs: 266 },
++    { title: "Postorder Traversal", secs: 246 },
++    { title: "Level Order Traversal", secs: 1370 },
++    { title: "Height of Binary Tree", secs: 685 },
++    { title: "Height of BT (Code)", secs: 259 },
++    { title: "Count of Nodes in BT", secs: 319 },
++    { title: "Sum of Nodes in BT", secs: 447 },
++  ],
++  "binary-trees-part-2": [
++    { title: "Diameter of a Tree ( Approach 1 )", secs: 858 },
++    { title: "Diameter of a Tree ( Code )", secs: 391 },
++    { title: "Diameter of a Tree ( Approach 2 )", secs: 397 },
++    { title: "Diameter of a Tree ( Code 2 )", secs: 342 },
++    { title: "Subtree of another Tree", secs: 870 },
++    { title: "Subtree of another Tree (isIdentical)", secs: 792 },
++    { title: "Map in C++", secs: 586 },
++    { title: "Top View of a Tree (Horizontal Distance)", secs: 719 },
++    { title: "Top View of a Tree ( Approach )", secs: 477 },
++    { title: "Top View of a Tree ( Code )", secs: 602 },
++  ],
++  "binary-trees-part-3": [
++    { title: "Kth Level of a Tree", secs: 751 },
++    { title: "Lowest Common Ancestor", secs: 1106 },
++    { title: "Lowest Common Ancestor (Code)", secs: 509 },
++    { title: "LCA (Approach 2)", secs: 647 },
++    { title: "LCA (Approach 2) Code", secs: 227 },
++    { title: "Min Distance between Nodes", secs: 823 },
++    { title: "Kth Ancestor of a Node", secs: 626 },
++    { title: "Kth Ancestor (Code)", secs: 244 },
++    { title: "Transform to Sum Tree", secs: 819 },
++  ],
++  "bst-part-1": [
++    { title: "BST Introduction", secs: 695 },
++    { title: "Search in BST", secs: 819 },
++    { title: "Insert & Build a BST", secs: 1018 },
++    { title: "Search in BST (Code)", secs: 385 },
++    { title: "Delete a Node in BST", secs: 1196 },
++    { title: "Inorder Successor", secs: 636 },
++    { title: "Delete a Node (Code)", secs: 566 },
++    { title: "Print in Range", secs: 650 },
++    { title: "Root to Leaf Path", secs: 602 },
++    { title: "Validate BST", secs: 930 },
++    { title: "Validate BST (Code)", secs: 294 },
++  ],
++  "bst-part-2": [
++    { title: "Sorted Array to Balanced BST", secs: 725 },
++    { title: "Sorted Array to Balanced BST (Code)", secs: 280 },
++    { title: "BST to Balanced BST", secs: 173 },
++    { title: "BST to Balanced BST (Code)", secs: 319 },
++    { title: "Largest BST in BT", secs: 1607 },
++    { title: "Largest BST in BT (Code)", secs: 806 },
++    { title: "Merge 2 BSTs", secs: 580 },
++  ],
++  "heaps-part-1": [
++    { title: "Heaps & Priority Queue (Introduction)", secs: 445 },
++    { title: "PQ in C++ STL", secs: 484 },
++    { title: "What are Heaps?", secs: 601 },
++    { title: "Building Heaps", secs: 1036 },
++    { title: "Push in Heap", secs: 541 },
++    { title: "Push in Heap (Code)", secs: 323 },
++    { title: "Pop in Heap", secs: 783 },
++    { title: "Pop in Heap (Code)", secs: 489 },
++    { title: "Pop in Heap (Dry Run)", secs: 486 },
++    { title: "PQ for Objects", secs: 561 },
++    { title: "PQ for Pairs", secs: 374 },
++  ],
++  "heaps-part-2": [
++    { title: "Heap Sort (Building maxHeap)", secs: 910 },
++    { title: "Heap Sort (Sorting)", secs: 859 },
++    { title: "Nearby Cars", secs: 789 },
++    { title: "Nearby Cars (Code)", secs: 547 },
++    { title: "Connect N Ropes", secs: 548 },
++    { title: "Connect N Ropes (Code)", secs: 190 },
++    { title: "Weakest Soldier", secs: 321 },
++    { title: "Weakest Soldier (Code)", secs: 341 },
++    { title: "Sliding Window Maximum", secs: 885 },
++    { title: "Sliding Window Maximum (Code)", secs: 286 },
++  ],
++  "hashing-part-1": [
++    { title: "Introduction", secs: 140 },
++    { title: "Hash Table Data Structure", secs: 448 },
++    { title: "Hashing (Hash Function)", secs: 719 },
++    { title: "Collisions", secs: 616 },
++    { title: "Building Hash Table", secs: 543 },
++    { title: "Insert in Hash Table", secs: 400 },
++    { title: "Rehashing", secs: 924 },
++    { title: "Search in Hash Table", secs: 1003 },
++    { title: "STL Containers", secs: 436 },
++    { title: "Unordered Maps", secs: 402 },
++    { title: "Maps", secs: 104 },
++    { title: "Unordered Sets", secs: 315 },
++    { title: "Sets", secs: 740 },
++  ],
++  "hashing-part-2": [
++    { title: "Majority Element", secs: 566 },
++    { title: "Majority Element (Code)", secs: 270 },
++    { title: "Valid Anagram", secs: 528 },
++    { title: "Valid Anagram (Code)", secs: 288 },
++    { title: "Count Distinct", secs: 349 },
++    { title: "Union & Intersection", secs: 595 },
++    { title: "Itinerary from Tickets", secs: 483 },
++    { title: "Itinerary from Tickets (Code)", secs: 286 },
++    { title: "Zero Sum Largest Subarray", secs: 1219 },
++    { title: "Zero Sum Largest Subarray (Code)", secs: 180 },
++    { title: "K Sum Subarray Count", secs: 905 },
++    { title: "K Sum Subarray Count (Code)", secs: 234 },
++  ],
++  "tries": [
++    { title: "Tries Introduction", secs: 563 },
++    { title: "Search in Trie", secs: 304 },
++    { title: "Building a Trie DS", secs: 603 },
++    { title: "Insert in Trie", secs: 571 },
++    { title: "Search in Trie", secs: 351 },
++    { title: "Word Break Problem", secs: 991 },
++    { title: "Word Break (Code)", secs: 313 },
++    { title: "Prefix Problem", secs: 820 },
++    { title: "Prefix (Code)", secs: 283 },
++    { title: "StartsWith Problem", secs: 372 },
++    { title: "Count Unique Substrings", secs: 898 },
++    { title: "Count Unique Substrings (Code)", secs: 226 },
++    { title: "Longest Word with all Prefix", secs: 625 },
++    { title: "Longest Word (Code)", secs: 372 },
++  ],
++  "graphs-part-1": [
++    { title: "Introduction to Graphs", secs: 415 },
++    { title: "Types of Graphs", secs: 456 },
++    { title: "Graph using Adjacency List", secs: 687 },
++    { title: "Graph using Adjacency Matrix", secs: 429 },
++    { title: "Edge List & Implicit Graph", secs: 479 },
++    { title: "Building a Graph (Adjacency List)", secs: 701 },
++    { title: "Breadth First Traversal (BFS)", secs: 1059 },
++    { title: "BFS Code", secs: 218 },
++    { title: "Depth First Traversal (DFS)", secs: 496 },
++    { title: "DFS Code", secs: 220 },
++    { title: "Has Path Problem", secs: 699 },
++  ],
++  "graphs-part-2": [
++    { title: "Disconnected Components", secs: 691 },
++    { title: "Cycle in Graphs", secs: 278 },
++    { title: "Cycle Detection (Undirected)", secs: 633 },
++    { title: "Cycle Detection Code (Undirected)", secs: 400 },
++    { title: "Undirected approach for Directed", secs: 196 },
++    { title: "Cycle Detection (Directed)", secs: 504 },
++    { title: "Cycle Detection Code (Directed)", secs: 402 },
++    { title: "Cycle Detection Dry Run (Directed)", secs: 216 },
++    { title: "Bipartite Graph", secs: 897 },
++    { title: "Bipartite Graph (Code)", secs: 568 },
++    { title: "Bipartite Graph (Approach 2)", secs: 202 },
++    { title: "All Paths Problem", secs: 1020 },
++  ],
++  "graphs-part-3": [
++    { title: "What is Topological Sorting?", secs: 491 },
++    { title: "Topological Sorting (DFS)", secs: 672 },
++    { title: "Topological Sorting Code (DFS)", secs: 297 },
++    { title: "Course Schedule I", secs: 1266 },
++    { title: "Course Schedule II", secs: 653 },
++    { title: "Kahn's Algorithm (Indegree)", secs: 573 },
++    { title: "Topological Sorting (Kahn's Algorithm)", secs: 464 },
++    { title: "Kahn's Algorithm Code", secs: 298 },
++    { title: "Kahn's Algo for Cycle Detection", secs: 209 },
++  ],
++  "graphs-part-4": [
++    { title: "Dijkstra's Algorithm (Edge Relaxation)", secs: 959 },
++    { title: "Dijkstra's Algorithm (Approach)", secs: 987 },
++    { title: "Dijkstra's Algorithm (Code)", secs: 747 },
++    { title: "BellmanFord Algorithm (Approach)", secs: 869 },
++    { title: "BellmanFord Algorithm (Code)", secs: 230 },
++    { title: "What is MST?", secs: 354 },
++    { title: "Prim's Algorithm", secs: 905 },
++    { title: "Prim's Algorithm (Code)", secs: 545 },
++    { title: "Min Cost to Connect Points", secs: 1094 },
++  ],
++  "graphs-part-5": [
++    { title: "Cheapest Flights within K Stops", secs: 1852 },
++    { title: "Cheapest Flights (Code)", secs: 769 },
++    { title: "Disjoint Set (Union Find)", secs: 1151 },
++    { title: "Disjoint Set (Code)", secs: 682 },
++    { title: "Kruskal's Algorithm", secs: 561 },
++    { title: "Kruskal's Algorithm (Code)", secs: 706 },
++    { title: "Flood Fill Algorithm", secs: 419 },
++    { title: "Flood Fill (Code)", secs: 556 },
++  ],
++  "dynamic-programming-part-1": [
++    { title: "DP Introduction", secs: 228 },
++    { title: "DP using Fibonacci Concept", secs: 1011 },
++    { title: "What is DP?", secs: 554 },
++    { title: "Fibonacci using Tabulation", secs: 593 },
++    { title: "Types of DP", secs: 219 },
++    { title: "Important DP Concepts", secs: 178 },
++    { title: "Climbing Stairs (Recursion)", secs: 923 },
++    { title: "Climbing Stairs (Memoization)", secs: 412 },
++    { title: "Climbing Stairs (Tabulation)", secs: 445 },
++    { title: "Variation of Climbing Stairs", secs: 651 },
++  ],
++  "dynamic-programming-part-2": [
++    { title: "Knapsack Problems", secs: 155 },
++    { title: "0-1 Knapsack", secs: 288 },
++    { title: "0-1 Knapsack (Recursion Code)", secs: 1496 },
++    { title: "0-1 Knapsack (Memoization)", secs: 1114 },
++    { title: "0-1 Knapsack (Tabulation)", secs: 1170 },
++    { title: "Target Sum Subset", secs: 1386 },
++    { title: "Unbounded Knapsack", secs: 888 },
++  ],
++  "dynamic-programming-part-3": [
++    { title: "Coin Change Problem", secs: 1171 },
++    { title: "Coin Change (Code)", secs: 313 },
++    { title: "Rod Cutting Problem", secs: 699 },
++    { title: "Rod Cutting (Code)", secs: 242 },
++    { title: "Longest Common Subsequence", secs: 1334 },
++    { title: "LCS (Memoization)", secs: 435 },
++    { title: "LCS (Tabulation)", secs: 635 },
++  ],
++  "dynamic-programming-part-4": [
++    { title: "Longest Common Substring", secs: 1119 },
++    { title: "Longest Common Substring (Code)", secs: 239 },
++    { title: "Longest Increasing Subsequence", secs: 636 },
++    { title: "Longest Increasing Subsequence (Code)", secs: 287 },
++    { title: "Edit Distance", secs: 1498 },
++    { title: "Edit Distance (Code)", secs: 251 },
++  ],
++  "dynamic-programming-part-5": [
++    { title: "WildCard Matching", secs: 1339 },
++    { title: "WildCard Matching (Bottom Up)", secs: 1044 },
++    { title: "Catalan's Number", secs: 303 },
++    { title: "Nth Catalan (Recursion)", secs: 507 },
++    { title: "Nth Catalan (Memoization)", secs: 444 },
++    { title: "Nth Catalan (Tabulation)", secs: 402 },
++    { title: "Count BSTs from Nodes", secs: 930 },
++    { title: "Mountain Ranges", secs: 789 },
++  ],
++  "dynamic-programming-part-6": [
++    { title: "Matrix Concepts (Basic Math)", secs: 410 },
++    { title: "Matrix Chain Multiplication", secs: 585 },
++    { title: "MCM (with Recursion)", secs: 1422 },
++    { title: "MCM Code (Recursion)", secs: 346 },
++    { title: "MCM (Memoization)", secs: 568 },
++    { title: "MCM (Tabulation)", secs: 980 },
++    { title: "MCM Code (Tabulation)", secs: 297 },
++    { title: "Minimum Partitioning", secs: 641 },
++    { title: "Minimum Partitioning (Code)", secs: 250 },
++  ],
++  "segment-trees": [
++    { title: "Segment Trees Introduction", secs: 907 },
++    { title: "Meaning & Count of Nodes", secs: 924 },
++    { title: "Creating Segment Tree", secs: 278 },
++    { title: "Creating Segment Tree (Approach)", secs: 605 },
++    { title: "Creating Segment Tree (Code)", secs: 322 },
++    { title: "Queries on Segment Tree", secs: 730 },
++    { title: "Queries on Segment Tree (Code)", secs: 496 },
++    { title: "Update on Segment Tree", secs: 411 },
++    { title: "Update on Segment Tree (Code)", secs: 257 },
++    { title: "Range Max ST (Creation)", secs: 650 },
++    { title: "Range Max ST (Query)", secs: 429 },
++    { title: "Range Max ST (Update)", secs: 318 },
++    { title: "Range Min (Approach)", secs: 104 },
++  ],
++};

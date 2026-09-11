@@ -106,6 +106,7 @@ async function init(): Promise<DB> {
     "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
     "ALTER TABLE users ADD COLUMN last_active_at TEXT",
     "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
+    "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
   ]) {
     try { await db.run(sql); } catch { /* column already exists */ }
   }
@@ -182,15 +183,25 @@ export async function ensureSettings(db: DB, userId: number) {
   await db.run(`INSERT OR IGNORE INTO settings (user_id) VALUES (?)`, userId);
 }
 
-/** Seed the DSA journey (first topic starts as current). Idempotent. */
+/** Seed the DSA journey (first topic starts as current). Idempotent.
+ * Fast path: 1 COUNT query when already seeded (was: 47 sequential INSERTs). */
 export async function ensureDsaTopics(db: DB, userId: number) {
+  const row = await db.get<{ c: number }>(
+    "SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ?",
+    userId
+  );
+  if ((row?.c ?? 0) >= DSA_TOPICS.length) return;
+  // Single multi-row INSERT: 1 round trip instead of 47
   const now = new Date().toISOString();
+  const values = DSA_TOPICS.map(() => "(?,?,?,?)").join(",");
+  const args: any[] = [];
   for (const t of DSA_TOPICS) {
-    await db.run(
-      `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES (?,?,?,?)`,
-      userId, t.key, t.key === DSA_TOPICS[0].key ? "doing" : "todo", now
-    );
+    args.push(userId, t.key, t.key === DSA_TOPICS[0].key ? "doing" : "todo", now);
   }
+  await db.run(
+    `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
+    ...args
+  );
 }
 
 /** Guarantee an owner/admin account always exists. */

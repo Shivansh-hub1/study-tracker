@@ -1,16 +1,22 @@
 "use client";
 
-import React from "react";
-import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock } from "lucide-react";
+import React, { useState } from "react";
+import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes } from "@/lib/utils";
 import { Spinner } from "@/components/ui";
 import { useToast } from "@/components/Providers";
 
+function fmtDur(sec: number) {
+  const m = Math.floor(sec / 60), s = sec % 60;
+  return `${m}m ${s}s`;
+}
+
 export default function DsaPage() {
   const { toast } = useToast();
   const { data, loading, reload } = useFetch("/api/dsa");
   const { data: subjectsData, reload: reloadSubjects } = useFetch("/api/subjects");
+  const [expanded, setExpanded] = useState<string | null>(null);
   const topics: any[] = data?.topics || [];
   const subjects: any[] = subjectsData?.subjects || [];
   const hasDsaSubject = subjects.some((s: any) => /dsa/i.test(s.name || ""));
@@ -18,12 +24,23 @@ export default function DsaPage() {
   const total: number = data?.total || topics.length || 1;
   const pct = Math.round((done / total) * 100);
   const current = topics.find((t: any) => t.key === data?.current);
+  const openKey = expanded ?? data?.current ?? null;
 
   const setStatus = async (key: string, status: string) => {
     try {
       await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) });
       await reload();
       if (status === "done") toast("Topic done! Next one unlocked 🎉", "success");
+    } catch (e: any) {
+      toast(e.message, "error");
+    }
+  };
+
+  const setLecture = async (key: string, idx: number, len: number) => {
+    try {
+      await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
+      await reload();
+      if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
@@ -114,55 +131,118 @@ export default function DsaPage() {
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-          {topics.map((t: any, i: number) => (
-            <div
-              key={t.key}
-              className="card"
-              style={{
-                display: "flex", gap: 12, alignItems: "center", padding: "12px 14px",
-                borderColor: t.status === "doing" ? "var(--accent)" : undefined,
-              }}
-            >
+          {topics.map((t: any, i: number) => {
+            const lectures: any[] = t.lectures || [];
+            const lidx: number = t.lecture_idx || 0;
+            const open = openKey === t.key;
+            return (
               <div
+                key={t.key}
+                className="card"
                 style={{
-                  width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
-                  fontWeight: 800, fontSize: 14, flexShrink: 0,
-                  background: t.status === "done" ? "#10b981" : t.status === "doing" ? "var(--accent)" : "var(--surface-2)",
-                  color: t.status === "todo" ? "var(--muted)" : "#fff",
-                  border: t.status === "todo" ? "1px solid var(--border)" : "none",
+                  padding: "12px 14px",
+                  borderColor: t.status === "doing" ? "var(--accent)" : undefined,
                 }}
               >
-                {t.status === "done" ? <Check size={16} strokeWidth={3} /> : i + 1}
-              </div>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontWeight: 700, fontSize: 14 }}>
-                  {t.title}{" "}
-                  {t.status === "doing" && (
-                    <span className="badge" style={{ marginLeft: 6 }}>current</span>
-                  )}
+                <div
+                  style={{ display: "flex", gap: 12, alignItems: "center", cursor: "pointer" }}
+                  onClick={() => setExpanded(open ? "__none__" : t.key)}
+                  title={open ? "Collapse lectures" : "Expand lectures"}
+                >
+                  <div
+                    style={{
+                      width: 34, height: 34, borderRadius: "50%", display: "grid", placeItems: "center",
+                      fontWeight: 800, fontSize: 14, flexShrink: 0,
+                      background: t.status === "done" ? "#10b981" : t.status === "doing" ? "var(--accent)" : "var(--surface-2)",
+                      color: t.status === "todo" ? "var(--muted)" : "#fff",
+                      border: t.status === "todo" ? "1px solid var(--border)" : "none",
+                    }}
+                  >
+                    {t.status === "done" ? <Check size={16} strokeWidth={3} /> : i + 1}
+                  </div>
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontWeight: 700, fontSize: 14 }}>
+                      {t.title}{" "}
+                      {t.status === "doing" && (
+                        <span className="badge" style={{ marginLeft: 6 }}>current</span>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
+                      {t.blurb}
+                      {t.status !== "done" && lectures.length > 0 && (
+                        <> · lecture {Math.min(lidx + 1, lectures.length)}/{lectures.length}</>
+                      )}
+                    </div>
+                    <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                      {t.seconds > 0 ? `${fmtMinutes(Math.round(t.seconds / 60))} logged` : "no time yet"}
+                    </div>
+                  </div>
+                  <ChevronDown
+                    size={18}
+                    style={{
+                      color: "var(--muted)", flexShrink: 0,
+                      transform: open ? "rotate(180deg)" : "none", transition: "transform .2s",
+                    }}
+                  />
                 </div>
-                <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{t.blurb}</div>
-                <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
-                  {t.seconds > 0 ? `${fmtMinutes(Math.round(t.seconds / 60))} logged` : "no time yet"}
-                </div>
+
+                {open && lectures.length > 0 && (
+                  <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
+                    {lectures.map((l: any, li: number) => {
+                      const st = t.status === "done" || li < lidx ? "done" : li === lidx ? "doing" : "todo";
+                      return (
+                        <div
+                          key={li}
+                          onClick={() => li !== lidx && setLecture(t.key, li, lectures.length)}
+                          title={li !== lidx ? "Jump here" : "Current lecture"}
+                          style={{
+                            display: "flex", gap: 10, alignItems: "center", padding: "7px 8px",
+                            borderRadius: 8, fontSize: 13.5, cursor: li !== lidx ? "pointer" : "default",
+                            background: st === "doing" ? "var(--accent-soft)" : "transparent",
+                          }}
+                        >
+                          <span
+                            style={{
+                              width: 22, height: 22, borderRadius: "50%", display: "grid", placeItems: "center",
+                              fontSize: 11, fontWeight: 700, flexShrink: 0,
+                              background: st === "done" ? "#10b981" : st === "doing" ? "var(--accent)" : "var(--surface-2)",
+                              color: st === "todo" ? "var(--muted)" : "#fff",
+                            }}
+                          >
+                            {st === "done" ? <Check size={12} strokeWidth={3} /> : li + 1}
+                          </span>
+                          <span style={{ flex: 1, color: st === "todo" ? "var(--muted)" : "var(--text)" }}>{l.title}</span>
+                          <span style={{ fontSize: 12, color: "var(--muted)", whiteSpace: "nowrap" }}>{fmtDur(l.secs)}</span>
+                        </div>
+                      );
+                    })}
+                    <div style={{ display: "flex", gap: 8, marginTop: 10, flexWrap: "wrap" }}>
+                      {t.status === "todo" && (
+                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "doing")}>
+                          <Play size={13} /> Start
+                        </button>
+                      )}
+                      {lidx < lectures.length && (
+                        <button className="btn btn-sm btn-primary" onClick={() => setLecture(t.key, lidx + 1, lectures.length)}>
+                          <Check size={13} /> Next lecture
+                        </button>
+                      )}
+                      {t.status !== "done" && (
+                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "done")}>
+                          Skip to done
+                        </button>
+                      )}
+                      {t.status === "done" && (
+                        <button className="btn btn-sm" onClick={() => setStatus(t.key, "todo")}>
+                          Reopen
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                )}
               </div>
-              {t.status === "todo" && (
-                <button className="btn btn-sm" onClick={() => setStatus(t.key, "doing")}>
-                  <Play size={13} /> Start
-                </button>
-              )}
-              {t.status === "doing" && (
-                <button className="btn btn-sm btn-primary" onClick={() => setStatus(t.key, "done")}>
-                  <Check size={13} /> Done
-                </button>
-              )}
-              {t.status === "done" && (
-                <button className="btn btn-sm" onClick={() => setStatus(t.key, "todo")}>
-                  Reopen
-                </button>
-              )}
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
