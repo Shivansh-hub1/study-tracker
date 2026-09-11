@@ -18,6 +18,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         />
       </head>
       <body>
+        <div className="glass-blobs" aria-hidden="true">
+          <i className="b1" />
+          <i className="b2" />
+          <i className="b3" />
+        </div>
         <Providers>{children}</Providers>
       </body>
     </html>
