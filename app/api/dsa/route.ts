@@ -60,7 +60,8 @@ async function payload(userId: number) {
     .filter((x) => !(x.days_ago >= 3 && (x.rev_days === -1 || x.rev_days >= 7)))
     .map((x) => ({ key: x.key, title: x.title, days_left: x.rev_days === -1 ? Math.max(1, 3 - x.days_ago) : Math.max(1, 7 - x.rev_days) }))
     .sort((a, b) => a.days_left - b.days_left);
-  return { topics, current, done, total: topics.length, total_sec, revision_due, revision_upcoming };
+  const revised_count = rows.filter((r) => r.revised_at).length;
+  return { topics, current, done, total: topics.length, total_sec, revision_due, revision_upcoming, revised_count };
 }
 
 /** First remaining todo becomes the new current (only if none exists). */
@@ -174,7 +175,10 @@ export async function POST(req: NextRequest) {
     }
     const db = await getDb();
     await ensureDsaTopics(db, user.id);
-    await db.run("UPDATE dsa_progress SET revised_at = ? WHERE user_id = ? AND topic_key = ?", new Date().toISOString(), user.id, key);
+    const rating = body.rating as string;
+    const backDays = rating === "again" ? 6 : rating === "hard" ? 4 : 0;
+    const revAt = new Date(Date.now() - backDays * 86400000).toISOString();
+    await db.run("UPDATE dsa_progress SET revised_at = ? WHERE user_id = ? AND topic_key = ?", revAt, user.id, key);
     return NextResponse.json(await payload(user.id));
   }
   if (body.action !== "reset") {

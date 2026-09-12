@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
-  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route, Code2,
+  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route, Code2, History,
 } from "lucide-react";
 import { THEMES, useTheme, useToast } from "./Providers";
 
@@ -15,6 +15,7 @@ const NAV = [
   { href: "/subjects", label: "Subjects", icon: BookOpen },
   { href: "/dsa", label: "DSA Journey", icon: Route },
   { href: "/webdev", label: "Web Dev", icon: Code2 },
+  { href: "/revision", label: "Revision", icon: History },
   { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/sessions", label: "Sessions", icon: ListChecks },
   { href: "/settings", label: "Settings", icon: Settings },
@@ -29,9 +30,23 @@ export default function AppShell({ user, children }: { user: Me; children: React
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [dueCount, setDueCount] = useState(0);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    let on = true;
+    (async () => {
+      try {
+        const [a, b] = await Promise.all([
+          fetch("/api/dsa").then((r) => r.json()),
+          fetch("/api/webdev").then((r) => r.json()),
+        ]);
+        if (on) setDueCount((a.revision_due?.length || 0) + (b.revision_due?.length || 0));
+      } catch {}
+    })();
+    return () => { on = false; };
+  }, [pathname]);
   useEffect(() => {
     const h = (e: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
@@ -66,6 +81,9 @@ export default function AppShell({ user, children }: { user: Me; children: React
           return (
             <Link key={n.href} href={n.href} className={`snav ${active ? "active" : ""}`}>
               <Icon size={17} /> {n.label}
+              {n.href === "/revision" && dueCount > 0 && (
+                <span className="badge" style={{ marginLeft: "auto", fontSize: 11, padding: "2px 9px" }}>{dueCount}</span>
+              )}
             </Link>
           );
         })}

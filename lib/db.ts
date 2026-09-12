@@ -76,7 +76,9 @@ const SCHEMA = [
     pomo_long INTEGER NOT NULL DEFAULT 15,
     pomo_rounds INTEGER NOT NULL DEFAULT 4,
     auto_next INTEGER NOT NULL DEFAULT 1,
-    week_start INTEGER NOT NULL DEFAULT 1
+    week_start INTEGER NOT NULL DEFAULT 1,
+    freeze_stock INTEGER NOT NULL DEFAULT 1,
+    freeze_week TEXT NOT NULL DEFAULT ''
   )`,
   `CREATE TABLE IF NOT EXISTS dsa_progress (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -94,6 +96,11 @@ const SCHEMA = [
     lecture_idx INTEGER NOT NULL DEFAULT 0,
     updated_at TEXT NOT NULL,
     UNIQUE(user_id, topic_key)
+  )`,
+  `CREATE TABLE IF NOT EXISTS freeze_days (
+    user_id INTEGER NOT NULL,
+    day TEXT NOT NULL,
+    UNIQUE(user_id, day)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at)`,
   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
@@ -120,6 +127,8 @@ async function init(): Promise<DB> {
     "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
     "ALTER TABLE web_progress ADD COLUMN revised_at TEXT",
+    "ALTER TABLE settings ADD COLUMN freeze_stock INTEGER NOT NULL DEFAULT 1",
+    "ALTER TABLE settings ADD COLUMN freeze_week TEXT NOT NULL DEFAULT ''",
   ]) {
     try { await db.run(sql); } catch { /* column already exists */ }
   }
@@ -254,7 +263,7 @@ async function ensureOwner(db: DB) {
 
 /** Delete a user and ALL their data (admin cascade). */
 export async function deleteUserCascade(db: DB, userId: number) {
-  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress"]) {
+  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress", "freeze_days"]) {
     await db.run(`DELETE FROM ${t} WHERE user_id = ?`, userId);
   }
   await db.run("DELETE FROM users WHERE id = ?", userId);

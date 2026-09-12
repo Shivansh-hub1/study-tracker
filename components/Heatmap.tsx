@@ -2,24 +2,25 @@
 
 import React, { useMemo } from "react";
 
-export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: string; minutes: number }>; weeks?: number }) {
+export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number }) {
   const { cols, max } = useMemo(() => {
     const byDate: Record<string, number> = {};
+    const frozen = new Set<string>();
     let max = 0;
-    for (const d of data) { byDate[d.date] = d.minutes; if (d.minutes > max) max = d.minutes; }
+    for (const d of data) { byDate[d.date] = d.minutes; if (d.frozen) frozen.add(d.date); if (d.minutes > max) max = d.minutes; }
     // Build columns of 7 ending today, aligned to Monday start
     const dayMs = 86400000;
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const totalDays = weeks * 7;
     const end = new Date(today.getTime() + (6 - ((today.getDay() + 6) % 7)) * dayMs); // upcoming Sunday
-    const cols: Array<Array<{ date: string; v: number; future: boolean }>> = [];
+    const cols: Array<Array<{ date: string; v: number; future: boolean; f: boolean }>> = [];
     for (let w = 0; w < weeks; w++) {
-      const col: Array<{ date: string; v: number; future: boolean }> = [];
+      const col: Array<{ date: string; v: number; future: boolean; f: boolean }> = [];
       for (let dow = 0; dow < 7; dow++) {
         const d = new Date(end.getTime() - ((totalDays - 1) - (w * 7 + dow)) * dayMs);
         const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-        col.push({ date: key, v: byDate[key] || 0, future: d > today });
+        col.push({ date: key, v: byDate[key] || 0, future: d > today, f: frozen.has(key) });
       }
       cols.push(col);
     }
@@ -49,7 +50,7 @@ export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: stri
               key={c.date}
               className="heat-cell"
               title={`${c.date} — ${c.v >= 60 ? `${Math.floor(c.v / 60)}h ${c.v % 60}m` : `${c.v}m`}`}
-              style={c.future ? { opacity: 0.25 } : styles[level(c.v)]}
+              style={c.future ? { opacity: 0.25 } : c.f && c.v <= 0 ? { background: "rgba(125, 211, 252, 0.5)", border: "1px solid rgba(125,211,252,.9)" } : styles[level(c.v)]}
             />
           ))}
         </div>

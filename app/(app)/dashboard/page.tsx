@@ -1,10 +1,10 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
-  BookOpen, Timer as TimerIcon,
+  BookOpen, Timer as TimerIcon, Snowflake, Share2,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
@@ -13,6 +13,7 @@ import { useFetch, useStats, api } from "@/lib/client";
 import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
 import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
 import Heatmap from "@/components/Heatmap";
+import { drawShareCard, shareText } from "@/components/ShareCard";
 import { useToast } from "@/components/Providers";
 
 const KIND_LABELS: Record<string, string> = {
@@ -24,7 +25,7 @@ const KIND_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { toast } = useToast();
-  const { data: statsData, loading: statsLoading } = useStats();
+  const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
   const { data: goalsData, reload: reloadGoals, setData: setGoalsData } = useFetch("/api/goals");
   const { data: sessData } = useFetch("/api/sessions?limit=6");
   const { data: subjectsData } = useFetch("/api/subjects");
@@ -33,8 +34,14 @@ export default function DashboardPage() {
   const [gKind, setGKind] = useState("daily_minutes");
   const [gTarget, setGTarget] = useState("120");
   const [saving, setSaving] = useState(false);
+  const { data: streakData, setData: setStreakData } = useFetch(`/api/streak?offset=${-new Date().getTimezoneOffset()}`);
+  const [shareOpen, setShareOpen] = useState(false);
+  const shareRef = useRef<HTMLCanvasElement>(null);
 
   const stats = statsData?.stats;
+  const stock = streakData?.stock ?? 0;
+  const frozenToday = !!streakData?.frozenToday;
+  const atRisk = (stats?.streak ?? 0) > 0 && (stats?.todayMin ?? 0) === 0 && !frozenToday;
   const goals = goalsData?.goals || [];
   const subjects = subjectsData?.subjects || [];
 
@@ -67,6 +74,41 @@ export default function DashboardPage() {
     } catch (e: any) {
       setGoalsData({ goals: prev } as any);
       toast(e.message, "error");
+    }
+  };
+
+  const useFreeze = async () => {
+    try {
+      const r = await api(`/api/streak?offset=${-new Date().getTimezoneOffset()}`, { method: "POST", body: JSON.stringify({ action: "freeze" }) });
+      setStreakData(r as any);
+      reloadStats();
+      toast("Streak frozen \u2744\uFE0F Come back tomorrow!", "success");
+    } catch (e: any) {
+      toast(e.message, "error");
+    }
+  };
+
+  useEffect(() => {
+    if (shareOpen && shareRef.current && stats) {
+      drawShareCard(shareRef.current, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0 });
+    }
+  }, [shareOpen, stats]);
+
+  const downloadShare = () => {
+    if (!shareRef.current) return;
+    const a = document.createElement("a");
+    a.href = shareRef.current.toDataURL("image/png");
+    a.download = "focusflow-progress.png";
+    a.click();
+  };
+
+  const copyShare = async () => {
+    if (!stats) return;
+    try {
+      await navigator.clipboard.writeText(shareText({ streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0 }));
+      toast("Copied — paste it anywhere!", "success");
+    } catch {
+      toast("Copy failed in this browser", "error");
     }
   };
 
@@ -104,6 +146,22 @@ export default function DashboardPage() {
 
   return (
     <div className="grid" style={{ gap: 20 }}>
+      {/* Level + freeze + share */}
+      {stats && (
+        <div className="card" style={{ display: "flex", alignItems: "center", gap: 18, flexWrap: "wrap" }}>
+          <ProgressRing size={74} stroke={8} pct={(stats.xpInto ?? 0) / Math.max(1, stats.xpNeed ?? 1)} color="var(--accent)" label={`Lv ${stats.level ?? 1}`} />
+          <div style={{ flex: 1, minWidth: 180 }}>
+            <div style={{ fontWeight: 800, fontSize: 16 }}>Level {stats.level ?? 1}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)" }}>{stats.xp ?? 0} XP total · {(stats.xpNeed ?? 0) - (stats.xpInto ?? 0)} XP to level {(stats.level ?? 1) + 1}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>❄️ {stock} freeze{stock === 1 ? "" : "s"} left{frozenToday ? " · today frozen" : atRisk ? " · streak at risk!" : ""}</div>
+          </div>
+          {atRisk && stock > 0 && (
+            <button className="btn" onClick={useFreeze}><Snowflake size={15} /> Freeze streak</button>
+          )}
+          <button className="btn btn-primary" onClick={() => setShareOpen(true)}><Share2 size={15} /> Share</button>
+        </div>
+      )}
+
       {/* Stats row */}
       <div className="grid grid-4">
         <Stat icon={<Flame size={22} />} label="Day streak" value={`${stats?.streak ?? 0}`} sub="consecutive days" accent="#f97316" />
@@ -238,6 +296,14 @@ export default function DashboardPage() {
         <h3 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — last 20 weeks</h3>
         <Heatmap data={stats?.heat || []} />
       </div>
+
+      <Modal open={shareOpen} onClose={() => setShareOpen(false)} title="Share your progress">
+        <canvas ref={shareRef} style={{ width: "100%", borderRadius: 14, border: "1px solid var(--border)" }} />
+        <div className="modal-actions" style={{ justifyContent: "space-between" }}>
+          <button className="btn" onClick={copyShare}>Copy text</button>
+          <button className="btn btn-primary" onClick={downloadShare}>Download PNG</button>
+        </div>
+      </Modal>
 
       <Modal open={goalModal} onClose={() => setGoalModal(false)} title="New goal">
         <div className="field">

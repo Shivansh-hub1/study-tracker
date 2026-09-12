@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
   const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
   const todayK = dateKey(nowLocal);
+  const frozenRows = (await db.all("SELECT day FROM freeze_days WHERE user_id = ?", user.id)) as any[];
+  const frozen = new Set(frozenRows.map((r) => r.day));
 
   // per-day buckets (last 140 days)
   const days: Record<string, { minutes: number; sessions: number }> = {};
@@ -69,7 +71,7 @@ export async function GET(req: NextRequest) {
   for (let i = 0; i < 365; i++) {
     const d = new Date(nowLocal); d.setDate(d.getDate() - i);
     const k = dateKey(d);
-    const has = days[k] && days[k].sessions > 0;
+    const has = (days[k] && days[k].sessions > 0) || frozen.has(k);
     if (has) streak++;
     else if (i === 0) continue; // today may not be logged yet
     else break;
@@ -98,7 +100,7 @@ export async function GET(req: NextRequest) {
 
   // heatmap last 140 days
   const heat = Object.entries(days)
-    .map(([date, v]) => ({ date, minutes: Math.round(v.minutes), sessions: v.sessions }))
+    .map(([date, v]) => ({ date, minutes: Math.round(v.minutes), sessions: v.sessions, frozen: frozen.has(date) }))
     .sort((a, b) => a.date.localeCompare(b.date));
 
   // monthly series: last 6 months
@@ -114,6 +116,14 @@ export async function GET(req: NextRequest) {
     monthly.push({ month: d.toLocaleString("en", { month: "short" }), minutes: Math.round(mm), sessions: c });
   }
 
+  // XP + level: 1 XP per focus minute, +5 per revised topic
+  const revD = (await db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id)) as any;
+  const revW = (await db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id)) as any;
+  const xp = Math.round(totalSec / 60) + (((revD?.c ?? 0) + (revW?.c ?? 0)) as number) * 5;
+  const level = Math.floor(Math.sqrt(xp / 50)) + 1;
+  const xpCur = 50 * (level - 1) * (level - 1);
+  const xpNext = 50 * level * level;
+
   return NextResponse.json({
     stats: {
       todayMin: Math.round(todayMin),
@@ -121,6 +131,10 @@ export async function GET(req: NextRequest) {
       monthMin: Math.round(monthMin),
       weekSessions,
       streak,
+      xp,
+      level,
+      xpInto: xp - xpCur,
+      xpNeed: xpNext - xpCur,
       totalHours: Math.round((totalSec / 3600) * 10) / 10,
       totalSessions: sessions.length,
       daily,
