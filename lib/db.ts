@@ -32,7 +32,6 @@ const SCHEMA = [
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',
     last_active_at TEXT,
-    supabase_uid TEXT,
     created_at TEXT NOT NULL
   )`,
   `CREATE TABLE IF NOT EXISTS subjects (
@@ -174,7 +173,6 @@ async function init(): Promise<DB> {
   for (const sql of [
     "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
     "ALTER TABLE users ADD COLUMN last_active_at TEXT",
-    "ALTER TABLE users ADD COLUMN supabase_uid TEXT",
     "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
     "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
     "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
