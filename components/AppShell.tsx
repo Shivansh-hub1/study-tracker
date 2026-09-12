@@ -63,6 +63,10 @@ export default function AppShell({ user, children }: { user: Me; children: React
   }, []);
 
   const logout = async () => {
+    try {
+      const { supa } = await import("@/lib/supabase-client");
+      await supa().auth.signOut();
+    } catch {}
     await fetch("/api/auth/logout", { method: "POST" });
     toast("Signed out. See you soon!", "success");
     router.push("/login");
