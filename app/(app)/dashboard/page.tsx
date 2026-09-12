@@ -88,9 +88,20 @@ export default function DashboardPage() {
     }
   };
 
+  const unFreeze = async () => {
+    try {
+      const r = await api(`/api/streak?offset=${-new Date().getTimezoneOffset()}`, { method: "POST", body: JSON.stringify({ action: "unfreeze" }) });
+      setStreakData(r as any);
+      reloadStats();
+      toast("Unfrozen — study today to keep the streak!", "success");
+    } catch (e: any) {
+      toast(e.message, "error");
+    }
+  };
+
   useEffect(() => {
     if (shareOpen && shareRef.current && stats) {
-      drawShareCard(shareRef.current, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0 });
+      drawShareCard(shareRef.current, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) });
     }
   }, [shareOpen, stats]);
 
@@ -105,7 +116,7 @@ export default function DashboardPage() {
   const copyShare = async () => {
     if (!stats) return;
     try {
-      await navigator.clipboard.writeText(shareText({ streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0 }));
+      await navigator.clipboard.writeText(shareText({ streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0 }));
       toast("Copied — paste it anywhere!", "success");
     } catch {
       toast("Copy failed in this browser", "error");
@@ -157,6 +168,9 @@ export default function DashboardPage() {
           </div>
           {atRisk && stock > 0 && (
             <button className="btn" onClick={useFreeze}><Snowflake size={15} /> Freeze streak</button>
+          )}
+          {frozenToday && (
+            <button className="btn" onClick={unFreeze}>Unfreeze</button>
           )}
           <button className="btn btn-primary" onClick={() => setShareOpen(true)}><Share2 size={15} /> Share</button>
         </div>

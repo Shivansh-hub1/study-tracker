@@ -40,11 +40,19 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
   const body = await req.json().catch(() => ({}));
-  if (body.action !== "freeze") return NextResponse.json({ error: "Unknown action" }, { status: 400 });
+  if (body.action !== "freeze" && body.action !== "unfreeze") return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   const db = await getDb();
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
   const todayK = dateKey(nowLocal);
   const stock = await weekGrant(db, user.id, mondayKey(nowLocal));
+  if (body.action === "unfreeze") {
+    const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
+    if (!f) return NextResponse.json({ error: "Today isn't frozen" }, { status: 400 });
+    await db.run("DELETE FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
+    const back = Math.min(2, stock + 1);
+    await db.run("UPDATE settings SET freeze_stock = ? WHERE user_id = ?", back, user.id);
+    return NextResponse.json({ ok: true, stock: back, frozenToday: false });
+  }
   if (stock <= 0) return NextResponse.json({ error: "No freezes left — you earn one every Monday" }, { status: 400 });
   const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
   if (f) return NextResponse.json({ error: "Today is already frozen" }, { status: 400 });

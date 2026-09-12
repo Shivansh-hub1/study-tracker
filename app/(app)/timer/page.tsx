@@ -3,7 +3,7 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   Play, Pause, RotateCcw, Timer as TimerIcon, Hourglass, Watch, Bell, BellOff,
-  Coffee, Moon, Zap, Flag, BookOpen, Check, Route,
+  Coffee, Moon, Zap, Flag, BookOpen, Check, Route, History,
 } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
 import { fmtClock, pad } from "@/lib/utils";
@@ -81,6 +81,7 @@ export default function TimersPage() {
   const journeyTopics = isDsa ? dsaTopics : webTopics;
   const journeyCurrent = isDsa ? currentDsaTitle : currentWebTitle;
   const journeyEndpoint = isDsa ? "/api/dsa" : "/api/webdev";
+  const revisionDue: any[] = isDsa ? (dsaData?.revision_due || []) : (webData?.revision_due || []);
   const activeKey = isDsa ? dsaData?.current : webData?.current;
   const selTopic = journeyTopics.find((t: any) => t.title === p.topic) || journeyTopics.find((t: any) => t.key === activeKey);
   const selLectures: any[] = selTopic?.lectures || [];
@@ -455,6 +456,20 @@ export default function TimersPage() {
               ))}
             </select>
             <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
+              <History size={15} style={{ color: "var(--accent)" }} />
+              <span style={{ fontWeight: 700 }}>Revise</span>
+              {revisionDue.length === 0 ? (
+                <span className="badge">All caught up ✅</span>
+              ) : (
+                <select className="select" style={{ flex: 1, minWidth: 170 }} value="" onChange={(e) => { if (e.target.value) persist({ ...p, topic: e.target.value }); }}>
+                  <option value="">Pick a due topic…</option>
+                  {revisionDue.map((r: any) => (
+                    <option key={r.key} value={r.title}>{r.title} · {r.days_ago}d ago</option>
+                  ))}
+                </select>
+              )}
+            </div>
             {selTopic && selLectures.length > 0 && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
                 <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>

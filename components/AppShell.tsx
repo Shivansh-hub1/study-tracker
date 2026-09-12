@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route, Code2, History,
+  Trophy, CalendarClock, CalendarDays, Layers, Sprout, Crown,
 } from "lucide-react";
 import { THEMES, useTheme, useToast } from "./Providers";
 
@@ -16,6 +17,12 @@ const NAV = [
   { href: "/dsa", label: "DSA Journey", icon: Route },
   { href: "/webdev", label: "Web Dev", icon: Code2 },
   { href: "/revision", label: "Revision", icon: History },
+  { href: "/planner", label: "Planner", icon: CalendarDays },
+  { href: "/exams", label: "Exams", icon: CalendarClock },
+  { href: "/flashcards", label: "Flashcards", icon: Layers },
+  { href: "/habits", label: "Habits", icon: Sprout },
+  { href: "/achievements", label: "Achievements", icon: Trophy },
+  { href: "/leaderboard", label: "Leaderboard", icon: Crown },
   { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/sessions", label: "Sessions", icon: ListChecks },
   { href: "/settings", label: "Settings", icon: Settings },

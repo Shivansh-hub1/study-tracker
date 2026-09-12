@@ -102,6 +102,56 @@ const SCHEMA = [
     day TEXT NOT NULL,
     UNIQUE(user_id, day)
   )`,
+  `CREATE TABLE IF NOT EXISTS exams (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    title TEXT NOT NULL,
+    subject TEXT NOT NULL DEFAULT '',
+    exam_date TEXT NOT NULL,
+    notes TEXT NOT NULL DEFAULT '',
+    checklist TEXT NOT NULL DEFAULT '[]',
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS planner_blocks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    day INTEGER NOT NULL DEFAULT 0,
+    subject_id INTEGER,
+    title TEXT NOT NULL DEFAULT '',
+    minutes INTEGER NOT NULL DEFAULT 60,
+    done_week TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS decks (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    subject TEXT NOT NULL DEFAULT '',
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS cards (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    deck_id INTEGER NOT NULL,
+    user_id INTEGER NOT NULL,
+    front TEXT NOT NULL,
+    back TEXT NOT NULL,
+    correct INTEGER NOT NULL DEFAULT 0,
+    wrong INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS habits (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    name TEXT NOT NULL,
+    color TEXT NOT NULL DEFAULT '#10b981',
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE TABLE IF NOT EXISTS habit_logs (
+    user_id INTEGER NOT NULL,
+    habit_id INTEGER NOT NULL,
+    day TEXT NOT NULL,
+    UNIQUE(user_id, habit_id, day)
+  )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at)`,
   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
@@ -263,7 +313,7 @@ async function ensureOwner(db: DB) {
 
 /** Delete a user and ALL their data (admin cascade). */
 export async function deleteUserCascade(db: DB, userId: number) {
-  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress", "freeze_days"]) {
+  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress", "freeze_days", "exams", "planner_blocks", "decks", "cards", "habits", "habit_logs"]) {
     await db.run(`DELETE FROM ${t} WHERE user_id = ?`, userId);
   }
   await db.run("DELETE FROM users WHERE id = ?", userId);

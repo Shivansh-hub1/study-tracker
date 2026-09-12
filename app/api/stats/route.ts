@@ -119,7 +119,8 @@ export async function GET(req: NextRequest) {
   // XP + level: 1 XP per focus minute, +5 per revised topic
   const revD = (await db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id)) as any;
   const revW = (await db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id)) as any;
-  const xp = Math.round(totalSec / 60) + (((revD?.c ?? 0) + (revW?.c ?? 0)) as number) * 5;
+  const revisedTotal = ((revD?.c ?? 0) + (revW?.c ?? 0)) as number;
+  const xp = Math.round(totalSec / 60) + revisedTotal * 5;
   const level = Math.floor(Math.sqrt(xp / 50)) + 1;
   const xpCur = 50 * (level - 1) * (level - 1);
   const xpNext = 50 * level * level;
@@ -135,6 +136,7 @@ export async function GET(req: NextRequest) {
       level,
       xpInto: xp - xpCur,
       xpNeed: xpNext - xpCur,
+      revised: revisedTotal,
       totalHours: Math.round((totalSec / 3600) * 10) / 10,
       totalSessions: sessions.length,
       daily,
