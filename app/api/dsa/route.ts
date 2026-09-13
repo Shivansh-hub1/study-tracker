@@ -9,16 +9,18 @@ export const dynamic = "force-dynamic";
 async function payload(userId: number) {
   const db = await getDb();
   await ensureDsaTopics(db, userId);
-  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
-    "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM dsa_progress WHERE user_id = ?",
-    userId
-  );
+  const [rows, times] = await Promise.all([
+    db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
+      "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM dsa_progress WHERE user_id = ?",
+      userId
+    ),
+    // Time logged per topic (sessions store the topic TITLE)
+    db.all<{ topic: string; sec: number }>(
+      "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
+      userId
+    ),
+  ]);
   const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
-  // Time logged per topic (sessions store the topic TITLE)
-  const times = await db.all<{ topic: string; sec: number }>(
-    "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
-    userId
-  );
   const timeMap = new Map(times.map((t) => [t.topic, Number(t.sec) || 0]));
   const topics = DSA_TOPICS.map((t) => {
     const lectures = DSA_LECTURES[t.key] || [];

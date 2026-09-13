@@ -156,34 +156,63 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_web_user ON web_progress(user_id)`,
+  `CREATE TABLE IF NOT EXISTS _meta (
+    key TEXT PRIMARY KEY,
+    value TEXT NOT NULL
+  )`,
 ];
 
 type Stmt = { sql: string; args: any[] };
 
 let ready: Promise<DB> | null = null;
 
+// Warm-instance caches: seeding is idempotent, so skip the re-check queries.
+const seededSettings = new Set<number>();
+const seededDsa = new Set<string>();
+const seededWeb = new Set<string>();
+
 export function getDb(): Promise<DB> {
   if (!ready) ready = init();
   return ready;
 }
 
-async function init(): Promise<DB> {
-  const db = process.env.TURSO_DATABASE_URL ? await initTurso() : await initLocal();
-  // Forgiving migrations for databases created before roles existed
-  for (const sql of [
-    "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
-    "ALTER TABLE users ADD COLUMN last_active_at TEXT",
-    "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
-    "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
-    "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
-    "ALTER TABLE web_progress ADD COLUMN revised_at TEXT",
-    "ALTER TABLE settings ADD COLUMN freeze_stock INTEGER NOT NULL DEFAULT 1",
-    "ALTER TABLE settings ADD COLUMN freeze_week TEXT NOT NULL DEFAULT ''",
-  ]) {
+const MIGRATIONS = [
+  "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
+  "ALTER TABLE users ADD COLUMN last_active_at TEXT",
+  "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
+  "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
+  "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
+  "ALTER TABLE web_progress ADD COLUMN revised_at TEXT",
+  "ALTER TABLE settings ADD COLUMN freeze_stock INTEGER NOT NULL DEFAULT 1",
+  "ALTER TABLE settings ADD COLUMN freeze_week TEXT NOT NULL DEFAULT ''",
+];
+
+async function migrateIfNeeded(db: DB) {
+  const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
+  if (m?.value === "1") return;
+  for (const sql of MIGRATIONS) {
     try { await db.run(sql); } catch { /* column already exists */ }
   }
+  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
+}
+
+async function init(): Promise<DB> {
+  if (process.env.TURSO_DATABASE_URL) return initTurso();
+  const db = await initLocal();
+  await migrateIfNeeded(db);
   await ensureOwner(db);
   return db;
+}
+
+/** Read one cell from a libsql batch result set (rows may be objects or arrays). */
+function cell(rs: any, name: string): any {
+  const r = rs?.rows?.[0];
+  if (r == null) return undefined;
+  if (Array.isArray(r)) {
+    const i = (rs.columns || []).indexOf(name);
+    return i >= 0 ? r[i] : undefined;
+  }
+  return r[name];
 }
 
 function wrapTurso(client: any): DB {
@@ -216,11 +245,42 @@ async function initTurso(): Promise<DB> {
   });
   await client.batch(SCHEMA.map((sql) => ({ sql, args: [] })), "write");
   const db = wrapTurso(client);
-  await seedIfEmpty(db, async (stmts) => {
+  const batchExec = async (stmts: Stmt[]) => {
     for (let i = 0; i < stmts.length; i += 120) {
       await client.batch(stmts.slice(i, i + 120) as any, "write");
     }
-  });
+  };
+  // ONE read batch (user count + schema version + owner check) instead of ~10 sequential trips.
+  let snap: { users: number; v: string | null; owner: boolean } | null = null;
+  try {
+    const rs = await client.batch([
+      { sql: "SELECT COUNT(*) as c FROM users", args: [] },
+      { sql: "SELECT value FROM _meta WHERE key = 'schema_v'", args: [] },
+      { sql: "SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", args: [OWNER_EMAIL] },
+    ], "read");
+    snap = {
+      users: Number(cell(rs[0], "c") ?? 0),
+      v: (cell(rs[1], "value") as string) ?? null,
+      owner: (rs[2]?.rows?.length ?? 0) > 0,
+    };
+  } catch {
+    snap = null;
+  }
+  if (!snap) {
+    // Fallback: same checks, sequential (slower but always works).
+    const cu = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
+    const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
+    const o = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
+    snap = { users: Number(cu?.c ?? 0), v: m?.value ?? null, owner: !!o };
+  }
+  if (snap.users === 0) await seedIfEmpty(db, batchExec, true);
+  if (snap.v !== "1") {
+    for (const sql of MIGRATIONS) {
+      try { await db.run(sql); } catch { /* column already exists */ }
+    }
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
+  }
+  if (!snap.owner) await createOwner(db);
   return db;
 }
 
@@ -252,17 +312,21 @@ async function initLocal(): Promise<DB> {
 }
 
 export async function ensureSettings(db: DB, userId: number) {
+  if (seededSettings.has(userId)) return;
   await db.run(`INSERT OR IGNORE INTO settings (user_id) VALUES (?)`, userId);
+  seededSettings.add(userId);
 }
 
 /** Seed the DSA journey (first topic starts as current). Idempotent.
  * Fast path: 1 COUNT query when already seeded (was: 47 sequential INSERTs). */
 export async function ensureDsaTopics(db: DB, userId: number) {
+  const cacheKey = userId + ":" + DSA_TOPICS.length;
+  if (seededDsa.has(cacheKey)) return;
   const row = await db.get<{ c: number }>(
     "SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ?",
     userId
   );
-  if ((row?.c ?? 0) >= DSA_TOPICS.length) return;
+  if ((row?.c ?? 0) >= DSA_TOPICS.length) { seededDsa.add(cacheKey); return; }
   // Single multi-row INSERT: 1 round trip instead of 47
   const now = new Date().toISOString();
   const values = DSA_TOPICS.map(() => "(?,?,?,?)").join(",");
@@ -274,15 +338,18 @@ export async function ensureDsaTopics(db: DB, userId: number) {
     `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
     ...args
   );
+  seededDsa.add(cacheKey);
 }
 
 /** Seed the WebDev journey (first topic starts as current). Idempotent, 1-2 queries. */
 export async function ensureWebTopics(db: DB, userId: number) {
+  const cacheKey = userId + ":" + WEBDEV_TOPICS.length;
+  if (seededWeb.has(cacheKey)) return;
   const row = await db.get<{ c: number }>(
     "SELECT COUNT(*) as c FROM web_progress WHERE user_id = ?",
     userId
   );
-  if ((row?.c ?? 0) >= WEBDEV_TOPICS.length) return;
+  if ((row?.c ?? 0) >= WEBDEV_TOPICS.length) { seededWeb.add(cacheKey); return; }
   const now = new Date().toISOString();
   const values = WEBDEV_TOPICS.map(() => "(?,?,?,?)").join(",");
   const args: any[] = [];
@@ -293,12 +360,17 @@ export async function ensureWebTopics(db: DB, userId: number) {
     `INSERT OR IGNORE INTO web_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
     ...args
   );
+  seededWeb.add(cacheKey);
 }
 
 /** Guarantee an owner/admin account always exists. */
 async function ensureOwner(db: DB) {
   const existing = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
   if (existing) return;
+  await createOwner(db);
+}
+
+async function createOwner(db: DB) {
   const info = await db.run(
     "INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?,?,?,?,?)",
     "Owner",
@@ -401,9 +473,11 @@ function sessionStmts(
   }
 }
 
-async function seedIfEmpty(db: DB, exec: (stmts: Stmt[]) => Promise<void>) {
-  const count = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
-  if ((count?.c ?? 0) > 0) return;
+async function seedIfEmpty(db: DB, exec: (stmts: Stmt[]) => Promise<void>, assumeEmpty = false) {
+  if (!assumeEmpty) {
+    const count = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
+    if ((count?.c ?? 0) > 0) return;
+  }
 
   const rand = mulberry(42);
   const now = new Date();

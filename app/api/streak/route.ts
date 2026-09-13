@@ -13,9 +13,7 @@ function mondayKey(nowLocal: Date) {
 }
 
 // Lazy weekly grant: +1 freeze every Monday, max 2 in stock.
-async function weekGrant(db: DB, userId: number, week: string) {
-  await ensureSettings(db, userId);
-  const s = (await db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", userId)) as any;
+async function weekGrant(db: DB, userId: number, week: string, s: any) {
   let stock = Number(s?.freeze_stock ?? 1);
   if ((s?.freeze_week || "") !== week) {
     stock = Math.min(2, stock + 1);
@@ -30,8 +28,12 @@ export async function GET(req: NextRequest) {
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
   const db = await getDb();
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
-  const stock = await weekGrant(db, user.id, mondayKey(nowLocal));
-  const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, dateKey(nowLocal));
+  await ensureSettings(db, user.id);
+  const [s, f] = await Promise.all([
+    db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
+    db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, dateKey(nowLocal)),
+  ]);
+  const stock = await weekGrant(db, user.id, mondayKey(nowLocal), s);
   return NextResponse.json({ stock, frozenToday: !!f });
 }
 
@@ -44,9 +46,14 @@ export async function POST(req: NextRequest) {
   const db = await getDb();
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
   const todayK = dateKey(nowLocal);
-  const stock = await weekGrant(db, user.id, mondayKey(nowLocal));
+  await ensureSettings(db, user.id);
+  const [s, f0] = await Promise.all([
+    db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
+    db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK),
+  ]);
+  const stock = await weekGrant(db, user.id, mondayKey(nowLocal), s);
   if (body.action === "unfreeze") {
-    const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
+    const f = f0;
     if (!f) return NextResponse.json({ error: "Today isn't frozen" }, { status: 400 });
     await db.run("DELETE FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
     const back = Math.min(2, stock + 1);
@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, stock: back, frozenToday: false });
   }
   if (stock <= 0) return NextResponse.json({ error: "No freezes left — you earn one every Monday" }, { status: 400 });
-  const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
+  const f = f0;
   if (f) return NextResponse.json({ error: "Today is already frozen" }, { status: 400 });
   // Freeze only counts when today has zero sessions (UTC range of the local day).
   const startLocal = new Date(nowLocal);

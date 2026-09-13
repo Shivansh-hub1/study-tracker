@@ -9,7 +9,7 @@ import {
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
 } from "recharts";
-import { useFetch, useStats, api } from "@/lib/client";
+import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
 import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
 import Heatmap from "@/components/Heatmap";
@@ -25,25 +25,25 @@ const KIND_LABELS: Record<string, string> = {
 
 export default function DashboardPage() {
   const { toast } = useToast();
-  const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
-  const { data: goalsData, reload: reloadGoals, setData: setGoalsData } = useFetch("/api/goals");
-  const { data: sessData } = useFetch("/api/sessions?limit=6");
-  const { data: subjectsData } = useFetch("/api/subjects");
+  const dashOffset = -new Date().getTimezoneOffset();
+  const { data: dashData, loading: statsLoading, reload: reloadStats, setData: setDashData } = useFetch(`/api/dashboard?offset=${dashOffset}`);
+  const sessData = dashData;
+  const setGoalsData = (v: any) => setDashData((prev: any) => ({ ...prev, goals: v.goals }));
   const [goalModal, setGoalModal] = useState(false);
   const [gTitle, setGTitle] = useState("");
   const [gKind, setGKind] = useState("daily_minutes");
   const [gTarget, setGTarget] = useState("120");
   const [saving, setSaving] = useState(false);
-  const { data: streakData, setData: setStreakData } = useFetch(`/api/streak?offset=${-new Date().getTimezoneOffset()}`);
+  const setStreakData = (r: any) => setDashData((prev: any) => ({ ...prev, ...r }));
   const [shareOpen, setShareOpen] = useState(false);
   const shareRef = useRef<HTMLCanvasElement>(null);
 
-  const stats = statsData?.stats;
-  const stock = streakData?.stock ?? 0;
-  const frozenToday = !!streakData?.frozenToday;
+  const stats = dashData?.stats;
+  const stock = dashData?.stock ?? 0;
+  const frozenToday = !!dashData?.frozenToday;
   const atRisk = (stats?.streak ?? 0) > 0 && (stats?.todayMin ?? 0) === 0 && !frozenToday;
-  const goals = goalsData?.goals || [];
-  const subjects = subjectsData?.subjects || [];
+  const goals = dashData?.goals || [];
+  const subjects = dashData?.subjects || [];
 
   const addGoal = async () => {
     if (!gTitle.trim()) return;

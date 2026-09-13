@@ -39,18 +39,22 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
   }
   const db = await getDb();
+  let subj: any = null;
   if (subject_id) {
-    const ok = await db.get("SELECT id FROM subjects WHERE id = ? AND user_id = ?", Number(subject_id), user.id);
-    if (!ok) return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
+    subj = await db.get("SELECT id, name, color FROM subjects WHERE id = ? AND user_id = ?", Number(subject_id), user.id);
+    if (!subj) return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
   }
   const now = new Date().toISOString();
   const info = await db.run(
     "INSERT INTO sessions (user_id, subject_id, type, started_at, ended_at, duration_sec, notes, topic, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
     user.id, subject_id ? Number(subject_id) : null, type || "manual", started.toISOString(), ended.toISOString(), dur, String(notes || ""), String(topic || "").slice(0, 80), now
   );
-  const row = await db.get(
-    `SELECT se.*, s.name as subject_name, s.color as subject_color FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.id = ?`,
-    info.lastInsertRowid
-  );
+  // No re-SELECT: build the row from what we already know (1 round trip saved).
+  const row = {
+    id: info.lastInsertRowid, user_id: user.id, subject_id: subject_id ? Number(subject_id) : null,
+    type: type || "manual", started_at: started.toISOString(), ended_at: ended.toISOString(),
+    duration_sec: dur, notes: String(notes || ""), topic: String(topic || "").slice(0, 80), created_at: now,
+    subject_name: subj?.name ?? null, subject_color: subj?.color ?? null,
+  };
   return NextResponse.json({ session: row }, { status: 201 });
 }
