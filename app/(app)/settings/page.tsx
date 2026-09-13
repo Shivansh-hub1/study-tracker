@@ -53,7 +53,7 @@ export default function SettingsPage() {
     <div className="grid grid-2" style={{ alignItems: "start" }}>
       {/* Pomodoro */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 14 }}>Pomodoro defaults</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 14 }}>Pomodoro defaults</h2>
         {loading && !s ? (
           <Spinner />
         ) : (
@@ -87,7 +87,7 @@ export default function SettingsPage() {
 
       {/* Appearance */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Palette size={16} /> Appearance</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Palette size={16} /> Appearance</h2>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>Pick a vibe — from clean daylight to full neon.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
           {THEMES.map((t) => (
@@ -112,7 +112,7 @@ export default function SettingsPage() {
 
       {/* Account */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><User size={16} /> Account</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><User size={16} /> Account</h2>
         <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
           <div style={{ width: 48, height: 48, borderRadius: "50%", background: "var(--accent-grad)", display: "grid", placeItems: "center", color: "#fff", fontWeight: 800, boxShadow: "var(--glow)" }}>
             {(me?.user?.name || "?").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()}
@@ -126,7 +126,7 @@ export default function SettingsPage() {
 
       {/* Data export */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Database size={16} /> Your data</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Database size={16} /> Your data</h2>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14, lineHeight: 1.6 }}>
           Everything is stored in a local SQLite database. Export it any time — sessions as a spreadsheet-friendly CSV, or the full account (subjects, sessions, goals, timetables) as JSON.
         </p>

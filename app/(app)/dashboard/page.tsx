@@ -189,7 +189,7 @@ export default function DashboardPage() {
         {/* 30-day trend */}
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
-            <h3 style={{ fontSize: 15 }}>Study time — last 30 days</h3>
+            <h2 style={{ fontSize: 15 }}>Study time — last 30 days</h2>
             <Link href="/progress" className="btn btn-sm btn-ghost">Full analytics</Link>
           </div>
           {stats && stats.daily.some((d: any) => d.minutes > 0) ? (
@@ -219,7 +219,7 @@ export default function DashboardPage() {
 
         {/* Subject split */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 4 }}>Subjects — last 30 days</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 4 }}>Subjects — last 30 days</h2>
           {pie.length > 0 ? (
             <>
               <ResponsiveContainer width="100%" height={180}>
@@ -249,7 +249,7 @@ export default function DashboardPage() {
         {/* Recent sessions */}
         <div className="card card-pad-0">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "16px 20px" }}>
-            <h3 style={{ fontSize: 15 }}>Recent sessions</h3>
+            <h2 style={{ fontSize: 15 }}>Recent sessions</h2>
             <Link href="/sessions" className="btn btn-sm btn-ghost">View all</Link>
           </div>
           {(sessData?.sessions || []).length === 0 ? (
@@ -278,7 +278,7 @@ export default function DashboardPage() {
         {/* Goals */}
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 14 }}>
-            <h3 style={{ fontSize: 15 }}>Goals</h3>
+            <h2 style={{ fontSize: 15 }}>Goals</h2>
             <button className="btn btn-sm" onClick={() => setGoalModal(true)}><Plus size={14} /> Add</button>
           </div>
           {goals.length === 0 ? (
@@ -307,7 +307,7 @@ export default function DashboardPage() {
 
       {/* Heatmap */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — last 20 weeks</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — last 20 weeks</h2>
         <Heatmap data={stats?.heat || []} />
       </div>
 

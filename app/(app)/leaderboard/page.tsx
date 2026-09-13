@@ -18,7 +18,7 @@ export default function LeaderboardPage() {
       <div className="card card-pad-0">
         <div style={{ padding: "16px 20px", display: "flex", gap: 10, alignItems: "center" }}>
           <Crown size={18} style={{ color: "var(--warn)" }} />
-          <h3 style={{ fontSize: 15, flex: 1 }}>Top learners</h3>
+          <h2 style={{ fontSize: 15, flex: 1 }}>Top learners</h2>
           <span style={{ fontSize: 12.5, color: "var(--muted)" }}>ranked by XP</span>
         </div>
         {board.length === 0 ? (

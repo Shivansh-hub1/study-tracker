@@ -59,7 +59,7 @@ export function EmptyState({
   return (
     <div className="empty">
       <div className="ico">{icon}</div>
-      <h4>{title}</h4>
+      <h3 style={{ fontSize: 15, margin: "0 0 4px" }}>{title}</h3>
       {hint && <p>{hint}</p>}
       {action && <div style={{ marginTop: 8 }}>{action}</div>}
     </div>

@@ -12,8 +12,15 @@ export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
+    pathname === "/" ||
     pathname.startsWith("/_next") ||
     pathname.startsWith("/favicon") ||
+    pathname.startsWith("/robots.txt") ||
+    pathname.startsWith("/sitemap.xml") ||
+    pathname.startsWith("/manifest") ||
+    pathname.startsWith("/opengraph-image") ||
+    pathname.startsWith("/apple-icon") ||
+    pathname.startsWith("/icon") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/signup")

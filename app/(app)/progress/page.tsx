@@ -99,7 +99,7 @@ export default function ProgressPage() {
       {/* Daily trend with metric toggle */}
       <div className="card">
         <div style={{ display: "flex", alignItems: "center", marginBottom: 12, gap: 10, flexWrap: "wrap" }}>
-          <h3 style={{ fontSize: 15, flex: 1 }}>Daily trend — last 30 days</h3>
+          <h2 style={{ fontSize: 15, flex: 1 }}>Daily trend — last 30 days</h2>
           <button className={`chip ${metric === "minutes" ? "on" : ""}`} onClick={() => setMetric("minutes")}>Minutes</button>
           <button className={`chip ${metric === "sessions" ? "on" : ""}`} onClick={() => setMetric("sessions")}>Sessions</button>
         </div>
@@ -123,7 +123,7 @@ export default function ProgressPage() {
       <div className="grid grid-2">
         {/* Weekly bar */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 12 }}>Weekly comparison — last 12 weeks</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 12 }}>Weekly comparison — last 12 weeks</h2>
           <ResponsiveContainer width="100%" height={230}>
             <BarChart data={weeklyBar} margin={{ left: -18, right: 8, top: 6 }}>
               <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
@@ -141,7 +141,7 @@ export default function ProgressPage() {
 
         {/* Monthly line */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 12 }}>Monthly totals — last 6 months</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 12 }}>Monthly totals — last 6 months</h2>
           <ResponsiveContainer width="100%" height={230}>
             <LineChart data={stats.monthly} margin={{ left: -18, right: 8, top: 6 }}>
               <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
@@ -160,7 +160,7 @@ export default function ProgressPage() {
       <div className="grid grid-2">
         {/* Subject breakdown */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 4 }}>Subject split — last 30 days</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 4 }}>Subject split — last 30 days</h2>
           <ResponsiveContainer width="100%" height={220}>
             <PieChart>
               <Pie data={stats.bySubject} dataKey="minutes" nameKey="name" innerRadius={55} outerRadius={85} paddingAngle={3} strokeWidth={0}>
@@ -187,7 +187,7 @@ export default function ProgressPage() {
 
         {/* Radar */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 4 }}>Balance radar — last 30 days</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 4 }}>Balance radar — last 30 days</h2>
           {radar.length >= 3 ? (
             <ResponsiveContainer width="100%" height={300}>
               <RadarChart data={radar}>
@@ -206,7 +206,7 @@ export default function ProgressPage() {
       <div className="grid grid-2">
         {/* Hourly */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 12 }}>When you study — by hour of day</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 12 }}>When you study — by hour of day</h2>
           <ResponsiveContainer width="100%" height={200}>
             <BarChart data={hourlyLabeled} margin={{ left: -24, right: 4, top: 6 }}>
               <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
@@ -220,7 +220,7 @@ export default function ProgressPage() {
 
         {/* Type split */}
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 4 }}>Timer styles used</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 4 }}>Timer styles used</h2>
           <ResponsiveContainer width="100%" height={240}>
             <PieChart>
               <Pie data={pieType} dataKey="minutes" nameKey="type" outerRadius={90} strokeWidth={0} paddingAngle={3}>
@@ -235,7 +235,7 @@ export default function ProgressPage() {
 
       {/* Heatmap */}
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — daily focus over 20 weeks</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — daily focus over 20 weeks</h2>
         <Heatmap data={stats.heat} />
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
           Less

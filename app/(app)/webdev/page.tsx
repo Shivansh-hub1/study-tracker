@@ -185,7 +185,7 @@ export default function WebDevPage() {
       {done === total ? (
         <div className="card" style={{ textAlign: "center", padding: "32px 20px" }}>
           <Trophy size={34} style={{ color: "#f59e0b" }} />
-          <h3 style={{ margin: "10px 0 4px" }}>Journey complete! 🏆</h3>
+          <h2 style={{ fontSize: 17, margin: "10px 0 4px" }}>Journey complete! 🏆</h2>
           <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
             All {total} topics done. Ship projects — or restart and go deeper.
           </p>

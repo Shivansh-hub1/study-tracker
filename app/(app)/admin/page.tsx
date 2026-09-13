@@ -119,7 +119,7 @@ export default function AdminPage() {
 
       <div className="card card-pad-0">
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "16px 20px", flexWrap: "wrap" }}>
-          <h3 style={{ fontSize: 15, flex: 1 }}>All users</h3>
+          <h2 style={{ fontSize: 15, flex: 1 }}>All users</h2>
           <div style={{ position: "relative" }}>
             <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
             <input className="input" style={{ paddingLeft: 30, width: 220 }} placeholder="Search users…" value={q} onChange={(e) => setQ(e.target.value)} />

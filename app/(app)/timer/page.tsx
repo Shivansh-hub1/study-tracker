@@ -488,7 +488,7 @@ export default function TimersPage() {
       {/* Side panel */}
       <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 10 }}>Background mode</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 10 }}>Background mode</h2>
           <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>
             Timers keep counting even if you switch tabs, minimise the window, or reload the page — time is tracked by the clock, not the screen.
             Turn on notifications to be alerted when a phase ends.
@@ -500,7 +500,7 @@ export default function TimersPage() {
 
         {mode === "pomodoro" && (
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 10 }}>Pomodoro settings</h3>
+            <h2 style={{ fontSize: 15, marginBottom: 10 }}>Pomodoro settings</h2>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, fontSize: 13 }}>
               <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "10px 12px" }}>
                 <div className="stat-label">Focus</div><b>{settings?.pomo_work ?? 25} min</b>
@@ -524,7 +524,7 @@ export default function TimersPage() {
 
         {mode === "stopwatch" && p.laps.length > 0 && (
           <div className="card">
-            <h3 style={{ fontSize: 15, marginBottom: 10 }}>Laps</h3>
+            <h2 style={{ fontSize: 15, marginBottom: 10 }}>Laps</h2>
             <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 260, overflowY: "auto" }}>
               {p.laps.map((l, i) => (
                 <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "7px 10px", background: "var(--surface-2)", borderRadius: 8 }}>
@@ -537,7 +537,7 @@ export default function TimersPage() {
         )}
 
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 8 }}>How logging works</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 8 }}>How logging works</h2>
           <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--muted)", lineHeight: 1.7 }}>
             <li>Completed pomodoro focus blocks log automatically.</li>
             <li>Finished countdowns log their full duration.</li>

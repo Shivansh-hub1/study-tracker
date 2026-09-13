@@ -55,7 +55,7 @@ export default function RevisionPage() {
       </div>
 
       <div className="card">
-        <h3 style={{ fontSize: 15, marginBottom: 4 }}>Due for revision</h3>
+        <h2 style={{ fontSize: 15, marginBottom: 4 }}>Due for revision</h2>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>
           Be honest — <b>Again</b> brings it back tomorrow, <b>Hard</b> in 3 days, <b>Easy</b> in 7 days.
         </p>
@@ -80,7 +80,7 @@ export default function RevisionPage() {
 
       {upcoming.length > 0 && (
         <div className="card">
-          <h3 style={{ fontSize: 15, marginBottom: 12 }}>Upcoming</h3>
+          <h2 style={{ fontSize: 15, marginBottom: 12 }}>Upcoming</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 8 }}>
             {upcoming.slice(0, 12).map((r) => (
               <div key={r.journey + r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5, color: "var(--muted)" }}>

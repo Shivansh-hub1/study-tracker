@@ -106,7 +106,7 @@ export default function FlashcardsPage() {
         <div className="grid" style={{ gap: 16 }}>
           <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
             <button className="btn btn-sm" onClick={() => { setDeckId(null); reloadDecks(); }}>← All decks</button>
-            <h3 style={{ fontSize: 16, flex: 1 }}>{deck.name} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 400 }}>· {cards.length} cards</span></h3>
+            <h2 style={{ fontSize: 16, flex: 1 }}>{deck.name} <span style={{ fontSize: 13, color: "var(--muted)", fontWeight: 400 }}>· {cards.length} cards</span></h2>
             <button className="btn btn-primary btn-sm" disabled={cards.length === 0} onClick={() => startReview(false)}><Play size={14} /> Review</button>
           </div>
           <div className="card" style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
