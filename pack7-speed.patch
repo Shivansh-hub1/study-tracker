@@ -1,0 +1,862 @@
+diff --git a/app/(app)/dashboard/page.tsx b/app/(app)/dashboard/page.tsx
+index fdc8aa4..3e5390d 100644
+--- a/app/(app)/dashboard/page.tsx
++++ b/app/(app)/dashboard/page.tsx
+@@ -9,7 +9,7 @@ import {
+ import {
+   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
+ } from "recharts";
+-import { useFetch, useStats, api } from "@/lib/client";
++import { useFetch, api } from "@/lib/client";
+ import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
+ import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
+ import Heatmap from "@/components/Heatmap";
+@@ -25,25 +25,25 @@ const KIND_LABELS: Record<string, string> = {
+ 
+ export default function DashboardPage() {
+   const { toast } = useToast();
+-  const { data: statsData, loading: statsLoading, reload: reloadStats } = useStats();
+-  const { data: goalsData, reload: reloadGoals, setData: setGoalsData } = useFetch("/api/goals");
+-  const { data: sessData } = useFetch("/api/sessions?limit=6");
+-  const { data: subjectsData } = useFetch("/api/subjects");
++  const dashOffset = -new Date().getTimezoneOffset();
++  const { data: dashData, loading: statsLoading, reload: reloadStats, setData: setDashData } = useFetch(`/api/dashboard?offset=${dashOffset}`);
++  const sessData = dashData;
++  const setGoalsData = (v: any) => setDashData((prev: any) => ({ ...prev, goals: v.goals }));
+   const [goalModal, setGoalModal] = useState(false);
+   const [gTitle, setGTitle] = useState("");
+   const [gKind, setGKind] = useState("daily_minutes");
+   const [gTarget, setGTarget] = useState("120");
+   const [saving, setSaving] = useState(false);
+-  const { data: streakData, setData: setStreakData } = useFetch(`/api/streak?offset=${-new Date().getTimezoneOffset()}`);
++  const setStreakData = (r: any) => setDashData((prev: any) => ({ ...prev, ...r }));
+   const [shareOpen, setShareOpen] = useState(false);
+   const shareRef = useRef<HTMLCanvasElement>(null);
+ 
+-  const stats = statsData?.stats;
+-  const stock = streakData?.stock ?? 0;
+-  const frozenToday = !!streakData?.frozenToday;
++  const stats = dashData?.stats;
++  const stock = dashData?.stock ?? 0;
++  const frozenToday = !!dashData?.frozenToday;
+   const atRisk = (stats?.streak ?? 0) > 0 && (stats?.todayMin ?? 0) === 0 && !frozenToday;
+-  const goals = goalsData?.goals || [];
+-  const subjects = subjectsData?.subjects || [];
++  const goals = dashData?.goals || [];
++  const subjects = dashData?.subjects || [];
+ 
+   const addGoal = async () => {
+     if (!gTitle.trim()) return;
+diff --git a/app/api/dashboard/route.ts b/app/api/dashboard/route.ts
+new file mode 100644
+index 0000000..40457ec
+--- /dev/null
++++ b/app/api/dashboard/route.ts
+@@ -0,0 +1,69 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getDb, ensureSettings } from "@/lib/db";
++import { getSessionUser } from "@/lib/auth";
++import { computeStats } from "@/lib/stats";
++
++export const dynamic = "force-dynamic";
++
++// Combined dashboard payload: 1 server call instead of 5, 1 auth check,
++// all reads in parallel. Same shapes as the individual endpoints.
++function pad(n: number) { return String(n).padStart(2, "0"); }
++function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
++function mondayKey(nowLocal: Date) {
++  const d = new Date(nowLocal);
++  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
++  return dateKey(d);
++}
++
++export async function GET(req: NextRequest) {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
++  const db = await getDb();
++  const nowLocal = new Date(Date.now() + offsetMin * 60000);
++  const todayK = dateKey(nowLocal);
++  const week = mondayKey(nowLocal);
++
++  await ensureSettings(db, user.id); // cached after first call per instance
++  const [sessions, frozenRows, revD, revW, goals, recent, subjects, setRow, fRow] = await Promise.all([
++    db.all(
++      `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
++       FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
++      user.id
++    ),
++    db.all("SELECT day FROM freeze_days WHERE user_id = ?", user.id),
++    db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
++    db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
++    db.all("SELECT * FROM goals WHERE user_id = ? ORDER BY created_at ASC", user.id),
++    db.all(
++      `SELECT se.*, s.name as subject_name, s.color as subject_color
++       FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id
++       WHERE se.user_id = ? ORDER BY se.started_at DESC LIMIT ?`,
++      user.id, 6
++    ),
++    db.all(
++      `SELECT s.*, COALESCE(SUM(se.duration_sec),0) as total_sec, COUNT(se.id) as session_count
++       FROM subjects s LEFT JOIN sessions se ON se.subject_id = s.id
++       WHERE s.user_id = ? GROUP BY s.id ORDER BY s.created_at ASC`,
++      user.id
++    ),
++    db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
++    db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK),
++  ]);
++
++  // Lazy weekly freeze grant (same logic as /api/streak).
++  let stock = Number((setRow as any)?.freeze_stock ?? 1);
++  if (((setRow as any)?.freeze_week || "") !== week) {
++    stock = Math.min(2, stock + 1);
++    await db.run("UPDATE settings SET freeze_stock = ?, freeze_week = ? WHERE user_id = ?", stock, week, user.id);
++  }
++
++  return NextResponse.json({
++    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin),
++    goals,
++    sessions: recent,
++    subjects,
++    stock,
++    frozenToday: !!fRow,
++  });
++}
+diff --git a/app/api/dsa/route.ts b/app/api/dsa/route.ts
+index 1b69b64..997ba7b 100644
+--- a/app/api/dsa/route.ts
++++ b/app/api/dsa/route.ts
+@@ -9,16 +9,18 @@ export const dynamic = "force-dynamic";
+ async function payload(userId: number) {
+   const db = await getDb();
+   await ensureDsaTopics(db, userId);
+-  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
+-    "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM dsa_progress WHERE user_id = ?",
+-    userId
+-  );
++  const [rows, times] = await Promise.all([
++    db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
++      "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM dsa_progress WHERE user_id = ?",
++      userId
++    ),
++    // Time logged per topic (sessions store the topic TITLE)
++    db.all<{ topic: string; sec: number }>(
++      "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
++      userId
++    ),
++  ]);
+   const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
+-  // Time logged per topic (sessions store the topic TITLE)
+-  const times = await db.all<{ topic: string; sec: number }>(
+-    "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
+-    userId
+-  );
+   const timeMap = new Map(times.map((t) => [t.topic, Number(t.sec) || 0]));
+   const topics = DSA_TOPICS.map((t) => {
+     const lectures = DSA_LECTURES[t.key] || [];
+diff --git a/app/api/sessions/route.ts b/app/api/sessions/route.ts
+index 5df0a24..13ce95a 100644
+--- a/app/api/sessions/route.ts
++++ b/app/api/sessions/route.ts
+@@ -39,18 +39,22 @@ export async function POST(req: NextRequest) {
+     return NextResponse.json({ error: "Invalid dates" }, { status: 400 });
+   }
+   const db = await getDb();
++  let subj: any = null;
+   if (subject_id) {
+-    const ok = await db.get("SELECT id FROM subjects WHERE id = ? AND user_id = ?", Number(subject_id), user.id);
+-    if (!ok) return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
++    subj = await db.get("SELECT id, name, color FROM subjects WHERE id = ? AND user_id = ?", Number(subject_id), user.id);
++    if (!subj) return NextResponse.json({ error: "Invalid subject" }, { status: 400 });
+   }
+   const now = new Date().toISOString();
+   const info = await db.run(
+     "INSERT INTO sessions (user_id, subject_id, type, started_at, ended_at, duration_sec, notes, topic, created_at) VALUES (?,?,?,?,?,?,?,?,?)",
+     user.id, subject_id ? Number(subject_id) : null, type || "manual", started.toISOString(), ended.toISOString(), dur, String(notes || ""), String(topic || "").slice(0, 80), now
+   );
+-  const row = await db.get(
+-    `SELECT se.*, s.name as subject_name, s.color as subject_color FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.id = ?`,
+-    info.lastInsertRowid
+-  );
++  // No re-SELECT: build the row from what we already know (1 round trip saved).
++  const row = {
++    id: info.lastInsertRowid, user_id: user.id, subject_id: subject_id ? Number(subject_id) : null,
++    type: type || "manual", started_at: started.toISOString(), ended_at: ended.toISOString(),
++    duration_sec: dur, notes: String(notes || ""), topic: String(topic || "").slice(0, 80), created_at: now,
++    subject_name: subj?.name ?? null, subject_color: subj?.color ?? null,
++  };
+   return NextResponse.json({ session: row }, { status: 201 });
+ }
+diff --git a/app/api/stats/route.ts b/app/api/stats/route.ts
+index 90ab1a4..e2d9a8c 100644
+--- a/app/api/stats/route.ts
++++ b/app/api/stats/route.ts
+@@ -1,152 +1,29 @@
+ import { NextRequest, NextResponse } from "next/server";
+ import { getDb } from "@/lib/db";
+ import { getSessionUser } from "@/lib/auth";
++import { computeStats } from "@/lib/stats";
+ 
+ export const dynamic = "force-dynamic";
+ 
+-function pad(n: number) { return String(n).padStart(2, "0"); }
+-function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+-
+ export async function GET(req: NextRequest) {
+   const user = await getSessionUser();
+   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0; // minutes ahead of UTC (e.g. 330 IST)
+   const db = await getDb();
+ 
+-  const sessions = (await db.all(
+-    `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
+-     FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
+-    user.id
+-  )) as any[];
+-
+-  const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
+-  const nowLocal = new Date(Date.now() + offsetMin * 60000);
+-  const todayK = dateKey(nowLocal);
+-  const frozenRows = (await db.all("SELECT day FROM freeze_days WHERE user_id = ?", user.id)) as any[];
+-  const frozen = new Set(frozenRows.map((r) => r.day));
+-
+-  // per-day buckets (last 140 days)
+-  const days: Record<string, { minutes: number; sessions: number }> = {};
+-  for (let i = 0; i < 140; i++) {
+-    const d = new Date(nowLocal);
+-    d.setDate(d.getDate() - i);
+-    days[dateKey(d)] = { minutes: 0, sessions: 0 };
+-  }
+-  // by-subject totals (last 30d) + overall + hourly + weekday + type
+-  const bySubject: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
+-  const bySubjectAll: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
+-  const hourly = new Array(24).fill(0);
+-  const byType: Record<string, number> = { pomodoro: 0, timer: 0, stopwatch: 0, manual: 0 };
+-  const cutoff30 = new Date(nowLocal); cutoff30.setDate(cutoff30.getDate() - 30);
+-  const cutoff7 = new Date(nowLocal); cutoff7.setDate(cutoff7.getDate() - 7);
+-
+-  let todayMin = 0, weekMin = 0, monthMin = 0, weekSessions = 0, totalSec = 0;
+-  const sundayOffset = (nowLocal.getDay() + 6) % 7; // days since Monday
+-  const weekStart = new Date(nowLocal); weekStart.setDate(weekStart.getDate() - sundayOffset); weekStart.setHours(0, 0, 0, 0);
+-  const monthStart = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1);
+-
+-  for (const se of sessions) {
+-    const local = toLocal(se.started_at);
+-    const k = dateKey(local);
+-    const min = se.duration_sec / 60;
+-    totalSec += se.duration_sec;
+-    byType[se.type] = (byType[se.type] || 0) + se.duration_sec;
+-    if (days[k]) { days[k].minutes += min; days[k].sessions += 1; }
+-    hourly[local.getHours()] += min;
+-    const sName = se.subject_name || "Unassigned";
+-    const sColor = se.subject_color || "#64748b";
+-    (bySubjectAll[sName] ??= { name: sName, color: sColor, minutes: 0, sessions: 0 });
+-    bySubjectAll[sName].minutes += min; bySubjectAll[sName].sessions += 1;
+-    if (local >= cutoff30) {
+-      (bySubject[sName] ??= { name: sName, color: sColor, minutes: 0, sessions: 0 });
+-      bySubject[sName].minutes += min; bySubject[sName].sessions += 1;
+-    }
+-    if (k === todayK) todayMin += min;
+-    if (local >= weekStart) { weekMin += min; weekSessions += 1; }
+-    if (local >= monthStart) monthMin += min;
+-  }
+-
+-  // streak (consecutive days with any session, today not required to be finished)
+-  let streak = 0;
+-  for (let i = 0; i < 365; i++) {
+-    const d = new Date(nowLocal); d.setDate(d.getDate() - i);
+-    const k = dateKey(d);
+-    const has = (days[k] && days[k].sessions > 0) || frozen.has(k);
+-    if (has) streak++;
+-    else if (i === 0) continue; // today may not be logged yet
+-    else break;
+-  }
+-
+-  // weekly series: last 12 weeks (Mon-Sun)
+-  const weekly: Array<{ week: string; minutes: number; sessions: number }> = [];
+-  for (let w = 11; w >= 0; w--) {
+-    const start = new Date(weekStart); start.setDate(start.getDate() - w * 7);
+-    const end = new Date(start); end.setDate(end.getDate() + 7);
+-    let m = 0, c = 0;
+-    for (const se of sessions) {
+-      const local = toLocal(se.started_at);
+-      if (local >= start && local < end) { m += se.duration_sec / 60; c++; }
+-    }
+-    weekly.push({ week: `${start.getMonth() + 1}/${start.getDate()}`, minutes: Math.round(m), sessions: c });
+-  }
+-
+-  // daily series last 30 days (chronological)
+-  const daily: Array<{ date: string; minutes: number; sessions: number }> = [];
+-  for (let i = 29; i >= 0; i--) {
+-    const d = new Date(nowLocal); d.setDate(d.getDate() - i);
+-    const k = dateKey(d);
+-    daily.push({ date: k, minutes: Math.round(days[k]?.minutes || 0), sessions: days[k]?.sessions || 0 });
+-  }
+-
+-  // heatmap last 140 days
+-  const heat = Object.entries(days)
+-    .map(([date, v]) => ({ date, minutes: Math.round(v.minutes), sessions: v.sessions, frozen: frozen.has(date) }))
+-    .sort((a, b) => a.date.localeCompare(b.date));
+-
+-  // monthly series: last 6 months
+-  const monthly: Array<{ month: string; minutes: number; sessions: number }> = [];
+-  for (let m = 5; m >= 0; m--) {
+-    const d = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m, 1);
+-    const end = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m + 1, 1);
+-    let mm = 0, c = 0;
+-    for (const se of sessions) {
+-      const local = toLocal(se.started_at);
+-      if (local >= d && local < end) { mm += se.duration_sec / 60; c++; }
+-    }
+-    monthly.push({ month: d.toLocaleString("en", { month: "short" }), minutes: Math.round(mm), sessions: c });
+-  }
+-
+-  // XP + level: 1 XP per focus minute, +5 per revised topic
+-  const revD = (await db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id)) as any;
+-  const revW = (await db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id)) as any;
+-  const revisedTotal = ((revD?.c ?? 0) + (revW?.c ?? 0)) as number;
+-  const xp = Math.round(totalSec / 60) + revisedTotal * 5;
+-  const level = Math.floor(Math.sqrt(xp / 50)) + 1;
+-  const xpCur = 50 * (level - 1) * (level - 1);
+-  const xpNext = 50 * level * level;
++  // All 4 reads in parallel: 1 round trip instead of 4 sequential.
++  const [sessions, frozenRows, revD, revW] = await Promise.all([
++    db.all(
++      `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
++       FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
++      user.id
++    ),
++    db.all("SELECT day FROM freeze_days WHERE user_id = ?", user.id),
++    db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
++    db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
++  ]);
+ 
+   return NextResponse.json({
+-    stats: {
+-      todayMin: Math.round(todayMin),
+-      weekMin: Math.round(weekMin),
+-      monthMin: Math.round(monthMin),
+-      weekSessions,
+-      streak,
+-      xp,
+-      level,
+-      xpInto: xp - xpCur,
+-      xpNeed: xpNext - xpCur,
+-      revised: revisedTotal,
+-      totalHours: Math.round((totalSec / 3600) * 10) / 10,
+-      totalSessions: sessions.length,
+-      daily,
+-      weekly,
+-      monthly,
+-      heat,
+-      hourly: hourly.map(Math.round),
+-      bySubject: Object.values(bySubject).map((s) => ({ ...s, minutes: Math.round(s.minutes) })),
+-      bySubjectAll: Object.values(bySubjectAll).map((s) => ({ ...s, minutes: Math.round(s.minutes) })),
+-      byType: Object.entries(byType).map(([type, sec]) => ({ type, minutes: Math.round(sec / 60) })),
+-    },
++    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin),
+   });
+ }
+diff --git a/app/api/streak/route.ts b/app/api/streak/route.ts
+index daabf22..29e12b7 100644
+--- a/app/api/streak/route.ts
++++ b/app/api/streak/route.ts
+@@ -13,9 +13,7 @@ function mondayKey(nowLocal: Date) {
+ }
+ 
+ // Lazy weekly grant: +1 freeze every Monday, max 2 in stock.
+-async function weekGrant(db: DB, userId: number, week: string) {
+-  await ensureSettings(db, userId);
+-  const s = (await db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", userId)) as any;
++async function weekGrant(db: DB, userId: number, week: string, s: any) {
+   let stock = Number(s?.freeze_stock ?? 1);
+   if ((s?.freeze_week || "") !== week) {
+     stock = Math.min(2, stock + 1);
+@@ -30,8 +28,12 @@ export async function GET(req: NextRequest) {
+   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+   const db = await getDb();
+   const nowLocal = new Date(Date.now() + offsetMin * 60000);
+-  const stock = await weekGrant(db, user.id, mondayKey(nowLocal));
+-  const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, dateKey(nowLocal));
++  await ensureSettings(db, user.id);
++  const [s, f] = await Promise.all([
++    db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
++    db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, dateKey(nowLocal)),
++  ]);
++  const stock = await weekGrant(db, user.id, mondayKey(nowLocal), s);
+   return NextResponse.json({ stock, frozenToday: !!f });
+ }
+ 
+@@ -44,9 +46,14 @@ export async function POST(req: NextRequest) {
+   const db = await getDb();
+   const nowLocal = new Date(Date.now() + offsetMin * 60000);
+   const todayK = dateKey(nowLocal);
+-  const stock = await weekGrant(db, user.id, mondayKey(nowLocal));
++  await ensureSettings(db, user.id);
++  const [s, f0] = await Promise.all([
++    db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
++    db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK),
++  ]);
++  const stock = await weekGrant(db, user.id, mondayKey(nowLocal), s);
+   if (body.action === "unfreeze") {
+-    const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
++    const f = f0;
+     if (!f) return NextResponse.json({ error: "Today isn't frozen" }, { status: 400 });
+     await db.run("DELETE FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
+     const back = Math.min(2, stock + 1);
+@@ -54,7 +61,7 @@ export async function POST(req: NextRequest) {
+     return NextResponse.json({ ok: true, stock: back, frozenToday: false });
+   }
+   if (stock <= 0) return NextResponse.json({ error: "No freezes left — you earn one every Monday" }, { status: 400 });
+-  const f = await db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
++  const f = f0;
+   if (f) return NextResponse.json({ error: "Today is already frozen" }, { status: 400 });
+   // Freeze only counts when today has zero sessions (UTC range of the local day).
+   const startLocal = new Date(nowLocal);
+diff --git a/app/api/webdev/route.ts b/app/api/webdev/route.ts
+index e67c2f0..e5aaf76 100644
+--- a/app/api/webdev/route.ts
++++ b/app/api/webdev/route.ts
+@@ -9,16 +9,18 @@ export const dynamic = "force-dynamic";
+ async function payload(userId: number) {
+   const db = await getDb();
+   await ensureWebTopics(db, userId);
+-  const rows = await db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
+-    "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM web_progress WHERE user_id = ?",
+-    userId
+-  );
++  const [rows, times] = await Promise.all([
++    db.all<{ topic_key: string; status: string; lecture_idx: number; updated_at: string; revised_at: string | null }>(
++      "SELECT topic_key, status, lecture_idx, updated_at, revised_at FROM web_progress WHERE user_id = ?",
++      userId
++    ),
++    // Time logged per topic (sessions store the topic TITLE)
++    db.all<{ topic: string; sec: number }>(
++      "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
++      userId
++    ),
++  ]);
+   const rowMap = new Map(rows.map((r) => [r.topic_key, r]));
+-  // Time logged per topic (sessions store the topic TITLE)
+-  const times = await db.all<{ topic: string; sec: number }>(
+-    "SELECT topic, COALESCE(SUM(duration_sec), 0) as sec FROM sessions WHERE user_id = ? AND topic != '' GROUP BY topic",
+-    userId
+-  );
+   const timeMap = new Map(times.map((t) => [t.topic, Number(t.sec) || 0]));
+   const topics = WEBDEV_TOPICS.map((t) => {
+     const lectures = WEBDEV_LECTURES[t.key] || [];
+diff --git a/lib/client.ts b/lib/client.ts
+index a35a82f..9f75d2c 100644
+--- a/lib/client.ts
++++ b/lib/client.ts
+@@ -2,6 +2,21 @@
+ 
+ import { useCallback, useEffect, useState } from "react";
+ 
++// Tiny in-memory GET cache: reopening a section within 30s is instant,
++// and any mutation (POST/PATCH/DELETE) busts it so data never goes stale.
++const cache = new Map<string, { at: number; data: any }>();
++const CACHE_TTL = 30 * 1000;
++
++export function bustCache(prefix?: string) {
++  if (!prefix) {
++    cache.clear();
++    return;
++  }
++  const drop: string[] = [];
++  cache.forEach((_v, k) => { if (k.startsWith(prefix)) drop.push(k); });
++  for (const k of drop) cache.delete(k);
++}
++
+ export async function api(path: string, options?: RequestInit) {
+   const res = await fetch(path, {
+     ...options,
+@@ -12,6 +27,8 @@ export async function api(path: string, options?: RequestInit) {
+     try { msg = (await res.json()).error || msg; } catch {}
+     throw new Error(msg);
+   }
++  const method = (options?.method || "GET").toUpperCase();
++  if (method !== "GET") bustCache();
+   return res.json();
+ }
+ 
+@@ -25,7 +42,9 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
+     setLoading(true);
+     setError(null);
+     try {
+-      setData(await api(path));
++      const d = await api(path);
++      cache.set(path, { at: Date.now(), data: d });
++      setData(d);
+     } catch (e: any) {
+       setError(e.message);
+     } finally {
+@@ -34,7 +53,18 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
+     // eslint-disable-next-line react-hooks/exhaustive-deps
+   }, [path]);
+ 
+-  useEffect(() => { reload(); }, [reload, ...deps]);
++  useEffect(() => {
++    if (!path) return;
++    const hit = cache.get(path);
++    if (hit && Date.now() - hit.at < CACHE_TTL) {
++      setData(hit.data);
++      setLoading(false);
++      setError(null);
++      return;
++    }
++    reload();
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [reload, ...deps]);
+   return { data, loading, error, reload, setData };
+ }
+ 
+diff --git a/lib/db.ts b/lib/db.ts
+index 2930c9e..0b5f969 100644
+--- a/lib/db.ts
++++ b/lib/db.ts
+@@ -156,36 +156,65 @@ const SCHEMA = [
+   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
+   `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
+   `CREATE INDEX IF NOT EXISTS idx_web_user ON web_progress(user_id)`,
++  `CREATE TABLE IF NOT EXISTS _meta (
++    key TEXT PRIMARY KEY,
++    value TEXT NOT NULL
++  )`,
+ ];
+ 
+ type Stmt = { sql: string; args: any[] };
+ 
+ let ready: Promise<DB> | null = null;
+ 
++// Warm-instance caches: seeding is idempotent, so skip the re-check queries.
++const seededSettings = new Set<number>();
++const seededDsa = new Set<string>();
++const seededWeb = new Set<string>();
++
+ export function getDb(): Promise<DB> {
+   if (!ready) ready = init();
+   return ready;
+ }
+ 
+-async function init(): Promise<DB> {
+-  const db = process.env.TURSO_DATABASE_URL ? await initTurso() : await initLocal();
+-  // Forgiving migrations for databases created before roles existed
+-  for (const sql of [
+-    "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
+-    "ALTER TABLE users ADD COLUMN last_active_at TEXT",
+-    "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
+-    "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
+-    "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
+-    "ALTER TABLE web_progress ADD COLUMN revised_at TEXT",
+-    "ALTER TABLE settings ADD COLUMN freeze_stock INTEGER NOT NULL DEFAULT 1",
+-    "ALTER TABLE settings ADD COLUMN freeze_week TEXT NOT NULL DEFAULT ''",
+-  ]) {
++const MIGRATIONS = [
++  "ALTER TABLE users ADD COLUMN role TEXT NOT NULL DEFAULT 'user'",
++  "ALTER TABLE users ADD COLUMN last_active_at TEXT",
++  "ALTER TABLE sessions ADD COLUMN topic TEXT NOT NULL DEFAULT ''",
++  "ALTER TABLE dsa_progress ADD COLUMN lecture_idx INTEGER NOT NULL DEFAULT 0",
++  "ALTER TABLE dsa_progress ADD COLUMN revised_at TEXT",
++  "ALTER TABLE web_progress ADD COLUMN revised_at TEXT",
++  "ALTER TABLE settings ADD COLUMN freeze_stock INTEGER NOT NULL DEFAULT 1",
++  "ALTER TABLE settings ADD COLUMN freeze_week TEXT NOT NULL DEFAULT ''",
++];
++
++async function migrateIfNeeded(db: DB) {
++  const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
++  if (m?.value === "1") return;
++  for (const sql of MIGRATIONS) {
+     try { await db.run(sql); } catch { /* column already exists */ }
+   }
++  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
++}
++
++async function init(): Promise<DB> {
++  if (process.env.TURSO_DATABASE_URL) return initTurso();
++  const db = await initLocal();
++  await migrateIfNeeded(db);
+   await ensureOwner(db);
+   return db;
+ }
+ 
++/** Read one cell from a libsql batch result set (rows may be objects or arrays). */
++function cell(rs: any, name: string): any {
++  const r = rs?.rows?.[0];
++  if (r == null) return undefined;
++  if (Array.isArray(r)) {
++    const i = (rs.columns || []).indexOf(name);
++    return i >= 0 ? r[i] : undefined;
++  }
++  return r[name];
++}
++
+ function wrapTurso(client: any): DB {
+   const toObj = (rs: any, r: any) => {
+     const o: any = {};
+@@ -216,11 +245,42 @@ async function initTurso(): Promise<DB> {
+   });
+   await client.batch(SCHEMA.map((sql) => ({ sql, args: [] })), "write");
+   const db = wrapTurso(client);
+-  await seedIfEmpty(db, async (stmts) => {
++  const batchExec = async (stmts: Stmt[]) => {
+     for (let i = 0; i < stmts.length; i += 120) {
+       await client.batch(stmts.slice(i, i + 120) as any, "write");
+     }
+-  });
++  };
++  // ONE read batch (user count + schema version + owner check) instead of ~10 sequential trips.
++  let snap: { users: number; v: string | null; owner: boolean } | null = null;
++  try {
++    const rs = await client.batch([
++      { sql: "SELECT COUNT(*) as c FROM users", args: [] },
++      { sql: "SELECT value FROM _meta WHERE key = 'schema_v'", args: [] },
++      { sql: "SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", args: [OWNER_EMAIL] },
++    ], "read");
++    snap = {
++      users: Number(cell(rs[0], "c") ?? 0),
++      v: (cell(rs[1], "value") as string) ?? null,
++      owner: (rs[2]?.rows?.length ?? 0) > 0,
++    };
++  } catch {
++    snap = null;
++  }
++  if (!snap) {
++    // Fallback: same checks, sequential (slower but always works).
++    const cu = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
++    const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
++    const o = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
++    snap = { users: Number(cu?.c ?? 0), v: m?.value ?? null, owner: !!o };
++  }
++  if (snap.users === 0) await seedIfEmpty(db, batchExec, true);
++  if (snap.v !== "1") {
++    for (const sql of MIGRATIONS) {
++      try { await db.run(sql); } catch { /* column already exists */ }
++    }
++    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
++  }
++  if (!snap.owner) await createOwner(db);
+   return db;
+ }
+ 
+@@ -252,17 +312,21 @@ async function initLocal(): Promise<DB> {
+ }
+ 
+ export async function ensureSettings(db: DB, userId: number) {
++  if (seededSettings.has(userId)) return;
+   await db.run(`INSERT OR IGNORE INTO settings (user_id) VALUES (?)`, userId);
++  seededSettings.add(userId);
+ }
+ 
+ /** Seed the DSA journey (first topic starts as current). Idempotent.
+  * Fast path: 1 COUNT query when already seeded (was: 47 sequential INSERTs). */
+ export async function ensureDsaTopics(db: DB, userId: number) {
++  const cacheKey = userId + ":" + DSA_TOPICS.length;
++  if (seededDsa.has(cacheKey)) return;
+   const row = await db.get<{ c: number }>(
+     "SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ?",
+     userId
+   );
+-  if ((row?.c ?? 0) >= DSA_TOPICS.length) return;
++  if ((row?.c ?? 0) >= DSA_TOPICS.length) { seededDsa.add(cacheKey); return; }
+   // Single multi-row INSERT: 1 round trip instead of 47
+   const now = new Date().toISOString();
+   const values = DSA_TOPICS.map(() => "(?,?,?,?)").join(",");
+@@ -274,15 +338,18 @@ export async function ensureDsaTopics(db: DB, userId: number) {
+     `INSERT OR IGNORE INTO dsa_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
+     ...args
+   );
++  seededDsa.add(cacheKey);
+ }
+ 
+ /** Seed the WebDev journey (first topic starts as current). Idempotent, 1-2 queries. */
+ export async function ensureWebTopics(db: DB, userId: number) {
++  const cacheKey = userId + ":" + WEBDEV_TOPICS.length;
++  if (seededWeb.has(cacheKey)) return;
+   const row = await db.get<{ c: number }>(
+     "SELECT COUNT(*) as c FROM web_progress WHERE user_id = ?",
+     userId
+   );
+-  if ((row?.c ?? 0) >= WEBDEV_TOPICS.length) return;
++  if ((row?.c ?? 0) >= WEBDEV_TOPICS.length) { seededWeb.add(cacheKey); return; }
+   const now = new Date().toISOString();
+   const values = WEBDEV_TOPICS.map(() => "(?,?,?,?)").join(",");
+   const args: any[] = [];
+@@ -293,12 +360,17 @@ export async function ensureWebTopics(db: DB, userId: number) {
+     `INSERT OR IGNORE INTO web_progress (user_id, topic_key, status, updated_at) VALUES ${values}`,
+     ...args
+   );
++  seededWeb.add(cacheKey);
+ }
+ 
+ /** Guarantee an owner/admin account always exists. */
+ async function ensureOwner(db: DB) {
+   const existing = await db.get("SELECT id FROM users WHERE email = ? OR role = 'admin' LIMIT 1", OWNER_EMAIL);
+   if (existing) return;
++  await createOwner(db);
++}
++
++async function createOwner(db: DB) {
+   const info = await db.run(
+     "INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?,?,?,?,?)",
+     "Owner",
+@@ -401,9 +473,11 @@ function sessionStmts(
+   }
+ }
+ 
+-async function seedIfEmpty(db: DB, exec: (stmts: Stmt[]) => Promise<void>) {
+-  const count = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
+-  if ((count?.c ?? 0) > 0) return;
++async function seedIfEmpty(db: DB, exec: (stmts: Stmt[]) => Promise<void>, assumeEmpty = false) {
++  if (!assumeEmpty) {
++    const count = await db.get<{ c: number }>("SELECT COUNT(*) as c FROM users");
++    if ((count?.c ?? 0) > 0) return;
++  }
+ 
+   const rand = mulberry(42);
+   const now = new Date();
+diff --git a/lib/stats.ts b/lib/stats.ts
+new file mode 100644
+index 0000000..6c2cfc8
+--- /dev/null
++++ b/lib/stats.ts
+@@ -0,0 +1,139 @@
++// Shared stats engine: pure computation over already-fetched rows.
++// Used by /api/stats and the combined /api/dashboard endpoint.
++
++function pad(n: number) { return String(n).padStart(2, "0"); }
++function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
++
++export function computeStats(
++  sessions: any[],
++  frozenRows: any[],
++  revD: any,
++  revW: any,
++  offsetMin: number
++) {
++  const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
++  const nowLocal = new Date(Date.now() + offsetMin * 60000);
++  const todayK = dateKey(nowLocal);
++  const frozen = new Set((frozenRows || []).map((r) => r.day));
++
++  // per-day buckets (last 140 days)
++  const days: Record<string, { minutes: number; sessions: number }> = {};
++  for (let i = 0; i < 140; i++) {
++    const d = new Date(nowLocal);
++    d.setDate(d.getDate() - i);
++    days[dateKey(d)] = { minutes: 0, sessions: 0 };
++  }
++  // by-subject totals (last 30d) + overall + hourly + weekday + type
++  const bySubject: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
++  const bySubjectAll: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
++  const hourly = new Array(24).fill(0);
++  const byType: Record<string, number> = { pomodoro: 0, timer: 0, stopwatch: 0, manual: 0 };
++  const cutoff30 = new Date(nowLocal); cutoff30.setDate(cutoff30.getDate() - 30);
++  const cutoff7 = new Date(nowLocal); cutoff7.setDate(cutoff7.getDate() - 7);
++
++  let todayMin = 0, weekMin = 0, monthMin = 0, weekSessions = 0, totalSec = 0;
++  const sundayOffset = (nowLocal.getDay() + 6) % 7; // days since Monday
++  const weekStart = new Date(nowLocal); weekStart.setDate(weekStart.getDate() - sundayOffset); weekStart.setHours(0, 0, 0, 0);
++  const monthStart = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1);
++
++  for (const se of sessions) {
++    const local = toLocal(se.started_at);
++    const k = dateKey(local);
++    const min = se.duration_sec / 60;
++    totalSec += se.duration_sec;
++    byType[se.type] = (byType[se.type] || 0) + se.duration_sec;
++    if (days[k]) { days[k].minutes += min; days[k].sessions += 1; }
++    hourly[local.getHours()] += min;
++    const sName = se.subject_name || "Unassigned";
++    const sColor = se.subject_color || "#64748b";
++    (bySubjectAll[sName] ??= { name: sName, color: sColor, minutes: 0, sessions: 0 });
++    bySubjectAll[sName].minutes += min; bySubjectAll[sName].sessions += 1;
++    if (local >= cutoff30) {
++      (bySubject[sName] ??= { name: sName, color: sColor, minutes: 0, sessions: 0 });
++      bySubject[sName].minutes += min; bySubject[sName].sessions += 1;
++    }
++    if (k === todayK) todayMin += min;
++    if (local >= weekStart) { weekMin += min; weekSessions += 1; }
++    if (local >= monthStart) monthMin += min;
++  }
++
++  // streak (consecutive days with any session, today not required to be finished)
++  let streak = 0;
++  for (let i = 0; i < 365; i++) {
++    const d = new Date(nowLocal); d.setDate(d.getDate() - i);
++    const k = dateKey(d);
++    const has = (days[k] && days[k].sessions > 0) || frozen.has(k);
++    if (has) streak++;
++    else if (i === 0) continue; // today may not be logged yet
++    else break;
++  }
++
++  // weekly series: last 12 weeks (Mon-Sun)
++  const weekly: Array<{ week: string; minutes: number; sessions: number }> = [];
++  for (let w = 11; w >= 0; w--) {
++    const start = new Date(weekStart); start.setDate(start.getDate() - w * 7);
++    const end = new Date(start); end.setDate(end.getDate() + 7);
++    let m = 0, c = 0;
++    for (const se of sessions) {
++      const local = toLocal(se.started_at);
++      if (local >= start && local < end) { m += se.duration_sec / 60; c++; }
++    }
++    weekly.push({ week: `${start.getMonth() + 1}/${start.getDate()}`, minutes: Math.round(m), sessions: c });
++  }
++
++  // daily series last 30 days (chronological)
++  const daily: Array<{ date: string; minutes: number; sessions: number }> = [];
++  for (let i = 29; i >= 0; i--) {
++    const d = new Date(nowLocal); d.setDate(d.getDate() - i);
++    const k = dateKey(d);
++    daily.push({ date: k, minutes: Math.round(days[k]?.minutes || 0), sessions: days[k]?.sessions || 0 });
++  }
++
++  // heatmap last 140 days
++  const heat = Object.entries(days)
++    .map(([date, v]) => ({ date, minutes: Math.round(v.minutes), sessions: v.sessions, frozen: frozen.has(date) }))
++    .sort((a, b) => a.date.localeCompare(b.date));
++
++  // monthly series: last 6 months
++  const monthly: Array<{ month: string; minutes: number; sessions: number }> = [];
++  for (let m = 5; m >= 0; m--) {
++    const d = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m, 1);
++    const end = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m + 1, 1);
++    let mm = 0, c = 0;
++    for (const se of sessions) {
++      const local = toLocal(se.started_at);
++      if (local >= d && local < end) { mm += se.duration_sec / 60; c++; }
++    }
++    monthly.push({ month: d.toLocaleString("en", { month: "short" }), minutes: Math.round(mm), sessions: c });
++  }
++
++  // XP + level: 1 XP per focus minute, +5 per revised topic
++  const revisedTotal = ((revD?.c ?? 0) + (revW?.c ?? 0)) as number;
++  const xp = Math.round(totalSec / 60) + revisedTotal * 5;
++  const level = Math.floor(Math.sqrt(xp / 50)) + 1;
++  const xpCur = 50 * (level - 1) * (level - 1);
++  const xpNext = 50 * level * level;
++
++  return {
++    todayMin: Math.round(todayMin),
++    weekMin: Math.round(weekMin),
++    monthMin: Math.round(monthMin),
++    weekSessions,
++    streak,
++    xp,
++    level,
++    xpInto: xp - xpCur,
++    xpNeed: xpNext - xpCur,
++    revised: revisedTotal,
++    totalHours: Math.round((totalSec / 3600) * 10) / 10,
++    totalSessions: sessions.length,
++    daily,
++    weekly,
++    monthly,
++    heat,
++    hourly: hourly.map(Math.round),
++    bySubject: Object.values(bySubject).map((s) => ({ ...s, minutes: Math.round(s.minutes) })),
++    bySubjectAll: Object.values(bySubjectAll).map((s) => ({ ...s, minutes: Math.round(s.minutes) })),
++    byType: Object.entries(byType).map(([type, sec]) => ({ type, minutes: Math.round(sec / 60) })),
++  };
++}
