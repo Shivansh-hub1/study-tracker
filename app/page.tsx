@@ -7,7 +7,6 @@ import {
   Route,
   Code2,
   CalendarCheck,
-  Layers,
   Flame,
   BarChart3,
   Trophy,
@@ -50,11 +49,6 @@ const FEATURES = [
     text: "Due-date revision queues, weekly planner blocks and exam countdowns keep nothing slipping.",
   },
   {
-    icon: Layers,
-    title: "Flashcards & decks",
-    text: "Build your own decks, flip through cards and track correct vs wrong answers per card.",
-  },
-  {
     icon: Flame,
     title: "Habits & streaks",
     text: "Daily habits, study streaks with freeze days, and a consistency heatmap that keeps you honest.",
@@ -80,7 +74,7 @@ const STEPS = [
 const FAQS = [
   {
     q: "Is FocusFlow free?",
-    a: "Yes. Every feature — timer, roadmaps, flashcards, planner, habits and analytics — is free for learners.",
+    a: "Yes. Every feature — timer, roadmaps, planner, habits and analytics — is free for learners.",
   },
   {
     q: "Do I need an account?",
@@ -169,7 +163,7 @@ export default async function Home() {
             </h1>
             <p className="land-sub">
               FocusFlow combines a focus timer, DSA & WebDev roadmaps, revision planner,
-              flashcards, habits and analytics — your complete study system in one place.
+              habits and analytics — your complete study system in one place.
             </p>
             <div className="land-cta">
               <Link href="/signup" className="btn btn-primary btn-lg">

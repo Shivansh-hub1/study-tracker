@@ -1,14 +1,13 @@
 "use client";
 
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
-  ListChecks, Settings, LogOut, GraduationCap, Menu, X, Check, Palette, Route, Code2, History,
-  Trophy, CalendarClock, CalendarDays, Layers, Sprout, Crown,
+  ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
+  Trophy, CalendarClock, CalendarDays, Sprout, Crown,
 } from "lucide-react";
-import { THEMES, useTheme, useToast } from "./Providers";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
@@ -19,7 +18,6 @@ const NAV = [
   { href: "/revision", label: "Revision", icon: History },
   { href: "/planner", label: "Planner", icon: CalendarDays },
   { href: "/exams", label: "Exams", icon: CalendarClock },
-  { href: "/flashcards", label: "Flashcards", icon: Layers },
   { href: "/habits", label: "Habits", icon: Sprout },
   { href: "/achievements", label: "Achievements", icon: Trophy },
   { href: "/leaderboard", label: "Leaderboard", icon: Crown },
@@ -32,13 +30,10 @@ type Me = { id: number; name: string; email: string; role?: string };
 
 export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
   const pathname = usePathname();
-  const router = useRouter();
-  const { theme, setTheme } = useTheme();
-  const { toast } = useToast();
   const [open, setOpen] = useState(false);
-  const [menuOpen, setMenuOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
-  const menuRef = useRef<HTMLDivElement>(null);
+  const now = new Date();
+  const daysLeft = Math.ceil((new Date(now.getFullYear() + 1, 0, 1).getTime() - now.getTime()) / 86400000);
 
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
@@ -54,20 +49,6 @@ export default function AppShell({ user, children }: { user: Me; children: React
     })();
     return () => { on = false; };
   }, [pathname]);
-  useEffect(() => {
-    const h = (e: MouseEvent) => {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false);
-    };
-    document.addEventListener("mousedown", h);
-    return () => document.removeEventListener("mousedown", h);
-  }, []);
-
-  const logout = async () => {
-    await fetch("/api/auth/logout", { method: "POST" });
-    toast("Signed out. See you soon!", "success");
-    router.push("/login");
-    router.refresh();
-  };
 
   return (
     <div className="app-shell">
@@ -100,28 +81,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           </Link>
         )}
         <div className="sspacer" />
-        <div className="ssection">Appearance</div>
-        <div style={{ padding: "0 10px", display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 8 }}>
-          {THEMES.map((t) => (
-            <button
-              key={t.id}
-              title={t.name}
-              onClick={() => setTheme(t.id)}
-              style={{
-                height: 34, borderRadius: 9, border: theme === t.id ? "2px solid var(--text)" : "1px solid var(--border)",
-                background: t.swatch, cursor: "pointer", display: "grid", placeItems: "center", color: "#fff",
-                boxShadow: theme === t.id ? "var(--glow)" : "none", transition: "all .15s ease",
-              }}
-            >
-              {theme === t.id && <Check size={14} strokeWidth={3} />}
-            </button>
-          ))}
-        </div>
-        <div style={{ fontSize: 11, color: "var(--muted)", textAlign: "center", padding: "8px 0 2px" }}>
-          {THEMES.find((t) => t.id === theme)?.name}
-        </div>
-        <hr className="divider" />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px" }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 12px" }}>
           <div
             style={{
               width: 34, height: 34, borderRadius: "50%", background: "var(--accent-grad)", color: "#fff",
@@ -135,9 +95,6 @@ export default function AppShell({ user, children }: { user: Me; children: React
             <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
           </div>
         </div>
-        <button className="snav" style={{ background: "none", border: "1px solid transparent", width: "100%", cursor: "pointer" }} onClick={logout}>
-          <LogOut size={17} /> Sign out
-        </button>
       </aside>
 
       <div className="main">
@@ -147,23 +104,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>{NAV.find((n) => pathname.startsWith(n.href))?.label ?? (pathname.startsWith("/admin") ? "Admin Panel" : "FocusFlow")}</h1>
-            <div className="sub">{new Date().toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</div>
-          </div>
-          <div style={{ position: "relative" }} ref={menuRef}>
-            <button className="iconbtn" onClick={() => setMenuOpen((o) => !o)} title="Theme">
-              <Palette size={17} />
-            </button>
-            {menuOpen && (
-              <div className="menu">
-                {THEMES.map((t) => (
-                  <button key={t.id} className={`menu-item ${theme === t.id ? "on" : ""}`} onClick={() => setTheme(t.id)}>
-                    <span style={{ width: 18, height: 18, borderRadius: 6, background: t.swatch, display: "inline-block" }} />
-                    {t.name}
-                    {theme === t.id && <Check size={14} style={{ marginLeft: "auto" }} />}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="sub">{now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} · {daysLeft} days left in {now.getFullYear()}</div>
           </div>
         </div>
         {children}

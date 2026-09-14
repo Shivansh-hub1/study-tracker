@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet } from "lucide-react";
+import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
 import { useFetch, api } from "@/lib/client";
 import { Spinner } from "@/components/ui";
 import { THEMES, useTheme, useToast } from "@/components/Providers";
 
 export default function SettingsPage() {
+  const router = useRouter();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const { data: me } = useFetch("/api/auth/me");
@@ -47,6 +49,13 @@ export default function SettingsPage() {
       toast(e.message, "error");
     }
     setBusy(false);
+  };
+
+  const logout = async () => {
+    await fetch("/api/auth/logout", { method: "POST" });
+    toast("Signed out. See you soon!", "success");
+    router.push("/login");
+    router.refresh();
   };
 
   return (
@@ -122,6 +131,7 @@ export default function SettingsPage() {
             <div style={{ fontSize: 13, color: "var(--muted)" }}>{me?.user?.email}</div>
           </div>
         </div>
+        <button className="btn" style={{ marginTop: 14 }} onClick={logout}><LogOut size={15} /> Sign out</button>
       </div>
 
       {/* Data export */}

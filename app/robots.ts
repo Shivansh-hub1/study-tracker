@@ -20,7 +20,6 @@ export default function robots(): MetadataRoute.Robots {
           "/revision",
           "/planner",
           "/exams",
-          "/flashcards",
           "/habits",
           "/leaderboard",
           "/achievements",

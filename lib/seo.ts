@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 
 export const SITE_NAME = "FocusFlow";
 export const SITE_DESCRIPTION =
-  "FocusFlow is a free study tracker with a focus timer, session logging, DSA and WebDev roadmaps, revision planner, flashcards, habits and progress analytics.";
+  "FocusFlow is a free study tracker with a focus timer, session logging, DSA and WebDev roadmaps, revision planner, habits and progress analytics.";
 export const SITE_KEYWORDS = [
   "study tracker",
   "focus timer",
@@ -10,7 +10,6 @@ export const SITE_KEYWORDS = [
   "DSA practice tracker",
   "web development roadmap",
   "revision planner",
-  "flashcards app",
   "study planner",
   "exam countdown",
   "study streak",
