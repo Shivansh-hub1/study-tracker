@@ -155,6 +155,22 @@ export default function DashboardPage() {
 
   const pie = (stats?.bySubject || []).map((s: any) => ({ name: s.name, value: Math.round(s.minutes), color: s.color }));
 
+  // Sunday review: this week vs last week (all from stats, no extra fetch).
+  const weeklyArr: any[] = stats?.weekly || [];
+  const lastWk = weeklyArr.length >= 2 ? weeklyArr[weeklyArr.length - 2] : { minutes: 0, sessions: 0 };
+  const last7: any[] = (stats?.daily || []).slice(-7);
+  const bestDay = last7.reduce((m: any, d: any) => (d.minutes > (m?.minutes ?? -1) ? d : m), null);
+  const activeDays = last7.filter((d: any) => d.minutes > 0).length;
+  const quietDays = last7.filter((d: any) => !d.minutes).map((d: any) => new Date(d.date + "T12:00:00").toLocaleDateString("en", { weekday: "short" }));
+  const wkMin = stats?.weekMin ?? 0;
+  const wkSes = stats?.weekSessions ?? 0;
+  const delta = lastWk.minutes > 0 ? Math.round(((wkMin - lastWk.minutes) / lastWk.minutes) * 100) : (wkMin > 0 ? 100 : 0);
+  const topSubj = (stats?.bySubject || []).reduce((m: any, s: any) => (s.minutes > (m?.minutes ?? -1) ? s : m), null);
+  const monday = new Date(); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
+  const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
+  const fmtD = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
+  const verdict = activeDays >= 6 ? "Unstoppable week 🔥" : activeDays >= 4 ? "Strong week 💪" : activeDays >= 2 ? "Good momentum 🌱" : activeDays === 1 ? "Every big week starts with one session 🌱" : "Quiet week — Monday is a fresh start 🌅";
+
   return (
     <div className="grid" style={{ gap: 20 }}>
       {/* Level + freeze + share */}
@@ -183,6 +199,28 @@ export default function DashboardPage() {
         <Stat icon={<CalendarDays size={22} />} label="This week" value={fmtMinutes(stats?.weekMin ?? 0)} sub={`${stats?.weekSessions ?? 0} sessions`} accent="#10b981" />
         <Stat icon={<TrendingUp size={22} />} label="All time" value={`${stats?.totalHours ?? 0}h`} sub={`${stats?.totalSessions ?? 0} sessions`} accent="#ec4899" />
       </div>
+
+      {/* Sunday review */}
+      {stats && (
+        <div className="card">
+          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
+            <div>
+              <h2 style={{ fontSize: 15 }}>Sunday review ☕</h2>
+              <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Week of {fmtD(monday)} – {fmtD(sunday)}</div>
+            </div>
+            <span className="badge" style={delta >= 0 ? { background: "#10b98122", color: "#10b981" } : { background: "var(--accent-soft)", color: "var(--muted)" }}>
+              {delta >= 0 ? `▲ ${delta}%` : `▼ ${Math.abs(delta)}%`} vs last week
+            </span>
+          </div>
+          <div className="grid grid-4">
+            <div><div style={{ fontSize: 12, color: "var(--muted)" }}>This week</div><div style={{ fontWeight: 800, fontSize: 17 }}>{fmtMinutes(wkMin)}</div><div style={{ fontSize: 12, color: "var(--muted)" }}>{wkSes} sessions</div></div>
+            <div><div style={{ fontSize: 12, color: "var(--muted)" }}>Best day</div><div style={{ fontWeight: 800, fontSize: 17 }}>{bestDay ? fmtMinutes(bestDay.minutes) : "—"}</div><div style={{ fontSize: 12, color: "var(--muted)" }}>{bestDay ? fmtD(new Date(bestDay.date + "T12:00:00")) : "no sessions yet"}</div></div>
+            <div><div style={{ fontSize: 12, color: "var(--muted)" }}>Active days</div><div style={{ fontWeight: 800, fontSize: 17 }}>{activeDays}/7</div><div style={{ fontSize: 12, color: "var(--muted)" }}>{quietDays.length > 0 && activeDays > 0 ? `rest: ${quietDays.join(", ")}` : "last 7 days"}</div></div>
+            <div><div style={{ fontSize: 12, color: "var(--muted)" }}>Top subject</div><div style={{ fontWeight: 800, fontSize: 17 }}>{topSubj?.name || "—"}</div><div style={{ fontSize: 12, color: "var(--muted)" }}>{topSubj ? fmtMinutes(topSubj.minutes) : "last 30 days"}</div></div>
+          </div>
+          <div style={{ marginTop: 12, fontSize: 13.5, fontWeight: 600 }}>{verdict}</div>
+        </div>
+      )}
 
       <div className="grid" style={{ gridTemplateColumns: "1.6fr 1fr" }} >
         <style>{`@media (max-width: 1000px){ .grid[style*="1.6fr"] { grid-template-columns: 1fr !important; } }`}</style>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { enqueueOffline } from "./offline";
 
 // Tiny in-memory GET cache: reopening a section within 30s is instant,
 // and any mutation (POST/PATCH/DELETE) busts it so data never goes stale.
@@ -17,11 +18,21 @@ export function bustCache(prefix?: string) {
   for (const k of drop) cache.delete(k);
 }
 
-export async function api(path: string, options?: RequestInit) {
-  const res = await fetch(path, {
-    ...options,
-    headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
-  });
+export async function api(path: string, options?: RequestInit, opts?: { queueOffline?: boolean }) {
+  let res: Response;
+  try {
+    res = await fetch(path, {
+      ...options,
+      headers: { "Content-Type": "application/json", ...(options?.headers || {}) },
+    });
+  } catch {
+    // Network failure (offline). Queue the mutation instead of losing it.
+    if (opts?.queueOffline && (options?.method || "GET").toUpperCase() !== "GET") {
+      enqueueOffline(path, (options?.method || "GET").toUpperCase(), typeof options?.body === "string" ? options.body : undefined);
+      return { _queued: true } as any;
+    }
+    throw new Error("No internet connection");
+  }
   if (!res.ok) {
     let msg = `Request failed (${res.status})`;
     try { msg = (await res.json()).error || msg; } catch {}
@@ -65,6 +76,14 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload, ...deps]);
+
+  // After offline mutations sync, visible data refreshes itself.
+  useEffect(() => {
+    const onSync = () => { reload(); };
+    window.addEventListener("ff-sync", onSync);
+    return () => window.removeEventListener("ff-sync", onSync);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload]);
   return { data, loading, error, reload, setData };
 }
 

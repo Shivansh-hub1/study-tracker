@@ -163,7 +163,7 @@ export default function TimersPage() {
       const seconds = Math.round(durMs / 1000);
       if (seconds < 10) return;
       try {
-        await api("/api/sessions", {
+        const r: any = await api("/api/sessions", {
           method: "POST",
           body: JSON.stringify({
             subject_id: p.subjectId,
@@ -174,9 +174,9 @@ export default function TimersPage() {
             notes: (type === "pomodoro" ? `Pomodoro (${p.phase === "work" ? "focus" : "break"})` : `${type} session`) + (p.topic && selLecture ? ` · ${selLecture.title}` : ""),
             topic: p.topic || "",
           }),
-        });
-        toast(`Logged ${fmtClock(seconds)} of focus time`, "success");
-      } catch { /* offline-safe: silently drop */ }
+        }, { queueOffline: true });
+        toast(r?._queued ? `No internet — ${fmtClock(seconds)} saved on this device, will sync` : `Logged ${fmtClock(seconds)} of focus time`, "success");
+      } catch { /* validation errors: silently drop so the timer never nags */ }
     },
     [p.subjectId, p.phase, p.topic, selLecture?.title, toast]
   );

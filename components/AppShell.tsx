@@ -3,6 +3,8 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useToast } from "./Providers";
+import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
@@ -27,6 +29,36 @@ const NAV = [
 ];
 
 type Me = { id: number; name: string; email: string; role?: string };
+
+function OfflineBadge() {
+  const { online, pending } = useOfflineStatus();
+  const { toast } = useToast();
+  useEffect(() => {
+    const tryFlush = async () => {
+      if (!navigator.onLine) return;
+      const r = await flushOutbox();
+      if (r.synced > 0) toast(`Synced ${r.synced} offline change${r.synced === 1 ? "" : "s"}`, "success");
+    };
+    tryFlush();
+    window.addEventListener("online", tryFlush);
+    const t = setInterval(() => { if (loadOutbox().length) tryFlush(); }, 60000);
+    return () => { window.removeEventListener("online", tryFlush); clearInterval(t); };
+  }, [toast]);
+  if (!online) {
+    return <span className="badge" style={{ background: "#ef444422", color: "#f87171", whiteSpace: "nowrap" }}>● Offline</span>;
+  }
+  if (pending > 0) {
+    return (
+      <button className="badge" style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "none", cursor: "pointer", whiteSpace: "nowrap" }} onClick={async () => {
+        const r = await flushOutbox();
+        if (r.synced > 0) toast(`Synced ${r.synced} offline change${r.synced === 1 ? "" : "s"}`, "success");
+      }}>
+        ⏳ {pending} to sync
+      </button>
+    );
+  }
+  return null;
+}
 
 export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
   const pathname = usePathname();
@@ -106,6 +138,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
             <h1>{NAV.find((n) => pathname.startsWith(n.href))?.label ?? (pathname.startsWith("/admin") ? "Admin Panel" : "FocusFlow")}</h1>
             <div className="sub">{now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} · {daysLeft} days left in {now.getFullYear()}</div>
           </div>
+          <OfflineBadge />
         </div>
         {children}
       </div>

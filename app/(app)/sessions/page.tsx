@@ -68,13 +68,21 @@ export default function SessionsPage() {
       if (modal?.id) {
         const optimistic = prev.map((s: any) => (s.id === modal.id ? { ...s, ...payload, duration_sec: durSec } : s));
         setData({ sessions: optimistic } as any);
-        const { session } = await api(`/api/sessions/${modal.id}`, { method: "PATCH", body: JSON.stringify(payload) });
-        setData({ sessions: prev.map((s: any) => (s.id === modal.id ? session : s)) } as any);
-        toast("Session updated", "success");
+        const res: any = await api(`/api/sessions/${modal.id}`, { method: "PATCH", body: JSON.stringify(payload) }, { queueOffline: true });
+        if (res?._queued) {
+          toast("No internet — edit saved on this device, will sync", "success");
+        } else {
+          setData({ sessions: prev.map((s: any) => (s.id === modal.id ? res.session : s)) } as any);
+          toast("Session updated", "success");
+        }
       } else {
-        const { session } = await api("/api/sessions", { method: "POST", body: JSON.stringify(payload) });
-        setData({ sessions: [session, ...prev] } as any);
-        toast("Session logged", "success");
+        const res: any = await api("/api/sessions", { method: "POST", body: JSON.stringify(payload) }, { queueOffline: true });
+        if (res?._queued) {
+          toast("No internet — session saved on this device, will sync", "success");
+        } else {
+          setData({ sessions: [res.session, ...prev] } as any);
+          toast("Session logged", "success");
+        }
       }
       setModal(null);
     } catch (e: any) {
@@ -90,8 +98,8 @@ export default function SessionsPage() {
     const prev = sessions;
     setData({ sessions: sessions.filter((x: any) => x.id !== s.id) } as any);
     try {
-      await api(`/api/sessions/${s.id}`, { method: "DELETE" });
-      toast("Session deleted", "success");
+      const res: any = await api(`/api/sessions/${s.id}`, { method: "DELETE" }, { queueOffline: true });
+      toast(res?._queued ? "No internet — delete saved, will sync" : "Session deleted", "success");
     } catch (e: any) {
       setData({ sessions: prev } as any);
       toast(e.message, "error");
