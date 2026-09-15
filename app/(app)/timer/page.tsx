@@ -76,12 +76,16 @@ export default function TimersPage() {
   const selSubject = subjects.find((s: any) => s.id === p.subjectId);
   const isDsa = !!selSubject && /dsa/i.test(selSubject.name || "");
   const isWeb = !!selSubject && !isDsa && /web|delta|mern/i.test(selSubject.name || "");
+  const isRevision = !!selSubject && !isDsa && !isWeb && /revis/i.test(selSubject.name || "");
   const currentDsaTitle = dsaTopics.find((t: any) => t.key === dsaData?.current)?.title || "";
   const currentWebTitle = webTopics.find((t: any) => t.key === webData?.current)?.title || "";
   const journeyTopics = isDsa ? dsaTopics : webTopics;
   const journeyCurrent = isDsa ? currentDsaTitle : currentWebTitle;
   const journeyEndpoint = isDsa ? "/api/dsa" : "/api/webdev";
-  const revisionDue: any[] = isDsa ? (dsaData?.revision_due || []) : (webData?.revision_due || []);
+  const revisionDueAll: any[] = [
+    ...(dsaData?.revision_due || []).map((r: any) => ({ ...r, key: `dsa:${r.key}`, tag: "DSA" })),
+    ...(webData?.revision_due || []).map((r: any) => ({ ...r, key: `web:${r.key}`, tag: "Web" })),
+  ].sort((a, b) => (b.days_ago || 0) - (a.days_ago || 0));
   const activeKey = isDsa ? dsaData?.current : webData?.current;
   const selTopic = journeyTopics.find((t: any) => t.title === p.topic) || journeyTopics.find((t: any) => t.key === activeKey);
   const selLectures: any[] = selTopic?.lectures || [];
@@ -456,20 +460,6 @@ export default function TimersPage() {
               ))}
             </select>
             <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
-            <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
-              <History size={15} style={{ color: "var(--accent)" }} />
-              <span style={{ fontWeight: 700 }}>Revise</span>
-              {revisionDue.length === 0 ? (
-                <span className="badge">All caught up ✅</span>
-              ) : (
-                <select className="select" style={{ flex: 1, minWidth: 170 }} value="" onChange={(e) => { if (e.target.value) persist({ ...p, topic: e.target.value }); }}>
-                  <option value="">Pick a due topic…</option>
-                  {revisionDue.map((r: any) => (
-                    <option key={r.key} value={r.title}>{r.title} · {r.days_ago}d ago</option>
-                  ))}
-                </select>
-              )}
-            </div>
             {selTopic && selLectures.length > 0 && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
                 <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
@@ -481,6 +471,23 @@ export default function TimersPage() {
                 <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(1)} disabled={selLectureIdx >= selLectures.length}>›</button>
               </div>
             )}
+          </div>
+        )}
+        {isRevision && (
+          <div className="jbox" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
+            <History size={15} style={{ color: "var(--accent)" }} />
+            <span style={{ fontSize: 13, fontWeight: 700 }}>Revise</span>
+            {revisionDueAll.length === 0 ? (
+              <span className="badge">All caught up ✅</span>
+            ) : (
+              <select className="select" style={{ flex: 1, minWidth: 170 }} value="" onChange={(e) => { if (e.target.value) persist({ ...p, topic: e.target.value }); }}>
+                <option value="">Pick a due topic…</option>
+                {revisionDueAll.map((r: any) => (
+                  <option key={r.key} value={r.title}>{r.tag} · {r.title} · {r.days_ago}d ago</option>
+                ))}
+              </select>
+            )}
+            <a href="/revision" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open revision →</a>
           </div>
         )}
       </div>
