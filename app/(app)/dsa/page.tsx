@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown, CheckCheck } from "lucide-react";
+import Link from "next/link";
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes } from "@/lib/utils";
 import { Spinner } from "@/components/ui";
@@ -43,16 +44,6 @@ export default function DsaPage() {
       const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
       setData(updated);
       if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
-    } catch (e: any) {
-      toast(e.message, "error");
-    }
-  };
-
-  const revise = async (key: string) => {
-    try {
-      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "revise", key }) });
-      setData(updated);
-      toast("Revised! Next reminder in 7 days", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
@@ -136,38 +127,15 @@ export default function DsaPage() {
         </div>
       </div>
 
-            {done > 0 && (
-        <div className="card" style={{ borderColor: (data.revision_due?.length || 0) > 0 ? "var(--warn)" : undefined }}>
-          <b style={{ fontSize: 14 }}>🔁 Revision</b>
-          {(data.revision_due?.length || 0) === 0 ? (
-            <p style={{ fontSize: 13, color: "var(--muted)", margin: "6px 0 0" }}>
-              All caught up ✅ Nothing due right now.
-            </p>
-          ) : (
-            <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 10 }}>
-              {data.revision_due.map((r: any) => (
-                <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13.5 }}>
-                  <span style={{ flex: 1 }}>{r.title} <span style={{ color: "var(--muted)", fontSize: 12 }}>· {r.days_ago}d ago</span></span>
-                  <button className="btn btn-sm" onClick={() => revise(r.key)}>Mark revised ✓</button>
-                </div>
-              ))}
-            </div>
-          )}
-          {(data.revision_upcoming?.length || 0) > 0 && (
-            <div style={{ marginTop: 10, borderTop: "1px solid var(--border)", paddingTop: 8 }}>
-              <div style={{ fontSize: 11.5, color: "var(--muted)", marginBottom: 4, fontWeight: 700 }}>UPCOMING</div>
-              {data.revision_upcoming.slice(0, 5).map((r: any) => (
-                <div key={r.key} style={{ display: "flex", gap: 10, alignItems: "center", fontSize: 13, color: "var(--muted)", padding: "3px 0" }}>
-                  <span style={{ flex: 1 }}>{r.title}</span>
-                  <span style={{ fontSize: 12 }}>in {r.days_left}d</span>
-                </div>
-              ))}
-              {data.revision_upcoming.length > 5 && (
-                <div style={{ fontSize: 12, color: "var(--muted)" }}>+{data.revision_upcoming.length - 5} more</div>
-              )}
-            </div>
-          )}
-        </div>
+      {(data.revision_due?.length || 0) > 0 && (
+        <Link href="/revision" className="card" style={{ display: "flex", alignItems: "center", gap: 12, borderColor: "var(--warn)", textDecoration: "none" }}>
+          <span style={{ fontSize: 22 }}>🔁</span>
+          <span style={{ flex: 1, fontSize: 14 }}>
+            <b>{data.revision_due.length} topic{data.revision_due.length === 1 ? "" : "s"} due for revision</b>
+            <span style={{ color: "var(--muted)" }}> — review them all in one place</span>
+          </span>
+          <span className="btn btn-sm btn-primary">Review now</span>
+        </Link>
       )}
 
       {!hasDsaSubject && (
