@@ -453,12 +453,15 @@ export default function TimersPage() {
             ) : (
               <span className="badge">Manual</span>
             )}
-            <select className="select" style={{ flex: 1, minWidth: 170 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
-              <option value="">No topic</option>
-              {journeyTopics.map((t: any) => (
-                <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
-              ))}
-            </select>
+            <div style={{ position: "relative", flex: 1, minWidth: 170 }}>
+              <select className="select" style={{ width: "100%" }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
+                <option value="">No topic</option>
+                {journeyTopics.map((t: any) => (
+                  <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
+                ))}
+              </select>
+              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{journeyTopics.filter((t:any)=>t.status==="done").length}/{journeyTopics.length} done • {journeyTopics.length - journeyTopics.filter((t:any)=>t.status==="done").length} left</div>
+            </div>
             <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
             {selTopic && selLectures.length > 0 && (
               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>

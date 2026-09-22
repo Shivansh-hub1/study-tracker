@@ -522,4 +522,50 @@ p { margin: 0; }
 :root[data-theme="glass-light"] .sidebar, :root[data-theme="glass-dark"] .sidebar { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.12); }
 :root[data-theme="glass-dark"] .card, :root[data-theme="glass-dark"] .sidebar { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35); }
 
+/* ============ FIX: Native select dropdown contrast (timer journey topic) ============ */
+.select {
+  color-scheme: dark;
+  background: var(--surface-2);
+  color: var(--text);
+}
+:root[data-theme="light"] .select,
+:root[data-theme="glass-light"] .select {
+  color-scheme: light;
+}
+.select option {
+  background-color: var(--surface);
+  color: var(--text);
+  padding: 10px 12px;
+  font-size: 14px;
+}
+:root[data-theme="light"] .select option,
+:root[data-theme="glass-light"] .select option {
+  background-color: #ffffff;
+  color: #0f172a;
+}
+:root[data-theme="dark"] .select option,
+:root[data-theme="nebula"] .select option,
+:root[data-theme="glass-dark"] .select option,
+:root[data-theme="matrix"] .select option,
+:root[data-theme="cyber"] .select option,
+:root[data-theme="ember"] .select option {
+  background-color: #121829;
+  color: #e8ecf8;
+}
+.select:focus option:checked {
+  background: var(--accent) !important;
+  color: #fff !important;
+}
+/* Improve select dropdown readability on Windows */
+select.select {
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 13px) calc(50% - 2px);
+  background-size: 5px 5px, 5px 5px;
+  background-repeat: no-repeat;
+  padding-right: 36px;
+}
+
 ::selection { background: var(--accent); color: #fff; }

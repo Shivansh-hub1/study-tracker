@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
+import AchievementPopup from "./AchievementPopup";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
@@ -141,6 +142,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           <OfflineBadge />
         </div>
         {children}
+        <AchievementPopup />
       </div>
     </div>
   );

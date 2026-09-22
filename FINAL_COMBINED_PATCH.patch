@@ -1,0 +1,584 @@
+diff --git a/app/(app)/achievements/page.tsx b/app/(app)/achievements/page.tsx
+index 3dcbfb1..fc49ac9 100644
+--- a/app/(app)/achievements/page.tsx
++++ b/app/(app)/achievements/page.tsx
+@@ -1,61 +1,16 @@
+ "use client";
+ 
+-import React from "react";
++import React, { useState } from "react";
+ import { Trophy } from "lucide-react";
+ import { useStats } from "@/lib/client";
+ import { CardSkeleton, EmptyState } from "@/components/ui";
+-
+-type S = any;
+-type Badge = { id: string; name: string; desc: string; icon: string; rarity: string; test: (s: S) => boolean; prog: (s: S) => [number, number] };
+-
+-const num = (v: any) => (typeof v === "number" && !isNaN(v) ? v : 0);
+-const bestDay = (s: S) => Math.max(0, ...((s.daily || []).map((d: any) => num(d.minutes))));
+-const activeLast30 = (s: S) => (s.daily || []).filter((d: any) => num(d.minutes) > 0).length;
+-const earlyMin = (s: S) => [5, 6, 7].reduce((a: number, h: number) => a + num((s.hourly || [])[h]), 0);
+-const nightMin = (s: S) => [22, 23, 0, 1].reduce((a: number, h: number) => a + num((s.hourly || [])[h]), 0);
+-const pomoMin = (s: S) => num((s.byType || []).find((t: any) => t.type === "pomodoro")?.minutes);
+-const subjCount = (s: S) => (s.bySubjectAll || []).length;
+-
+-const BADGES: Badge[] = [
+-  { id: "first", name: "First Steps", desc: "Log your first session", icon: "🌱", rarity: "common", test: (s) => s.totalSessions >= 1, prog: (s) => [Math.min(s.totalSessions, 1), 1] },
+-  { id: "s10", name: "Getting Serious", desc: "Log 10 sessions", icon: "📚", rarity: "common", test: (s) => s.totalSessions >= 10, prog: (s) => [Math.min(s.totalSessions, 10), 10] },
+-  { id: "s50", name: "Half Century", desc: "Log 50 sessions", icon: "🔥", rarity: "rare", test: (s) => s.totalSessions >= 50, prog: (s) => [Math.min(s.totalSessions, 50), 50] },
+-  { id: "s100", name: "Century", desc: "Log 100 sessions", icon: "💯", rarity: "epic", test: (s) => s.totalSessions >= 100, prog: (s) => [Math.min(s.totalSessions, 100), 100] },
+-  { id: "s250", name: "Unstoppable", desc: "Log 250 sessions", icon: "⚔️", rarity: "epic", test: (s) => s.totalSessions >= 250, prog: (s) => [Math.min(s.totalSessions, 250), 250] },
+-  { id: "s500", name: "Machine", desc: "Log 500 sessions", icon: "🤖", rarity: "legendary", test: (s) => s.totalSessions >= 500, prog: (s) => [Math.min(s.totalSessions, 500), 500] },
+-  { id: "st3", name: "On a Roll", desc: "Reach a 3-day streak", icon: "⚡", rarity: "common", test: (s) => s.streak >= 3, prog: (s) => [Math.min(s.streak, 3), 3] },
+-  { id: "st7", name: "Week Warrior", desc: "Reach a 7-day streak", icon: "🏅", rarity: "rare", test: (s) => s.streak >= 7, prog: (s) => [Math.min(s.streak, 7), 7] },
+-  { id: "st14", name: "Two-Week Tear", desc: "Reach a 14-day streak", icon: "🗓️", rarity: "rare", test: (s) => s.streak >= 14, prog: (s) => [Math.min(s.streak, 14), 14] },
+-  { id: "st30", name: "Iron Will", desc: "Reach a 30-day streak", icon: "🛡️", rarity: "legendary", test: (s) => s.streak >= 30, prog: (s) => [Math.min(s.streak, 30), 30] },
+-  { id: "st60", name: "Two-Month Titan", desc: "Reach a 60-day streak", icon: "💎", rarity: "legendary", test: (s) => s.streak >= 60, prog: (s) => [Math.min(s.streak, 60), 60] },
+-  { id: "h10", name: "Deep Diver", desc: "Study 10 hours total", icon: "⏱️", rarity: "common", test: (s) => s.totalHours >= 10, prog: (s) => [Math.min(s.totalHours, 10), 10] },
+-  { id: "h25", name: "Deep Worker", desc: "Study 25 hours total", icon: "🧠", rarity: "common", test: (s) => s.totalHours >= 25, prog: (s) => [Math.min(s.totalHours, 25), 25] },
+-  { id: "h50", name: "Marathoner", desc: "Study 50 hours total", icon: "🏃", rarity: "rare", test: (s) => s.totalHours >= 50, prog: (s) => [Math.min(s.totalHours, 50), 50] },
+-  { id: "h100", name: "Centurion", desc: "Study 100 hours total", icon: "👑", rarity: "epic", test: (s) => s.totalHours >= 100, prog: (s) => [Math.min(s.totalHours, 100), 100] },
+-  { id: "h250", name: "Scholar", desc: "Study 250 hours total", icon: "🎓", rarity: "epic", test: (s) => s.totalHours >= 250, prog: (s) => [Math.min(s.totalHours, 250), 250] },
+-  { id: "h500", name: "Grandmaster", desc: "Study 500 hours total", icon: "🏛️", rarity: "legendary", test: (s) => s.totalHours >= 500, prog: (s) => [Math.min(s.totalHours, 500), 500] },
+-  { id: "lv3", name: "Rising Star", desc: "Reach level 3", icon: "⭐", rarity: "common", test: (s) => s.level >= 3, prog: (s) => [Math.min(s.level, 3), 3] },
+-  { id: "lv5", name: "Superstar", desc: "Reach level 5", icon: "💫", rarity: "rare", test: (s) => s.level >= 5, prog: (s) => [Math.min(s.level, 5), 5] },
+-  { id: "lv8", name: "Legend", desc: "Reach level 8", icon: "🌟", rarity: "legendary", test: (s) => s.level >= 8, prog: (s) => [Math.min(s.level, 8), 8] },
+-  { id: "lv12", name: "Mythic", desc: "Reach level 12", icon: "🔮", rarity: "legendary", test: (s) => s.level >= 12, prog: (s) => [Math.min(s.level, 12), 12] },
+-  { id: "xp1k", name: "XP Hunter", desc: "Earn 1,000 XP", icon: "🎯", rarity: "rare", test: (s) => s.xp >= 1000, prog: (s) => [Math.min(s.xp, 1000), 1000] },
+-  { id: "xp5k", name: "XP Legend", desc: "Earn 5,000 XP", icon: "🐉", rarity: "epic", test: (s) => s.xp >= 5000, prog: (s) => [Math.min(s.xp, 5000), 5000] },
+-  { id: "day4", name: "Deep Work Day", desc: "Study 4+ hours in one day", icon: "🌊", rarity: "rare", test: (s) => bestDay(s) >= 240, prog: (s) => [Math.min(bestDay(s), 240), 240] },
+-  { id: "day8", name: "Beast Mode", desc: "Study 8+ hours in one day", icon: "🦍", rarity: "epic", test: (s) => bestDay(s) >= 480, prog: (s) => [Math.min(bestDay(s), 480), 480] },
+-  { id: "poly", name: "Polymath", desc: "Study 5+ different subjects", icon: "🎨", rarity: "rare", test: (s) => subjCount(s) >= 5, prog: (s) => [Math.min(subjCount(s), 5), 5] },
+-  { id: "early", name: "Early Bird", desc: "Log 2+ hours before 8 AM", icon: "🌅", rarity: "common", test: (s) => earlyMin(s) >= 120, prog: (s) => [Math.min(earlyMin(s), 120), 120] },
+-  { id: "night", name: "Night Owl", desc: "Log 2+ hours after 10 PM", icon: "🦉", rarity: "common", test: (s) => nightMin(s) >= 120, prog: (s) => [Math.min(nightMin(s), 120), 120] },
+-  { id: "con25", name: "Never Miss", desc: "Study 25 of the last 30 days", icon: "📅", rarity: "epic", test: (s) => activeLast30(s) >= 25, prog: (s) => [Math.min(activeLast30(s), 25), 25] },
+-  { id: "pomo", name: "Pomodoro Master", desc: "Log 1,000 Pomodoro minutes", icon: "🍅", rarity: "rare", test: (s) => pomoMin(s) >= 1000, prog: (s) => [Math.min(pomoMin(s), 1000), 1000] },
+-  { id: "rev10", name: "Reviser", desc: "Revise 10 journey topics", icon: "🔁", rarity: "rare", test: (s) => (s.revised || 0) >= 10, prog: (s) => [Math.min(s.revised || 0, 10), 10] },
+-  { id: "rev25", name: "Revision Machine", desc: "Revise 25 journey topics", icon: "🔄", rarity: "epic", test: (s) => (s.revised || 0) >= 25, prog: (s) => [Math.min(s.revised || 0, 25), 25] },
+-];
+-
+-const RC: Record<string, string> = { common: "#94a3b8", rare: "#38bdf8", epic: "#c084fc", legendary: "#fbbf24" };
++import { BADGES, RC, CAT_LABEL } from "@/lib/achievements";
+ 
+ export default function AchievementsPage() {
+   const { data, loading } = useStats();
+   const stats = data?.stats;
++  const [filter, setFilter] = useState<string>("all");
++  const [rarityFilter, setRarityFilter] = useState<string>("all");
+ 
+   if (loading && !stats) {
+     return (
+@@ -67,51 +22,84 @@ export default function AchievementsPage() {
+   if (!stats) return <EmptyState icon={<Trophy size={26} />} title="No data yet" hint="Start studying to unlock achievements." />;
+ 
+   const unlocked = BADGES.filter((b) => b.test(stats)).length;
++  const filtered = BADGES.filter(b => {
++    const catMatch = filter === "all" || b.category === filter;
++    const rarityMatch = rarityFilter === "all" || b.rarity === rarityFilter;
++    return catMatch && rarityMatch;
++  });
++  const filteredUnlocked = filtered.filter(b => b.test(stats)).length;
+ 
+   return (
+     <div className="grid" style={{ gap: 20 }}>
+-      <div className="card" style={{ display: "flex", alignItems: "center", gap: 16 }}>
++      <div className="card" style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
+         <div className="empty ico" style={{ margin: 0, padding: 0, width: 56, height: 56, borderRadius: 16, background: "var(--accent-soft)", color: "var(--accent)", display: "grid", placeItems: "center", flexShrink: 0 }}>
+           <Trophy size={26} />
+         </div>
+-        <div style={{ flex: 1 }}>
+-          <div style={{ fontWeight: 800, fontSize: 16 }}>{unlocked}/{BADGES.length} unlocked</div>
++        <div style={{ flex: 1, minWidth: 200 }}>
++          <div style={{ fontWeight: 800, fontSize: 16 }}>{unlocked}/{BADGES.length} unlocked • {Math.round((unlocked / BADGES.length) * 100)}% complete</div>
+           <div style={{ height: 8, borderRadius: 99, background: "var(--border)", marginTop: 8, overflow: "hidden" }}>
+             <div style={{ height: "100%", width: `${Math.round((unlocked / BADGES.length) * 100)}%`, background: "var(--accent-grad)", borderRadius: 99 }} />
+           </div>
++          <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 6 }}>{filtered.length !== BADGES.length ? `${filteredUnlocked}/${filtered.length} in filter` : `${BADGES.length} total achievements — keep grinding!`}</div>
+         </div>
+       </div>
++
++      <div className="card" style={{ display: "flex", flexDirection: "column", gap: 12 }}>
++        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
++          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06 }}>Category:</span>
++          {Object.keys(CAT_LABEL).map(cat => (
++            <button key={cat} className={`chip ${filter === cat ? "on" : ""}`} onClick={() => setFilter(cat)} style={{ fontSize: 12.5 }}>
++              {CAT_LABEL[cat]} {filter === cat ? `(${filtered.length})` : ""}
++            </button>
++          ))}
++        </div>
++        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", alignItems: "center" }}>
++          <span style={{ fontSize: 12, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06 }}>Rarity:</span>
++          {["all", "common", "rare", "epic", "legendary"].map(r => (
++            <button key={r} className={`chip ${rarityFilter === r ? "on" : ""}`} onClick={() => setRarityFilter(r)} style={{ fontSize: 12.5, textTransform: "capitalize" }}>{r}</button>
++          ))}
++        </div>
++      </div>
++
+       <div className="grid grid-3">
+-        {BADGES.map((b) => {
++        {filtered.map((b) => {
+           const un = b.test(stats);
+           const [cur, tgt] = b.prog(stats);
+           const c = RC[b.rarity];
++          const pct = Math.min(100, Math.round((cur / tgt) * 100));
+           return (
+-            <div key={b.id} className="card" style={{ borderColor: un ? c : undefined, boxShadow: un ? `0 0 24px -8px ${c}` : undefined, opacity: un ? 1 : 0.75 }}>
++            <div key={b.id} className="card" style={{ borderColor: un ? c : undefined, boxShadow: un ? `0 0 24px -8px ${c}` : undefined, opacity: un ? 1 : 0.8, transition: "all 0.2s ease" }}>
+               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+-                <span style={{ fontSize: 34, filter: un ? "none" : "grayscale(1)", opacity: un ? 1 : 0.6 }}>{b.icon}</span>
++                <span style={{ fontSize: 34, filter: un ? "none" : "grayscale(1)", opacity: un ? 1 : 0.5, transition: "all 0.2s" }}>{b.icon}</span>
+                 <div style={{ flex: 1, minWidth: 0 }}>
+-                  <div style={{ fontWeight: 800, fontSize: 14.5 }}>{b.name}</div>
+-                  <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{b.desc}</div>
++                  <div style={{ fontWeight: 800, fontSize: 14.5, display: "flex", gap: 6, alignItems: "center" }}>{b.name} {un && <span style={{ fontSize: 11 }}>✨</span>}</div>
++                  <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.4 }}>{b.desc}</div>
+                 </div>
+               </div>
+-              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12 }}>
+-                <span className="badge" style={{ background: `${c}22`, color: c, textTransform: "capitalize" }}>{b.rarity}</span>
++              <div style={{ display: "flex", alignItems: "center", gap: 8, marginTop: 12, flexWrap: "wrap" }}>
++                <span className="badge" style={{ background: `${c}22`, color: c, textTransform: "capitalize", fontSize: 11 }}>{b.rarity}</span>
++                <span className="badge" style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 11 }}>{CAT_LABEL[b.category] || b.category}</span>
+                 {un ? (
+                   <span style={{ fontSize: 12.5, fontWeight: 700, color: c, marginLeft: "auto" }}>Unlocked ✓</span>
+                 ) : (
+-                  <span style={{ fontSize: 12.5, color: "var(--muted)", marginLeft: "auto" }}>{cur}/{tgt}</span>
++                  <span style={{ fontSize: 12.5, color: "var(--muted)", marginLeft: "auto" }}>{cur}/{tgt} • {pct}%</span>
+                 )}
+               </div>
+               {!un && (
+-                <div style={{ height: 6, borderRadius: 99, background: "var(--border)", marginTop: 8, overflow: "hidden" }}>
+-                  <div style={{ height: "100%", width: `${Math.round((cur / tgt) * 100)}%`, background: c, borderRadius: 99 }} />
++                <div style={{ height: 6, borderRadius: 99, background: "var(--border)", marginTop: 10, overflow: "hidden" }}>
++                  <div style={{ height: "100%", width: `${pct}%`, background: c, borderRadius: 99, transition: "width 0.5s ease" }} />
+                 </div>
+               )}
+             </div>
+           );
+         })}
+       </div>
++
++      {filtered.length === 0 && (
++        <div className="card" style={{ textAlign: "center", padding: 40, color: "var(--muted)" }}>
++          No achievements in this filter. Try another category.
++        </div>
++      )}
+     </div>
+   );
+ }
+diff --git a/app/(app)/timer/page.tsx b/app/(app)/timer/page.tsx
+index 624d753..675ea01 100644
+--- a/app/(app)/timer/page.tsx
++++ b/app/(app)/timer/page.tsx
+@@ -453,12 +453,15 @@ export default function TimersPage() {
+             ) : (
+               <span className="badge">Manual</span>
+             )}
+-            <select className="select" style={{ flex: 1, minWidth: 170 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
+-              <option value="">No topic</option>
+-              {journeyTopics.map((t: any) => (
+-                <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
+-              ))}
+-            </select>
++            <div style={{ position: "relative", flex: 1, minWidth: 170 }}>
++              <select className="select" style={{ width: "100%" }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
++                <option value="">No topic</option>
++                {journeyTopics.map((t: any) => (
++                  <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
++                ))}
++              </select>
++              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{journeyTopics.filter((t:any)=>t.status==="done").length}/{journeyTopics.length} done • {journeyTopics.length - journeyTopics.filter((t:any)=>t.status==="done").length} left</div>
++            </div>
+             <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+             {selTopic && selLectures.length > 0 && (
+               <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
+diff --git a/app/globals.css b/app/globals.css
+index 10eff47..b2972c8 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -522,4 +522,50 @@ p { margin: 0; }
+ :root[data-theme="glass-light"] .sidebar, :root[data-theme="glass-dark"] .sidebar { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.12); }
+ :root[data-theme="glass-dark"] .card, :root[data-theme="glass-dark"] .sidebar { text-shadow: 0 1px 8px rgba(0, 0, 0, 0.35); }
+ 
++/* ============ FIX: Native select dropdown contrast (timer journey topic) ============ */
++.select {
++  color-scheme: dark;
++  background: var(--surface-2);
++  color: var(--text);
++}
++:root[data-theme="light"] .select,
++:root[data-theme="glass-light"] .select {
++  color-scheme: light;
++}
++.select option {
++  background-color: var(--surface);
++  color: var(--text);
++  padding: 10px 12px;
++  font-size: 14px;
++}
++:root[data-theme="light"] .select option,
++:root[data-theme="glass-light"] .select option {
++  background-color: #ffffff;
++  color: #0f172a;
++}
++:root[data-theme="dark"] .select option,
++:root[data-theme="nebula"] .select option,
++:root[data-theme="glass-dark"] .select option,
++:root[data-theme="matrix"] .select option,
++:root[data-theme="cyber"] .select option,
++:root[data-theme="ember"] .select option {
++  background-color: #121829;
++  color: #e8ecf8;
++}
++.select:focus option:checked {
++  background: var(--accent) !important;
++  color: #fff !important;
++}
++/* Improve select dropdown readability on Windows */
++select.select {
++  -webkit-appearance: none;
++  -moz-appearance: none;
++  appearance: none;
++  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
++  background-position: calc(100% - 18px) calc(50% - 2px), calc(100% - 13px) calc(50% - 2px);
++  background-size: 5px 5px, 5px 5px;
++  background-repeat: no-repeat;
++  padding-right: 36px;
++}
++
+ ::selection { background: var(--accent); color: #fff; }
+diff --git a/components/AchievementPopup.tsx b/components/AchievementPopup.tsx
+new file mode 100644
+index 0000000..d3404aa
+--- /dev/null
++++ b/components/AchievementPopup.tsx
+@@ -0,0 +1,189 @@
++"use client";
++
++import React, { useEffect, useState, useCallback } from "react";
++import { useStats } from "@/lib/client";
++import { BADGES, RC, CAT_LABEL } from "@/lib/achievements";
++import { Trophy, X, Sparkles } from "lucide-react";
++
++const SEEN_KEY = "ff_achievements_seen_v2";
++const QUEUE_KEY = "ff_achievements_queue_v2";
++
++function getSeen(): Set<string> {
++  try {
++    const raw = localStorage.getItem(SEEN_KEY);
++    if (!raw) return new Set();
++    return new Set(JSON.parse(raw));
++  } catch { return new Set(); }
++}
++function setSeen(seen: Set<string>) {
++  try { localStorage.setItem(SEEN_KEY, JSON.stringify(Array.from(seen))); } catch {}
++}
++
++function beep(times = 3) {
++  try {
++    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
++    for (let i = 0; i < times; i++) {
++      const o = ctx.createOscillator();
++      const g = ctx.createGain();
++      o.connect(g); g.connect(ctx.destination);
++      o.frequency.value = i === 0 ? 880 : i === 1 ? 1108 : 1318;
++      const t = ctx.currentTime + i * 0.15;
++      g.gain.setValueAtTime(0.001, t);
++      g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
++      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
++      o.start(t); o.stop(t + 0.31);
++    }
++  } catch {}
++}
++
++function Confetti() {
++  const pieces = Array.from({ length: 40 }).map((_, i) => {
++    const left = Math.random() * 100;
++    const delay = Math.random() * 0.5;
++    const duration = 1.5 + Math.random() * 1.5;
++    const color = ["#818cf8", "#f472b6", "#34d399", "#fbbf24", "#38bdf8", "#c084fc"][Math.floor(Math.random() * 6)];
++    const size = 6 + Math.random() * 8;
++    const rot = Math.random() * 360;
++    return { left, delay, duration, color, size, rot, i };
++  });
++  return (
++    <div style={{ position: "absolute", inset: 0, overflow: "hidden", pointerEvents: "none" }}>
++      {pieces.map(p => (
++        <div key={p.i} style={{
++          position: "absolute",
++          left: `${p.left}%`,
++          top: "-20px",
++          width: p.size,
++          height: p.size * 1.6,
++          background: p.color,
++          borderRadius: 2,
++          transform: `rotate(${p.rot}deg)`,
++          animation: `confFall ${p.duration}s ${p.delay}s ease-out forwards`,
++        }} />
++      ))}
++      <style>{`
++        @keyframes confFall {
++          0% { transform: translateY(0) rotate(0deg) scale(1); opacity: 1; }
++          100% { transform: translateY(500px) rotate(720deg) scale(0.8); opacity: 0; }
++        }
++      `}</style>
++    </div>
++  );
++}
++
++export default function AchievementPopup() {
++  const { data } = useStats();
++  const stats = data?.stats;
++  const [queue, setQueue] = useState<typeof BADGES>([]);
++  const [current, setCurrent] = useState<(typeof BADGES)[number] | null>(null);
++  const [show, setShow] = useState(false);
++
++  const checkNew = useCallback(() => {
++    if (!stats) return;
++    const seen = getSeen();
++    const unlocked = BADGES.filter(b => b.test(stats));
++    const newOnes = unlocked.filter(b => !seen.has(b.id));
++    if (newOnes.length > 0) {
++      setQueue(prev => {
++        const existingIds = new Set(prev.map(p => p.id));
++        const toAdd = newOnes.filter(n => !existingIds.has(n.id) && n.id !== current?.id);
++        const merged: typeof BADGES = [];
++        prev.forEach(p => merged.push(p));
++        toAdd.forEach(p => merged.push(p));
++        return merged;
++      });
++    }
++  }, [stats, current]);
++
++  useEffect(() => {
++    checkNew();
++  }, [checkNew]);
++
++  // Poll every 10s for new unlocks (when session logged)
++  useEffect(() => {
++    const t = setInterval(checkNew, 10000);
++    return () => clearInterval(t);
++  }, [checkNew]);
++
++  // Show next from queue
++  useEffect(() => {
++    if (!show && queue.length > 0 && !current) {
++      const next = queue[0];
++      setCurrent(next);
++      setQueue(q => q.slice(1));
++      setShow(true);
++      beep(3);
++      // haptic
++      try { (navigator as any).vibrate?.([100, 50, 100]); } catch {}
++    }
++  }, [queue, show, current]);
++
++  const close = useCallback(() => {
++    if (!current) return;
++    const seen = getSeen();
++    seen.add(current.id);
++    setSeen(seen);
++    setShow(false);
++    setTimeout(() => setCurrent(null), 300);
++  }, [current]);
++
++  const next = useCallback(() => {
++    if (!current) return;
++    const seen = getSeen();
++    seen.add(current.id);
++    setSeen(seen);
++    if (queue.length > 0) {
++      const nxt = queue[0];
++      setQueue(q => q.slice(1));
++      setCurrent(nxt);
++      beep(3);
++    } else {
++      setShow(false);
++      setTimeout(() => setCurrent(null), 300);
++    }
++  }, [current, queue]);
++
++  if (!current) return null;
++
++  const color = RC[current.rarity] || "#818cf8";
++
++  return (
++    <div className="modal-overlay" style={{ zIndex: 200, background: "rgba(2,6,18,0.7)", backdropFilter: "blur(10px)" }} onClick={close}>
++      <style>{`
++        @keyframes popBounce { 0% { transform: scale(0.8) translateY(20px); opacity: 0; } 50% { transform: scale(1.05) translateY(-5px); } 100% { transform: scale(1) translateY(0); opacity: 1; } }
++        @keyframes shine { 0% { transform: translateX(-100%); } 100% { transform: translateX(200%); } }
++      `}</style>
++      <div className="modal" style={{ maxWidth: 380, textAlign: "center", position: "relative", overflow: "hidden", border: `2px solid ${color}`, boxShadow: `0 0 40px -10px ${color}, var(--shadow)`, animation: "popBounce 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)" }} onClick={e => e.stopPropagation()}>
++        <Confetti />
++        <button onClick={close} style={{ position: "absolute", top: 12, right: 12, background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 8, width: 28, height: 28, display: "grid", placeItems: "center", cursor: "pointer", color: "var(--muted)" }}><X size={14} /></button>
++
++        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 14, position: "relative", zIndex: 1 }}>
++          <div style={{ position: "relative" }}>
++            <div style={{ fontSize: 72, filter: `drop-shadow(0 0 20px ${color})`, animation: "pulseGlow 1.5s infinite" }}>{current.icon}</div>
++            <div style={{ position: "absolute", top: -8, right: -8, background: color, color: "#fff", borderRadius: 999, width: 24, height: 24, display: "grid", placeItems: "center", fontSize: 12, fontWeight: 800, boxShadow: `0 2px 10px ${color}` }}><Sparkles size={14} /></div>
++          </div>
++
++          <div>
++            <div style={{ display: "flex", gap: 8, justifyContent: "center", marginBottom: 8 }}>
++              <span className="badge" style={{ background: `${color}22`, color, textTransform: "capitalize" }}>{current.rarity}</span>
++              <span className="badge" style={{ background: "var(--surface-2)", color: "var(--muted)" }}>{CAT_LABEL[current.category] || current.category}</span>
++            </div>
++            <h3 style={{ fontSize: 22, fontWeight: 900, letterSpacing: -0.02, marginBottom: 6, background: `linear-gradient(135deg, ${color}, var(--accent))`, WebkitBackgroundClip: "text", backgroundClip: "text", color: "transparent" }}>{current.name}</h3>
++            <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.5 }}>{current.desc}</p>
++          </div>
++
++          <div style={{ width: "100%", height: 1, background: `linear-gradient(90deg, transparent, ${color}44, transparent)`, margin: "4px 0" }} />
++
++          <div style={{ display: "flex", gap: 10, width: "100%" }}>
++            <button className="btn" style={{ flex: 1 }} onClick={close}>Keep it</button>
++            <button className="btn btn-primary" style={{ flex: 1, background: `linear-gradient(135deg, ${color}, var(--accent))`, border: "none" }} onClick={next}>
++              {queue.length > 0 ? `Next (${queue.length}) →` : "Awesome! 🎉"}
++            </button>
++          </div>
++
++          <a href="/achievements" onClick={close} style={{ fontSize: 12.5, color: "var(--muted)", textDecoration: "underline" }}>View all {BADGES.length} achievements →</a>
++        </div>
++      </div>
++    </div>
++  );
++}
+diff --git a/components/AppShell.tsx b/components/AppShell.tsx
+index 2fd6030..9dc4691 100644
+--- a/components/AppShell.tsx
++++ b/components/AppShell.tsx
+@@ -5,6 +5,7 @@ import Link from "next/link";
+ import { usePathname } from "next/navigation";
+ import { useToast } from "./Providers";
+ import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
++import AchievementPopup from "./AchievementPopup";
+ import {
+   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
+   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
+@@ -141,6 +142,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
+           <OfflineBadge />
+         </div>
+         {children}
++        <AchievementPopup />
+       </div>
+     </div>
+   );
+diff --git a/lib/achievements.ts b/lib/achievements.ts
+new file mode 100644
+index 0000000..c0b1440
+--- /dev/null
++++ b/lib/achievements.ts
+@@ -0,0 +1,114 @@
++export type S = any;
++export type Badge = { id: string; name: string; desc: string; icon: string; rarity: string; category: string; test: (s: S) => boolean; prog: (s: S) => [number, number] };
++
++const num = (v: any) => (typeof v === "number" && !isNaN(v) ? v : 0);
++export const bestDay = (s: S) => Math.max(0, ...((s.daily || []).map((d: any) => num(d.minutes))));
++export const activeLast30 = (s: S) => (s.daily || []).filter((d: any) => num(d.minutes) > 0).length;
++export const earlyMin = (s: S) => [5, 6, 7].reduce((a: number, h: number) => a + num((s.hourly || [])[h]), 0);
++export const nightMin = (s: S) => [22, 23, 0, 1].reduce((a: number, h: number) => a + num((s.hourly || [])[h]), 0);
++export const pomoMin = (s: S) => num((s.byType || []).find((t: any) => t.type === "pomodoro")?.minutes);
++export const subjCount = (s: S) => (s.bySubjectAll || []).length;
++export const maxWeekly = (s: S) => Math.max(0, ...((s.weekly || []).map((w: any) => num(w.minutes))));
++export const maxMonthly = (s: S) => Math.max(0, ...((s.monthly || []).map((m: any) => num(m.minutes))));
++export const perfectWeek = (s: S) => (s.daily || []).slice(-7).every((d: any) => num(d.minutes) > 0) && (s.daily || []).length >= 7;
++export const perfectMonth = (s: S) => activeLast30(s) >= 30;
++export const weekendCount = (s: S) => (s.daily || []).filter((d: any) => { try { const day = new Date(d.date).getDay(); return (day === 0 || day === 6) && num(d.minutes) > 0; } catch { return false; } }).length;
++export const timerTypesUsed = (s: S) => (s.byType || []).filter((t: any) => num(t.minutes) > 0).length;
++export const hourlyAt = (s: S, h: number) => num((s.hourly || [])[h]);
++export const hasDawn = (s: S) => hourlyAt(s, 5) > 0;
++export const hasNoon = (s: S) => hourlyAt(s, 12) > 0;
++
++export const BADGES: Badge[] = [
++  // SESSIONS
++  { id: "first", name: "First Steps", desc: "Log your first session", icon: "🌱", rarity: "common", category: "sessions", test: (s) => s.totalSessions >= 1, prog: (s) => [Math.min(s.totalSessions, 1), 1] },
++  { id: "s10", name: "Getting Serious", desc: "Log 10 sessions", icon: "📚", rarity: "common", category: "sessions", test: (s) => s.totalSessions >= 10, prog: (s) => [Math.min(s.totalSessions, 10), 10] },
++  { id: "s50", name: "Half Century", desc: "Log 50 sessions", icon: "🔥", rarity: "rare", category: "sessions", test: (s) => s.totalSessions >= 50, prog: (s) => [Math.min(s.totalSessions, 50), 50] },
++  { id: "s100", name: "Century", desc: "Log 100 sessions", icon: "💯", rarity: "epic", category: "sessions", test: (s) => s.totalSessions >= 100, prog: (s) => [Math.min(s.totalSessions, 100), 100] },
++  { id: "s250", name: "Unstoppable", desc: "Log 250 sessions", icon: "⚔️", rarity: "epic", category: "sessions", test: (s) => s.totalSessions >= 250, prog: (s) => [Math.min(s.totalSessions, 250), 250] },
++  { id: "s500", name: "Machine", desc: "Log 500 sessions", icon: "🤖", rarity: "legendary", category: "sessions", test: (s) => s.totalSessions >= 500, prog: (s) => [Math.min(s.totalSessions, 500), 500] },
++  { id: "s1000", name: "Immortal", desc: "Log 1,000 sessions", icon: "🤯", rarity: "legendary", category: "sessions", test: (s) => s.totalSessions >= 1000, prog: (s) => [Math.min(s.totalSessions, 1000), 1000] },
++
++  // STREAKS
++  { id: "st3", name: "On a Roll", desc: "Reach a 3-day streak", icon: "⚡", rarity: "common", category: "streak", test: (s) => s.streak >= 3, prog: (s) => [Math.min(s.streak, 3), 3] },
++  { id: "st7", name: "Week Warrior", desc: "Reach a 7-day streak", icon: "🏅", rarity: "rare", category: "streak", test: (s) => s.streak >= 7, prog: (s) => [Math.min(s.streak, 7), 7] },
++  { id: "st14", name: "Two-Week Tear", desc: "Reach a 14-day streak", icon: "🗓️", rarity: "rare", category: "streak", test: (s) => s.streak >= 14, prog: (s) => [Math.min(s.streak, 14), 14] },
++  { id: "st30", name: "Iron Will", desc: "Reach a 30-day streak", icon: "🛡️", rarity: "legendary", category: "streak", test: (s) => s.streak >= 30, prog: (s) => [Math.min(s.streak, 30), 30] },
++  { id: "st60", name: "Two-Month Titan", desc: "Reach a 60-day streak", icon: "💎", rarity: "legendary", category: "streak", test: (s) => s.streak >= 60, prog: (s) => [Math.min(s.streak, 60), 60] },
++  { id: "st90", name: "Quarter Master", desc: "Reach a 90-day streak", icon: "🔥", rarity: "legendary", category: "streak", test: (s) => s.streak >= 90, prog: (s) => [Math.min(s.streak, 90), 90] },
++  { id: "st100", name: "Century Streak", desc: "Reach a 100-day streak", icon: "💯", rarity: "legendary", category: "streak", test: (s) => s.streak >= 100, prog: (s) => [Math.min(s.streak, 100), 100] },
++  { id: "st180", name: "Half Year Hero", desc: "Reach a 180-day streak", icon: "👑", rarity: "legendary", category: "streak", test: (s) => s.streak >= 180, prog: (s) => [Math.min(s.streak, 180), 180] },
++  { id: "st365", name: "Year of Focus", desc: "Reach a 365-day streak", icon: "🌟", rarity: "legendary", category: "streak", test: (s) => s.streak >= 365, prog: (s) => [Math.min(s.streak, 365), 365] },
++
++  // HOURS
++  { id: "h10", name: "Deep Diver", desc: "Study 10 hours total", icon: "⏱️", rarity: "common", category: "hours", test: (s) => s.totalHours >= 10, prog: (s) => [Math.min(s.totalHours, 10), 10] },
++  { id: "h25", name: "Deep Worker", desc: "Study 25 hours total", icon: "🧠", rarity: "common", category: "hours", test: (s) => s.totalHours >= 25, prog: (s) => [Math.min(s.totalHours, 25), 25] },
++  { id: "h50", name: "Marathoner", desc: "Study 50 hours total", icon: "🏃", rarity: "rare", category: "hours", test: (s) => s.totalHours >= 50, prog: (s) => [Math.min(s.totalHours, 50), 50] },
++  { id: "h100", name: "Centurion", desc: "Study 100 hours total", icon: "👑", rarity: "epic", category: "hours", test: (s) => s.totalHours >= 100, prog: (s) => [Math.min(s.totalHours, 100), 100] },
++  { id: "h250", name: "Scholar", desc: "Study 250 hours total", icon: "🎓", rarity: "epic", category: "hours", test: (s) => s.totalHours >= 250, prog: (s) => [Math.min(s.totalHours, 250), 250] },
++  { id: "h500", name: "Grandmaster", desc: "Study 500 hours total", icon: "🏛️", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 500, prog: (s) => [Math.min(s.totalHours, 500), 500] },
++  { id: "h1000", name: "Millennium", desc: "Study 1,000 hours total", icon: "🏛️", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 1000, prog: (s) => [Math.min(s.totalHours, 1000), 1000] },
++
++  // LEVEL & XP
++  { id: "lv3", name: "Rising Star", desc: "Reach level 3", icon: "⭐", rarity: "common", category: "level", test: (s) => s.level >= 3, prog: (s) => [Math.min(s.level, 3), 3] },
++  { id: "lv5", name: "Superstar", desc: "Reach level 5", icon: "💫", rarity: "rare", category: "level", test: (s) => s.level >= 5, prog: (s) => [Math.min(s.level, 5), 5] },
++  { id: "lv8", name: "Legend", desc: "Reach level 8", icon: "🌟", rarity: "legendary", category: "level", test: (s) => s.level >= 8, prog: (s) => [Math.min(s.level, 8), 8] },
++  { id: "lv12", name: "Mythic", desc: "Reach level 12", icon: "🔮", rarity: "legendary", category: "level", test: (s) => s.level >= 12, prog: (s) => [Math.min(s.level, 12), 12] },
++  { id: "lv15", name: "Transcendent", desc: "Reach level 15", icon: "🚀", rarity: "epic", category: "level", test: (s) => s.level >= 15, prog: (s) => [Math.min(s.level, 15), 15] },
++  { id: "lv20", name: "God Mode", desc: "Reach level 20", icon: "⚡", rarity: "legendary", category: "level", test: (s) => s.level >= 20, prog: (s) => [Math.min(s.level, 20), 20] },
++  { id: "lv25", name: "Beyond", desc: "Reach level 25", icon: "🌌", rarity: "legendary", category: "level", test: (s) => s.level >= 25, prog: (s) => [Math.min(s.level, 25), 25] },
++  { id: "lv30", name: "Infinity", desc: "Reach level 30", icon: "♾️", rarity: "legendary", category: "level", test: (s) => s.level >= 30, prog: (s) => [Math.min(s.level, 30), 30] },
++  { id: "xp1k", name: "XP Hunter", desc: "Earn 1,000 XP", icon: "🎯", rarity: "rare", category: "level", test: (s) => s.xp >= 1000, prog: (s) => [Math.min(s.xp, 1000), 1000] },
++  { id: "xp5k", name: "XP Legend", desc: "Earn 5,000 XP", icon: "🐉", rarity: "epic", category: "level", test: (s) => s.xp >= 5000, prog: (s) => [Math.min(s.xp, 5000), 5000] },
++  { id: "xp10k", name: "XP God", desc: "Earn 10,000 XP", icon: "🐉", rarity: "epic", category: "level", test: (s) => s.xp >= 10000, prog: (s) => [Math.min(s.xp, 10000), 10000] },
++  { id: "xp25k", name: "XP Titan", desc: "Earn 25,000 XP", icon: "👑", rarity: "legendary", category: "level", test: (s) => s.xp >= 25000, prog: (s) => [Math.min(s.xp, 25000), 25000] },
++  { id: "xp50k", name: "XP Universe", desc: "Earn 50,000 XP", icon: "🌌", rarity: "legendary", category: "level", test: (s) => s.xp >= 50000, prog: (s) => [Math.min(s.xp, 50000), 50000] },
++
++  // DAILY BEST
++  { id: "day1h", name: "First Hour", desc: "Study 1+ hour in one day", icon: "⏰", rarity: "common", category: "focus", test: (s) => bestDay(s) >= 60, prog: (s) => [Math.min(bestDay(s), 60), 60] },
++  { id: "day4", name: "Deep Work Day", desc: "Study 4+ hours in one day", icon: "🌊", rarity: "rare", category: "focus", test: (s) => bestDay(s) >= 240, prog: (s) => [Math.min(bestDay(s), 240), 240] },
++  { id: "day6", name: "Ultra Focus", desc: "Study 6+ hours in one day", icon: "🔥", rarity: "epic", category: "focus", test: (s) => bestDay(s) >= 360, prog: (s) => [Math.min(bestDay(s), 360), 360] },
++  { id: "day8", name: "Beast Mode", desc: "Study 8+ hours in one day", icon: "🦍", rarity: "epic", category: "focus", test: (s) => bestDay(s) >= 480, prog: (s) => [Math.min(bestDay(s), 480), 480] },
++
++  // WEEKLY / MONTHLY
++  { id: "week20", name: "Power Week", desc: "Study 20+ hours in a week", icon: "💪", rarity: "rare", category: "focus", test: (s) => maxWeekly(s) >= 1200, prog: (s) => [Math.min(maxWeekly(s), 1200), 1200] },
++  { id: "week40", name: "Beast Week", desc: "Study 40+ hours in a week", icon: "🦍", rarity: "epic", category: "focus", test: (s) => maxWeekly(s) >= 2400, prog: (s) => [Math.min(maxWeekly(s), 2400), 2400] },
++  { id: "month100", name: "Marathon Month", desc: "Study 100+ hours in a month", icon: "🏃‍♂️", rarity: "legendary", category: "focus", test: (s) => maxMonthly(s) >= 6000, prog: (s) => [Math.min(maxMonthly(s), 6000), 6000] },
++
++  // CONSISTENCY
++  { id: "con20", name: "Consistent", desc: "Study 20 of last 30 days", icon: "📈", rarity: "rare", category: "consistency", test: (s) => activeLast30(s) >= 20, prog: (s) => [Math.min(activeLast30(s), 20), 20] },
++  { id: "con25", name: "Never Miss", desc: "Study 25 of the last 30 days", icon: "📅", rarity: "epic", category: "consistency", test: (s) => activeLast30(s) >= 25, prog: (s) => [Math.min(activeLast30(s), 25), 25] },
++  { id: "perfectWeek", name: "Perfect Week", desc: "Study 7 days in a row (last 7)", icon: "📅", rarity: "rare", category: "consistency", test: (s) => perfectWeek(s), prog: (s) => [perfectWeek(s) ? 7 : Math.min(activeLast30(s), 7), 7] },
++  { id: "perfectMonth", name: "Perfect Month", desc: "Study 30 of last 30 days", icon: "🗓️", rarity: "legendary", category: "consistency", test: (s) => perfectMonth(s), prog: (s) => [Math.min(activeLast30(s), 30), 30] },
++  { id: "weekendWarrior", name: "Weekend Warrior", desc: "Study 6 weekend days in last 30", icon: "🎉", rarity: "rare", category: "consistency", test: (s) => weekendCount(s) >= 6, prog: (s) => [Math.min(weekendCount(s), 6), 6] },
++
++  // TIME OF DAY
++  { id: "early", name: "Early Bird", desc: "Log 2+ hours before 8 AM", icon: "🌅", rarity: "common", category: "time", test: (s) => earlyMin(s) >= 120, prog: (s) => [Math.min(earlyMin(s), 120), 120] },
++  { id: "morningRitual", name: "Morning Ritual", desc: "Log 10+ hours before 8 AM", icon: "🌅", rarity: "rare", category: "time", test: (s) => earlyMin(s) >= 600, prog: (s) => [Math.min(earlyMin(s), 600), 600] },
++  { id: "night", name: "Night Owl", desc: "Log 2+ hours after 10 PM", icon: "🦉", rarity: "common", category: "time", test: (s) => nightMin(s) >= 120, prog: (s) => [Math.min(nightMin(s), 120), 120] },
++  { id: "midnightScholar", name: "Midnight Scholar", desc: "Log 10+ hours after 10 PM", icon: "🌙", rarity: "rare", category: "time", test: (s) => nightMin(s) >= 600, prog: (s) => [Math.min(nightMin(s), 600), 600] },
++  { id: "balanced", name: "Balanced", desc: "2+ hours morning + 2+ hours night", icon: "⚖️", rarity: "rare", category: "time", test: (s) => earlyMin(s) >= 120 && nightMin(s) >= 120, prog: (s) => [Math.min(earlyMin(s) + nightMin(s), 240), 240] },
++  { id: "dawnPatrol", name: "Dawn Patrol", desc: "Study at 5 AM", icon: "🌄", rarity: "common", category: "time", test: (s) => hasDawn(s), prog: (s) => [hasDawn(s) ? 1 : 0, 1] },
++  { id: "lunchLearner", name: "Lunch Learner", desc: "Study at noon", icon: "🥪", rarity: "common", category: "time", test: (s) => hasNoon(s), prog: (s) => [hasNoon(s) ? 1 : 0, 1] },
++
++  // SUBJECTS
++  { id: "poly", name: "Polymath", desc: "Study 5+ different subjects", icon: "🎨", rarity: "rare", category: "subjects", test: (s) => subjCount(s) >= 5, prog: (s) => [Math.min(subjCount(s), 5), 5] },
++  { id: "sub10", name: "Collector", desc: "Study 10+ different subjects", icon: "🖌️", rarity: "rare", category: "subjects", test: (s) => subjCount(s) >= 10, prog: (s) => [Math.min(subjCount(s), 10), 10] },
++  { id: "sub20", name: "Subject Master", desc: "Study 20+ different subjects", icon: "🎭", rarity: "epic", category: "subjects", test: (s) => subjCount(s) >= 20, prog: (s) => [Math.min(subjCount(s), 20), 20] },
++
++  // TIMER MASTERY
++  { id: "pomo", name: "Pomodoro Master", desc: "Log 1,000 Pomodoro minutes", icon: "🍅", rarity: "rare", category: "timer", test: (s) => pomoMin(s) >= 1000, prog: (s) => [Math.min(pomoMin(s), 1000), 1000] },
++  { id: "pomo100", name: "Pomodoro Centurion", desc: "Log 100 Pomodoros (2,500 min)", icon: "🍅", rarity: "epic", category: "timer", test: (s) => pomoMin(s) >= 2500, prog: (s) => [Math.min(pomoMin(s), 2500), 2500] },
++  { id: "pomo250", name: "Pomodoro Legend", desc: "Log 250 Pomodoros (6,250 min)", icon: "🍅‍🔥", rarity: "legendary", category: "timer", test: (s) => pomoMin(s) >= 6250, prog: (s) => [Math.min(pomoMin(s), 6250), 6250] },
++  { id: "timerTitan", name: "Timer Titan", desc: "Use all 4 timer types", icon: "⏱️", rarity: "rare", category: "timer", test: (s) => timerTypesUsed(s) >= 4, prog: (s) => [Math.min(timerTypesUsed(s), 4), 4] },
++
++  // REVISION
++  { id: "rev10", name: "Reviser", desc: "Revise 10 journey topics", icon: "🔁", rarity: "rare", category: "journey", test: (s) => (s.revised || 0) >= 10, prog: (s) => [Math.min(s.revised || 0, 10), 10] },
++  { id: "rev25", name: "Revision Machine", desc: "Revise 25 journey topics", icon: "🔄", rarity: "epic", category: "journey", test: (s) => (s.revised || 0) >= 25, prog: (s) => [Math.min(s.revised || 0, 25), 25] },
++  { id: "rev50", name: "Revision King", desc: "Revise 50 journey topics", icon: "👑", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 50, prog: (s) => [Math.min(s.revised || 0, 50), 50] },
++  { id: "rev100", name: "Revision God", desc: "Revise 100 journey topics", icon: "♾️", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 100, prog: (s) => [Math.min(s.revised || 0, 100), 100] },
++];
++
++export const RC: Record<string, string> = { common: "#94a3b8", rare: "#38bdf8", epic: "#c084fc", legendary: "#fbbf24" };
++export const CAT_LABEL: Record<string, string> = {
++  all: "All", sessions: "Sessions", streak: "Streaks", hours: "Hours", level: "Level & XP", focus: "Deep Focus", consistency: "Consistency", time: "Time of Day", subjects: "Subjects", timer: "Timers", journey: "Journey"
++};
