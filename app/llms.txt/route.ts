@@ -22,10 +22,10 @@ export async function GET(req: NextRequest) {
 - Focus timer with stopwatch, countdown and Pomodoro modes
 - Session logging with subjects, notes and per-topic time
 - Step-by-step DSA and Web Development journeys with revision queues
-- Weekly planner blocks, exam countdowns and checklists
+- Weekly planner blocks and checklists
 - Daily habits, study streaks with freeze days and consistency heatmaps
 - Progress analytics: trends, subject split, study-by-hour and XP levels
-- Achievements, leaderboards and shareable progress cards
+- Achievements and shareable progress cards
 
 ## Access notes
 

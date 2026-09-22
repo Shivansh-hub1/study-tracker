@@ -1,12 +1,12 @@
 "use client";
 
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Play, Pause, RotateCcw, Timer as TimerIcon, Hourglass, Watch, Bell, BellOff,
-  Coffee, Moon, Zap, Flag, BookOpen, Check, Route, History,
+  Coffee, Moon, Zap, Flag, BookOpen, Check, Route, History, Sparkles, Clock,
 } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
-import { fmtClock, pad } from "@/lib/utils";
+import { fmtClock } from "@/lib/utils";
 import { useToast } from "@/components/Providers";
 
 type Mode = "pomodoro" | "countdown" | "stopwatch";
@@ -16,15 +16,13 @@ type Persisted = {
   mode: Mode;
   status: "idle" | "running" | "paused";
   subjectId: number | null;
-  // countdown/pomo
-  endsAt: number | null; // epoch ms when current phase ends (running)
-  remainingMs: number; // remaining when paused
-  durationMs: number; // total for current phase
+  endsAt: number | null;
+  remainingMs: number;
+  durationMs: number;
   phase: Phase;
-  round: number; // completed work rounds in the current cycle
-  // stopwatch
-  startedAt: number | null; // epoch ms when stopwatch (re)started
-  accumMs: number; // accumulated before current run
+  round: number;
+  startedAt: number | null;
+  accumMs: number;
   laps: number[];
   topic: string;
 };
@@ -98,13 +96,11 @@ export default function TimersPage() {
   const pomoRounds = settings?.pomo_rounds ?? 4;
   const autoNext = settings?.auto_next !== 0;
 
-  /* -------- persistence -------- */
   const persist = useCallback((next: Persisted) => {
     setP(next);
     try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch {}
   }, []);
 
-  /* -------- hydrate from localStorage on mount; catch up background time -------- */
   useEffect(() => {
     try {
       const raw = localStorage.getItem(LS_KEY);
@@ -112,7 +108,6 @@ export default function TimersPage() {
         const saved: Persisted = { ...DEFAULT_P, ...JSON.parse(raw) };
         setMode(saved.mode);
         if (saved.status === "running" && saved.mode !== "stopwatch" && saved.endsAt && saved.endsAt <= Date.now()) {
-          // finished while away — complete it now
           saved.remainingMs = 0;
           persist(saved);
           setHydrated(true);
@@ -124,30 +119,25 @@ export default function TimersPage() {
       }
     } catch {}
     setHydrated(true);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
   }, []);
 
-  /* -------- Journey auto-select (DSA or WebDev) -------- */
   useEffect(() => {
     if (!hydrated || (!dsaData && !webData)) return;
     const want = isDsa ? currentDsaTitle : isWeb ? currentWebTitle : "";
     if ((isDsa || isWeb) && !p.topic && want) persist({ ...p, topic: want });
     else if (!isDsa && !isWeb && p.topic) persist({ ...p, topic: "" });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hydrated, dsaData, webData, isDsa, isWeb, p.subjectId]);
 
-  /* -------- tick -------- */
   useEffect(() => {
     if (p.status !== "running") return;
     const t = setInterval(() => setNow(Date.now()), 250);
     return () => clearInterval(t);
   }, [p.status]);
 
-  /* -------- derived display values -------- */
   const isTimed = mode !== "stopwatch";
   const remaining = isTimed
     ? p.status === "running" && p.endsAt
@@ -161,7 +151,6 @@ export default function TimersPage() {
   const display = isTimed ? Math.ceil(remaining / 1000) : Math.floor(swElapsed / 1000);
   const pct = isTimed && p.durationMs > 0 ? 1 - remaining / p.durationMs : 0;
 
-  /* -------- completion -------- */
   const logSession = useCallback(
     async (durMs: number, type: string) => {
       const seconds = Math.round(durMs / 1000);
@@ -179,8 +168,8 @@ export default function TimersPage() {
             topic: p.topic || "",
           }),
         }, { queueOffline: true });
-        toast(r?._queued ? `No internet — ${fmtClock(seconds)} saved on this device, will sync` : `Logged ${fmtClock(seconds)} of focus time`, "success");
-      } catch { /* validation errors: silently drop so the timer never nags */ }
+        toast(r?._queued ? `No internet — ${fmtClock(seconds)} saved, will sync` : `Logged ${fmtClock(seconds)} of focus`, "success");
+      } catch {}
     },
     [p.subjectId, p.phase, p.topic, selLecture?.title, toast]
   );
@@ -221,14 +210,12 @@ export default function TimersPage() {
     [logSession, notify, persist, pomoWork, pomoShort, pomoLong, pomoRounds, autoNext]
   );
 
-  /* -------- detect countdown completion on tick -------- */
   useEffect(() => {
     if (isTimed && p.status === "running" && p.endsAt && now >= p.endsAt && !completedRef.current) {
       finishPhase(p);
     }
   }, [now, isTimed, p, finishPhase]);
 
-  /* -------- document.title ticker -------- */
   useEffect(() => {
     if (p.status === "running") {
       const tag = mode === "stopwatch" ? `▶ ${fmtClock(display)}` : `⏳ ${fmtClock(display)}`;
@@ -239,7 +226,6 @@ export default function TimersPage() {
     return () => { document.title = "FocusFlow — Study Tracker"; };
   }, [display, p.status, mode]);
 
-  /* -------- controls -------- */
   const switchMode = (m: Mode) => {
     setMode(m);
     const next: Persisted = m === "pomodoro"
@@ -321,238 +307,352 @@ export default function TimersPage() {
     if (typeof Notification === "undefined") return;
     const perm = await Notification.requestPermission();
     setNotif(perm === "granted");
-    toast(perm === "granted" ? "Notifications on — you'll be pinged when phases end" : "Notifications blocked by browser", perm === "granted" ? "success" : "error");
+    toast(perm === "granted" ? "Notifications on" : "Notifications blocked", perm === "granted" ? "success" : "error");
   };
 
-  /* -------- ring geometry -------- */
-  const R = 118, C = 2 * Math.PI * R;
+  const R = 132, C = 2 * Math.PI * R;
+  const doneCount = journeyTopics.filter((t: any) => t.status === "done").length;
+  const totalCount = journeyTopics.length;
+  const journeyPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
 
-  const phaseMeta: Record<Phase, { label: string; icon: React.ReactNode; color: string }> = {
-    work: { label: "Focus", icon: <Zap size={15} />, color: "var(--accent)" },
-    short: { label: "Short break", icon: <Coffee size={15} />, color: "#10b981" },
-    long: { label: "Long break", icon: <Moon size={15} />, color: "#0ea5e9" },
+  const phaseMeta: Record<Phase, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+    work: { label: "Focus", icon: <Zap size={14} />, color: "var(--accent)", bg: "var(--accent-soft)" },
+    short: { label: "Short break", icon: <Coffee size={14} />, color: "#10b981", bg: "#10b98122" },
+    long: { label: "Long break", icon: <Moon size={14} />, color: "#0ea5e9", bg: "#0ea5e922" },
   };
 
-  if (!hydrated) return <div className="card" style={{ height: 480 }}><div className="skel" style={{ width: "100%", height: "100%" }} /></div>;
+  if (!hydrated) return <div className="card" style={{ height: 520 }}><div className="skel" style={{ width: "100%", height: "100%", borderRadius: 24 }} /></div>;
 
   return (
-    <div className="grid" style={{ gridTemplateColumns: "1.35fr 1fr" }}>
-      <style>{`@media (max-width: 1000px){ .grid[style*="1.35fr"] { grid-template-columns: 1fr !important; } }`}</style>
-      <div className="card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 18, paddingTop: 26, paddingBottom: 26 }}>
-        <div className="timer-tabs">
-          <button className={`timer-tab ${mode === "pomodoro" ? "active" : ""}`} onClick={() => switchMode("pomodoro")}><Hourglass size={15} /> Pomodoro</button>
-          <button className={`timer-tab ${mode === "countdown" ? "active" : ""}`} onClick={() => switchMode("countdown")}><TimerIcon size={15} /> Timer</button>
-          <button className={`timer-tab ${mode === "stopwatch" ? "active" : ""}`} onClick={() => switchMode("stopwatch")}><Watch size={15} /> Stopwatch</button>
+    <div className="grid" style={{ gridTemplateColumns: "1.4fr 0.9fr", gap: 20, alignItems: "start" }}>
+      <style>{`
+        @media (max-width: 1100px){ .grid[style*="1.4fr"] { grid-template-columns: 1fr !important; } }
+        .timer-hero {
+          background: radial-gradient(600px 400px at 50% -10%, var(--accent-soft), transparent 70%), var(--surface);
+          border: 1px solid var(--border);
+          border-radius: 28px;
+          box-shadow: var(--shadow), 0 0 0 1px rgba(255,255,255,0.04) inset;
+          backdrop-filter: blur(20px);
+          overflow: hidden;
+          position: relative;
+        }
+        .timer-hero::before {
+          content: ""; position: absolute; inset: 0;
+          background: linear-gradient(135deg, var(--accent-soft) 0%, transparent 50%, transparent 100%);
+          pointer-events: none;
+        }
+        .journey-card {
+          background: linear-gradient(135deg, var(--surface-2) 0%, var(--surface) 100%);
+          border: 1px solid var(--border);
+          border-radius: 16px;
+          position: relative;
+          overflow: hidden;
+        }
+        .journey-card::before {
+          content: ""; position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+          background: var(--accent-grad);
+        }
+        .journey-card.auto { border-color: color-mix(in srgb, var(--accent) 30%, var(--border)); box-shadow: 0 0 20px -8px var(--accent); }
+        .subject-chip {
+          position: relative;
+          transition: all 0.2s cubic-bezier(0.4,0,0.2,1);
+        }
+        .subject-chip:hover { transform: translateY(-1px); box-shadow: 0 4px 12px -4px var(--border); }
+        .subject-chip.on {
+          background: var(--accent-soft);
+          border-color: var(--accent);
+          color: var(--accent);
+          box-shadow: 0 0 16px -6px var(--accent), 0 0 0 1px var(--accent) inset;
+          transform: translateY(-1px);
+        }
+      `}</style>
+
+      {/* LEFT — TIMER HERO */}
+      <div className="timer-hero card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "28px 24px 24px", position: "relative" }}>
+        {/* Mode Tabs — pill with icons */}
+        <div className="timer-tabs" style={{ padding: 5, borderRadius: 16, gap: 4 }}>
+          <button className={`timer-tab ${mode === "pomodoro" ? "active" : ""}`} onClick={() => switchMode("pomodoro")} style={{ borderRadius: 12, padding: "10px 18px", fontSize: 13.5, fontWeight: 700 }}>
+            <Hourglass size={16} /> Pomodoro
+          </button>
+          <button className={`timer-tab ${mode === "countdown" ? "active" : ""}`} onClick={() => switchMode("countdown")} style={{ borderRadius: 12, padding: "10px 18px", fontSize: 13.5, fontWeight: 700 }}>
+            <TimerIcon size={16} /> Timer
+          </button>
+          <button className={`timer-tab ${mode === "stopwatch" ? "active" : ""}`} onClick={() => switchMode("stopwatch")} style={{ borderRadius: 12, padding: "10px 18px", fontSize: 13.5, fontWeight: 700 }}>
+            <Watch size={16} /> Stopwatch
+          </button>
         </div>
 
+        {/* Phase + Rounds — improved */}
         {mode === "pomodoro" && (
-          <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
-            <span className="badge" style={{ background: `${phaseMeta[p.phase].color}22`, color: phaseMeta[p.phase].color }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: "6px 14px" }}>
+            <span className="badge" style={{ background: phaseMeta[p.phase].bg, color: phaseMeta[p.phase].color, border: `1px solid ${phaseMeta[p.phase].color}22`, fontWeight: 700 }}>
               {phaseMeta[p.phase].icon} {phaseMeta[p.phase].label}
             </span>
-            <span style={{ display: "flex", gap: 4 }}>
+            <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
               {Array.from({ length: pomoRounds }).map((_, i) => (
                 <span key={i} style={{
-                  width: 9, height: 9, borderRadius: "50%",
-                  background: i < p.round % pomoRounds || (p.round > 0 && p.round % pomoRounds === 0 && p.round > 0 && i < pomoRounds) ? "var(--accent)" : "var(--border)",
-                  opacity: i < ((p.round - 1) % pomoRounds) + 1 && p.round > 0 ? 1 : 0.8,
-                  boxShadow: i < p.round ? "0 0 6px var(--accent)" : "none",
+                  width: 8, height: 8, borderRadius: "50%",
+                  background: i < p.round % pomoRounds || (p.round > 0 && p.round % pomoRounds === 0 && i < pomoRounds) ? "var(--accent)" : "var(--border)",
+                  boxShadow: i < p.round ? "0 0 8px var(--accent)" : "none",
+                  transition: "all 0.3s ease",
                 }} />
               ))}
             </span>
-            <span style={{ fontSize: 12, color: "var(--muted)" }}>Round {Math.min(p.round + 1, pomoRounds)}/{pomoRounds}</span>
+            <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>Round {Math.min(p.round + 1, pomoRounds)}/{pomoRounds}</span>
           </div>
         )}
 
-        {/* Ring */}
-        <div className="ring-wrap" style={{ width: 260, height: 260 }}>
-          <svg width={260} height={260} style={{ transform: "rotate(-90deg)" }}>
-            <circle cx={130} cy={130} r={R} fill="none" stroke="var(--border)" strokeWidth={10} />
-            {isTimed && (
+        {/* Ring — Bigger, gradient, glow */}
+        <div className="ring-wrap" style={{ width: 300, height: 300, position: "relative" }}>
+          <svg width={300} height={300} style={{ transform: "rotate(-90deg)", position: "relative", zIndex: 1 }}>
+            <defs>
+              <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stopColor="var(--accent)" />
+                <stop offset="100%" stopColor="var(--accent-2)" />
+              </linearGradient>
+              <filter id="glow">
+                <feGaussianBlur stdDeviation="6" result="coloredBlur"/>
+                <feMerge>
+                  <feMergeNode in="coloredBlur"/>
+                  <feMergeNode in="SourceGraphic"/>
+                </feMerge>
+              </filter>
+            </defs>
+            {/* Track */}
+            <circle cx={150} cy={150} r={R} fill="none" stroke="var(--border)" strokeWidth={12} opacity={0.6} />
+            {/* Progress */}
+            {isTimed ? (
               <circle
-                cx={130} cy={130} r={R} fill="none"
-                stroke={mode === "pomodoro" ? phaseMeta[p.phase].color : "var(--accent)"}
-                strokeWidth={10} strokeLinecap="round" strokeDasharray={C}
+                cx={150} cy={150} r={R} fill="none"
+                stroke={mode === "pomodoro" ? phaseMeta[p.phase].color : "url(#ringGrad)"}
+                strokeWidth={12} strokeLinecap="round" strokeDasharray={C}
                 strokeDashoffset={C * (1 - Math.min(1, Math.max(0, pct)))}
-                style={{ transition: "stroke-dashoffset 0.3s linear", filter: "drop-shadow(0 0 8px currentColor)" }}
+                style={{ transition: "stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1)", filter: p.status === "running" ? "url(#glow)" : "none" }}
               />
-            )}
-            {!isTimed && (
-              <circle cx={130} cy={130} r={R} fill="none" stroke="var(--accent)" strokeWidth={10} strokeLinecap="round"
+            ) : (
+              <circle cx={150} cy={150} r={R} fill="none" stroke="url(#ringGrad)" strokeWidth={12} strokeLinecap="round"
                 strokeDasharray={C} strokeDashoffset={C * (1 - ((swElapsed / 60000) % 1))}
-                style={{ transition: "stroke-dashoffset 0.3s linear", filter: "drop-shadow(0 0 8px var(--accent))" }}
+                style={{ transition: "stroke-dashoffset 0.3s linear", filter: p.status === "running" ? "url(#glow)" : "none" }}
               />
             )}
           </svg>
-          <div className="ring-label">
-            <div className="timer-display" style={{ fontSize: 52 }}>{mode === "stopwatch" ? fmtClock(Math.floor(swElapsed / 1000)) : fmtClock(display)}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>
-              {p.status === "running" ? (mode === "stopwatch" ? "tracking…" : "until phase ends") : p.status === "paused" ? "paused" : "ready"}
+          {/* Center label — improved typography */}
+          <div className="ring-label" style={{ zIndex: 2 }}>
+            <div className="timer-display" style={{ fontSize: 64, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, background: p.status === "running" ? "var(--accent-grad)" : "none", WebkitBackgroundClip: p.status === "running" ? "text" : "unset", backgroundClip: p.status === "running" ? "text" : "unset", color: p.status === "running" ? "transparent" : "var(--text)" }}>
+              {mode === "stopwatch" ? fmtClock(Math.floor(swElapsed / 1000)) : fmtClock(display)}
             </div>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 8 }}>
+              <span style={{
+                width: 6, height: 6, borderRadius: "50%",
+                background: p.status === "running" ? "#10b981" : p.status === "paused" ? "#f59e0b" : "var(--border)",
+                boxShadow: p.status === "running" ? "0 0 8px #10b981" : "none",
+                animation: p.status === "running" ? "pulseGlow 1.5s infinite" : "none",
+              }} />
+              <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06 }}>
+                {p.status === "running" ? (mode === "stopwatch" ? "Tracking" : `${phaseMeta[p.phase]?.label || "Focusing"} • ${Math.ceil(remaining/60000)}m left`) : p.status === "paused" ? "Paused" : "Ready to focus"}
+              </span>
+            </div>
+            {p.status === "idle" && (
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 6, display: "flex", gap: 4, alignItems: "center", justifyContent: "center" }}>
+                <Sparkles size={12} /> Pick a subject below & start
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Controls */}
-        <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
-          <button className="iconbtn" onClick={reset} title="Reset current"><RotateCcw size={17} /></button>
+        {/* Controls — bigger, premium */}
+        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+          <button className="iconbtn" onClick={reset} title="Reset" style={{ width: 44, height: 44, borderRadius: 14, background: "var(--surface-2)" }}><RotateCcw size={18} /></button>
           {mode === "stopwatch" ? (
             <>
               {p.status === "running" ? (
-                <button className="btn btn-primary btn-lg pulse" onClick={pause} style={{ minWidth: 150 }}><Pause size={18} /> Pause</button>
+                <button className="btn btn-primary btn-lg pulse" onClick={pause} style={{ minWidth: 160, borderRadius: 16, padding: "14px 28px", fontSize: 16, fontWeight: 800, boxShadow: "var(--glow), 0 8px 24px -8px var(--accent)" }}><Pause size={20} /> Pause</button>
               ) : (
-                <button className="btn btn-primary btn-lg" onClick={start} style={{ minWidth: 150 }}><Play size={18} /> {p.accumMs > 0 ? "Resume" : "Start"}</button>
+                <button className="btn btn-primary btn-lg" onClick={start} style={{ minWidth: 160, borderRadius: 16, padding: "14px 28px", fontSize: 16, fontWeight: 800, background: "var(--accent-grad)", boxShadow: "var(--glow), 0 8px 24px -8px var(--accent)" }}><Play size={20} /> {p.accumMs > 0 ? "Resume" : "Start Focus"}</button>
               )}
               {(p.status === "running" || p.accumMs > 0) && (
                 <>
-                  <button className="btn btn-lg" onClick={lap} disabled={p.status !== "running"}><Flag size={16} /> Lap</button>
-                  <button className="btn btn-lg btn-danger" onClick={stopStopwatch}><Check size={16} /> Done</button>
+                  <button className="btn btn-lg" onClick={lap} disabled={p.status !== "running"} style={{ borderRadius: 14 }}><Flag size={16} /> Lap</button>
+                  <button className="btn btn-lg" onClick={stopStopwatch} style={{ borderRadius: 14, background: "var(--success)", color: "#fff", border: "none" }}><Check size={16} /> Done</button>
                 </>
               )}
             </>
           ) : (
             p.status === "running" ? (
-              <button className="btn btn-primary btn-lg pulse" onClick={pause} style={{ minWidth: 150 }}><Pause size={18} /> Pause</button>
+              <button className="btn btn-primary btn-lg pulse" onClick={pause} style={{ minWidth: 160, borderRadius: 16, padding: "14px 28px", fontSize: 16, fontWeight: 800, boxShadow: "var(--glow)" }}><Pause size={20} /> Pause</button>
             ) : (
-              <button className="btn btn-primary btn-lg" onClick={start} style={{ minWidth: 150 }}><Play size={18} /> {p.status === "paused" ? "Resume" : "Start"}</button>
+              <button className="btn btn-primary btn-lg" onClick={start} style={{ minWidth: 160, borderRadius: 16, padding: "14px 28px", fontSize: 16, fontWeight: 800, background: "var(--accent-grad)", boxShadow: "var(--glow), 0 8px 24px -8px var(--accent)" }}><Play size={20} /> {p.status === "paused" ? "Resume" : "Start Focus"}</button>
             )
           )}
         </div>
 
         {mode === "countdown" && p.status === "idle" && (
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", alignItems: "center" }}>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 14, padding: "10px 14px" }}>
             {[15, 25, 45, 60, 90, 120].map((m) => (
-              <button key={m} className={`chip ${Number(cdMin) === m ? "on" : ""}`} onClick={() => setCountdown(m)}>{m}m</button>
+              <button key={m} className={`chip subject-chip ${Number(cdMin) === m ? "on" : ""}`} onClick={() => setCountdown(m)} style={{ fontWeight: 700 }}>{m}m</button>
             ))}
-            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-              <input
-                className="input" type="number" min={1} max={600} value={cdMin}
-                onChange={(e) => setCountdown(Math.max(1, Math.min(600, Number(e.target.value) || 1)))}
-                style={{ width: 80, textAlign: "center" }}
-              />
-              <span style={{ fontSize: 13, color: "var(--muted)" }}>min</span>
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 4 }}>
+              <input className="input" type="number" min={1} max={600} value={cdMin} onChange={(e) => setCountdown(Math.max(1, Math.min(600, Number(e.target.value) || 1)))} style={{ width: 72, textAlign: "center", borderRadius: 10, fontWeight: 700 }} />
+              <span style={{ fontSize: 12, fontWeight: 600, color: "var(--muted)" }}>min</span>
             </div>
           </div>
         )}
 
-        {/* Subject link */}
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", justifyContent: "center", alignItems: "center", marginTop: 4 }}>
-          <BookOpen size={15} style={{ color: "var(--muted)" }} />
-          <button className={`chip ${p.subjectId === null ? "on" : ""}`} onClick={() => setSubject(null)}>No subject</button>
-          {subjects.map((s: any) => (
-            <button key={s.id} className={`chip ${p.subjectId === s.id ? "on" : ""}`} onClick={() => setSubject(s.id)}>
-              <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, boxShadow: `0 0 6px ${s.color}` }} /> {s.name}
-            </button>
-          ))}
+        {/* Subject — premium chips */}
+        <div style={{ width: "100%", display: "flex", flexDirection: "column", gap: 10, marginTop: 4 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <BookOpen size={14} style={{ color: "var(--muted)" }} />
+            <span style={{ fontSize: 12, fontWeight: 800, textTransform: "uppercase", letterSpacing: 0.08, color: "var(--muted)" }}>Focus Subject</span>
+            {selSubject && <span className="badge" style={{ marginLeft: "auto", background: `${selSubject.color}22`, color: selSubject.color, border: `1px solid ${selSubject.color}33` }}>{selSubject.name}</span>}
+          </div>
+          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+            <button className={`chip subject-chip ${p.subjectId === null ? "on" : ""}`} onClick={() => setSubject(null)} style={{ borderRadius: 12, padding: "8px 14px", fontWeight: 600 }}>No subject</button>
+            {subjects.map((s: any) => (
+              <button key={s.id} className={`chip subject-chip ${p.subjectId === s.id ? "on" : ""}`} onClick={() => setSubject(s.id)} style={{ borderRadius: 12, padding: "8px 14px", fontWeight: 600 }}>
+                <span style={{ width: 8, height: 8, borderRadius: "50%", background: s.color, boxShadow: `0 0 8px ${s.color}`, flexShrink: 0 }} /> {s.name}
+              </button>
+            ))}
+          </div>
         </div>
+
+        {/* Journey — premium card with progress */}
         {(isDsa || isWeb) && (
-          <div className={`jbox ${p.topic === journeyCurrent && journeyCurrent ? "jbox-auto" : ""}`} style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
-            <Route size={15} style={{ color: "var(--accent)" }} />
-            <span style={{ fontSize: 13, fontWeight: 700 }}>Journey topic</span>
-            {p.topic === journeyCurrent && journeyCurrent ? (
-              <span className="badge">Auto ✓</span>
-            ) : (
-              <span className="badge">Manual</span>
-            )}
-            <div style={{ position: "relative", flex: 1, minWidth: 170 }}>
-              <select className="select" style={{ width: "100%" }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
-                <option value="">No topic</option>
-                {journeyTopics.map((t: any) => (
-                  <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : ""}{t.title}</option>
-                ))}
-              </select>
-              <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 4 }}>{journeyTopics.filter((t:any)=>t.status==="done").length}/{journeyTopics.length} done • {journeyTopics.length - journeyTopics.filter((t:any)=>t.status==="done").length} left</div>
+          <div className={`journey-card ${p.topic === journeyCurrent && journeyCurrent ? "auto" : ""}`} style={{ width: "100%", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 10, alignItems: "center", justifyContent: "space-between" }}>
+              <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+                <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--accent-soft)", display: "grid", placeItems: "center", color: "var(--accent)" }}><Route size={16} /></div>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 800, display: "flex", gap: 8, alignItems: "center" }}>
+                    Journey topic {p.topic === journeyCurrent && journeyCurrent ? <span className="badge" style={{ background: "#10b98122", color: "#10b981", fontSize: 11 }}>Auto ✓</span> : <span className="badge" style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 11 }}>Manual</span>}
+                  </div>
+                  <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2, display: "flex", gap: 6, alignItems: "center" }}>
+                    <div style={{ width: 60, height: 4, borderRadius: 99, background: "var(--border)", overflow: "hidden" }}><div style={{ width: `${journeyPct}%`, height: "100%", background: "var(--accent-grad)", borderRadius: 99 }} /></div>
+                    {doneCount}/{totalCount} done • {journeyPct}% • {totalCount - doneCount} left
+                  </div>
+                </div>
+              </div>
+              <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "var(--accent-soft)", padding: "6px 10px", borderRadius: 8, whiteSpace: "nowrap" }}>Open journey →</a>
             </div>
-            <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open journey →</a>
+
+            <select className="select" style={{ width: "100%", borderRadius: 12, padding: "12px 14px", fontWeight: 600, fontSize: 14 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
+              <option value="">No topic — pick from journey</option>
+              {journeyTopics.map((t: any) => (
+                <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : t.status === "revising" ? "↻ " : "○ "}{t.title}</option>
+              ))}
+            </select>
+
             {selTopic && selLectures.length > 0 && (
-              <div style={{ display: "flex", gap: 8, alignItems: "center", width: "100%", justifyContent: "center", fontSize: 13 }}>
-                <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
-                {selLecture ? (
-                  <span style={{ color: "var(--muted)" }}>Lec {selLectureIdx + 1}/{selLectures.length}: <b style={{ color: "var(--text)" }}>{selLecture.title}</b></span>
-                ) : (
-                  <span className="badge">Module complete ✓</span>
-                )}
-                <button className="iconbtn" style={{ width: 28, height: 28 }} onClick={() => stepLecture(1)} disabled={selLectureIdx >= selLectures.length}>›</button>
+              <div style={{ display: "flex", gap: 8, alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 12px" }}>
+                <button className="iconbtn" style={{ width: 32, height: 32, borderRadius: 10 }} onClick={() => stepLecture(-1)} disabled={selLectureIdx === 0}>‹</button>
+                <div style={{ flex: 1, minWidth: 0, textAlign: "center" }}>
+                  {selLecture ? (
+                    <>
+                      <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06 }}>Lec {selLectureIdx + 1}/{selLectures.length}</div>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selLecture.title}</div>
+                    </>
+                  ) : (
+                    <span className="badge" style={{ background: "#10b98122", color: "#10b981" }}>Module complete ✓</span>
+                  )}
+                </div>
+                <button className="iconbtn" style={{ width: 32, height: 32, borderRadius: 10 }} onClick={() => stepLecture(1)} disabled={selLectureIdx >= selLectures.length}>›</button>
               </div>
             )}
           </div>
         )}
+
         {isRevision && (
-          <div className="jbox" style={{ display: "flex", gap: 8, alignItems: "center", flexWrap: "wrap", justifyContent: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "10px 14px", width: "100%" }}>
-            <History size={15} style={{ color: "var(--accent)" }} />
-            <span style={{ fontSize: 13, fontWeight: 700 }}>Revise</span>
-            {revisionDueAll.length === 0 ? (
-              <span className="badge">All caught up ✅</span>
-            ) : (
-              <select className="select" style={{ flex: 1, minWidth: 170 }} value="" onChange={(e) => { if (e.target.value) persist({ ...p, topic: e.target.value }); }}>
+          <div className="journey-card" style={{ width: "100%", padding: "16px", display: "flex", flexDirection: "column", gap: 12 }}>
+            <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+              <div style={{ width: 32, height: 32, borderRadius: 10, background: "#f59e0b22", display: "grid", placeItems: "center", color: "#f59e0b" }}><History size={16} /></div>
+              <div>
+                <div style={{ fontSize: 13, fontWeight: 800 }}>Revise Due Topics</div>
+                <div style={{ fontSize: 11, color: "var(--muted)" }}>{revisionDueAll.length} topics need revision • most overdue first</div>
+              </div>
+              {revisionDueAll.length === 0 && <span className="badge" style={{ marginLeft: "auto", background: "#10b98122", color: "#10b981" }}>All caught up ✅</span>}
+            </div>
+            {revisionDueAll.length > 0 && (
+              <select className="select" style={{ width: "100%", borderRadius: 12, padding: "12px 14px", fontWeight: 600 }} value="" onChange={(e) => { if (e.target.value) persist({ ...p, topic: e.target.value }); }}>
                 <option value="">Pick a due topic…</option>
                 {revisionDueAll.map((r: any) => (
                   <option key={r.key} value={r.title}>{r.tag} · {r.title} · {r.days_ago}d ago</option>
                 ))}
               </select>
             )}
-            <a href="/revision" style={{ fontSize: 13, color: "var(--accent)", fontWeight: 600, whiteSpace: "nowrap" }}>Open revision →</a>
+            <a href="/revision" style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", textAlign: "center", background: "var(--accent-soft)", padding: "8px", borderRadius: 10 }}>Open revision → {revisionDueAll.length} due</a>
           </div>
         )}
       </div>
 
-      {/* Side panel */}
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <div className="card">
-          <h2 style={{ fontSize: 15, marginBottom: 10 }}>Background mode</h2>
-          <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 12 }}>
-            Timers keep counting even if you switch tabs, minimise the window, or reload the page — time is tracked by the clock, not the screen.
-            Turn on notifications to be alerted when a phase ends.
+      {/* RIGHT — SIDE PANEL — Improved cards */}
+      <div style={{ display: "flex", flexDirection: "column", gap: 16, position: "sticky", top: 20 }}>
+        <div className="card" style={{ borderRadius: 20, padding: 20, background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%)" }}>
+          <div style={{ display: "flex", gap: 12, alignItems: "center", marginBottom: 12 }}>
+            <div style={{ width: 36, height: 36, borderRadius: 12, background: "var(--accent-soft)", display: "grid", placeItems: "center", color: "var(--accent)" }}><Clock size={18} /></div>
+            <div>
+              <h2 style={{ fontSize: 14, fontWeight: 800 }}>Background mode</h2>
+              <div style={{ fontSize: 11, color: "var(--muted)", fontWeight: 600, textTransform: "uppercase", letterSpacing: 0.06 }}>Always tracking</div>
+            </div>
+          </div>
+          <p style={{ fontSize: 13, color: "var(--muted)", lineHeight: 1.6, marginBottom: 14 }}>
+            Timers keep counting even if you switch tabs, minimise, or reload — time is tracked by the clock, not the screen. Perfect for your side-by-side video study.
           </p>
-          <button className={`btn ${notif ? "" : "btn-primary"} btn-block`} onClick={requestNotif}>
-            {notif ? <><Bell size={15} /> Notifications enabled</> : <><BellOff size={15} /> Enable notifications</>}
+          <button className={`btn ${notif ? "" : "btn-primary"} btn-block`} onClick={requestNotif} style={{ borderRadius: 12, fontWeight: 700 }}>
+            {notif ? <><Bell size={16} /> Notifications enabled ✓</> : <><BellOff size={16} /> Enable notifications</>}
           </button>
         </div>
 
         {mode === "pomodoro" && (
-          <div className="card">
-            <h2 style={{ fontSize: 15, marginBottom: 10 }}>Pomodoro settings</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10, fontSize: 13 }}>
-              <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "10px 12px" }}>
-                <div className="stat-label">Focus</div><b>{settings?.pomo_work ?? 25} min</b>
-              </div>
-              <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "10px 12px" }}>
-                <div className="stat-label">Short break</div><b>{settings?.pomo_short ?? 5} min</b>
-              </div>
-              <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "10px 12px" }}>
-                <div className="stat-label">Long break</div><b>{settings?.pomo_long ?? 15} min</b>
-              </div>
-              <div style={{ background: "var(--surface-2)", borderRadius: 10, padding: "10px 12px" }}>
-                <div className="stat-label">Rounds</div><b>{pomoRounds}</b>
-              </div>
+          <div className="card" style={{ borderRadius: 20, padding: 20 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 800, marginBottom: 14, display: "flex", gap: 8, alignItems: "center" }}><TimerIcon size={16} style={{ color: "var(--accent)" }} /> Pomodoro Cycle</h2>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(2, 1fr)", gap: 10 }}>
+              {[
+                { label: "Focus", val: `${settings?.pomo_work ?? 25}m`, color: "var(--accent)" },
+                { label: "Short break", val: `${settings?.pomo_short ?? 5}m`, color: "#10b981" },
+                { label: "Long break", val: `${settings?.pomo_long ?? 15}m`, color: "#0ea5e9" },
+                { label: "Rounds", val: `${pomoRounds}`, color: "var(--text)" },
+              ].map(c => (
+                <div key={c.label} style={{ background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 12, padding: "12px" }}>
+                  <div style={{ fontSize: 11, fontWeight: 700, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06 }}>{c.label}</div>
+                  <div style={{ fontSize: 16, fontWeight: 800, color: c.color, marginTop: 4 }}>{c.val}</div>
+                </div>
+              ))}
             </div>
-            <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 10 }}>
-              Auto-advance is <b>{autoNext ? "on" : "off"}</b>. Change these in <a href="/settings" style={{ color: "var(--accent)" }}>Settings</a>.
-            </p>
-            <button className="btn btn-sm btn-block" style={{ marginTop: 10 }} onClick={resetAll}><RotateCcw size={13} /> Reset cycle</button>
+            <div style={{ display: "flex", gap: 8, alignItems: "center", marginTop: 12, padding: "8px 12px", background: "var(--surface-2)", borderRadius: 10, fontSize: 12.5 }}>
+              <div style={{ width: 6, height: 6, borderRadius: "50%", background: autoNext ? "#10b981" : "var(--muted)" }} />
+              Auto-advance <b>{autoNext ? "on" : "off"}</b> • Change in <a href="/settings" style={{ color: "var(--accent)", fontWeight: 700 }}>Settings</a>
+            </div>
+            <button className="btn btn-sm btn-block" style={{ marginTop: 12, borderRadius: 10 }} onClick={resetAll}><RotateCcw size={13} /> Reset cycle</button>
           </div>
         )}
 
         {mode === "stopwatch" && p.laps.length > 0 && (
-          <div className="card">
-            <h2 style={{ fontSize: 15, marginBottom: 10 }}>Laps</h2>
-            <div style={{ display: "flex", flexDirection: "column", gap: 6, maxHeight: 260, overflowY: "auto" }}>
+          <div className="card" style={{ borderRadius: 20, padding: 20 }}>
+            <h2 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12 }}>Laps • {p.laps.length}</h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 8, maxHeight: 260, overflowY: "auto" }}>
               {p.laps.map((l, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "7px 10px", background: "var(--surface-2)", borderRadius: 8 }}>
-                  <span style={{ color: "var(--muted)" }}>Lap {p.laps.length - i}</span>
-                  <b style={{ fontVariantNumeric: "tabular-nums" }}>{fmtClock(Math.floor(l / 1000))}</b>
+                <div key={i} style={{ display: "flex", justifyContent: "space-between", fontSize: 13.5, padding: "10px 12px", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 10 }}>
+                  <span style={{ color: "var(--muted)", fontWeight: 600 }}>Lap {p.laps.length - i}</span>
+                  <b style={{ fontVariantNumeric: "tabular-nums", fontWeight: 800 }}>{fmtClock(Math.floor(l / 1000))}</b>
                 </div>
               ))}
             </div>
           </div>
         )}
 
-        <div className="card">
-          <h2 style={{ fontSize: 15, marginBottom: 8 }}>How logging works</h2>
-          <ul style={{ margin: 0, paddingLeft: 18, fontSize: 13, color: "var(--muted)", lineHeight: 1.7 }}>
-            <li>Completed pomodoro focus blocks log automatically.</li>
-            <li>Finished countdowns log their full duration.</li>
-            <li>Press <b>Done</b> on the stopwatch to log elapsed time.</li>
-          </ul>
+        <div className="card" style={{ borderRadius: 20, padding: 20, background: "var(--surface-2)" }}>
+          <h2 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}><BookOpen size={16} style={{ color: "var(--accent)" }} /> How logging works</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {[
+              { icon: "🍅", text: "Completed pomodoro focus blocks log automatically." },
+              { icon: "⏱️", text: "Finished countdowns log their full duration." },
+              { icon: "✅", text: "Press Done on the stopwatch to log elapsed time." },
+            ].map((item, i) => (
+              <div key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
+                <span style={{ fontSize: 14 }}>{item.icon}</span>
+                <span dangerouslySetInnerHTML={{ __html: item.text.replace("Done", "<b style='color:var(--text)'>Done</b>").replace("automatically", "<b style='color:var(--text)'>automatically</b>") }} />
+              </div>
+            ))}
+          </div>
         </div>
       </div>
     </div>

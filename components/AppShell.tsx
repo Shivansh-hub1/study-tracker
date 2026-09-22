@@ -9,7 +9,7 @@ import AchievementPopup from "./AchievementPopup";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
-  Trophy, CalendarClock, CalendarDays, Sprout, Crown,
+  Trophy, CalendarDays, Sprout,
 } from "lucide-react";
 
 const NAV = [
@@ -20,10 +20,8 @@ const NAV = [
   { href: "/webdev", label: "Web Dev", icon: Code2 },
   { href: "/revision", label: "Revision", icon: History },
   { href: "/planner", label: "Planner", icon: CalendarDays },
-  { href: "/exams", label: "Exams", icon: CalendarClock },
   { href: "/habits", label: "Habits", icon: Sprout },
   { href: "/achievements", label: "Achievements", icon: Trophy },
-  { href: "/leaderboard", label: "Leaderboard", icon: Crown },
   { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/sessions", label: "Sessions", icon: ListChecks },
   { href: "/settings", label: "Settings", icon: Settings },

@@ -46,7 +46,7 @@ const FEATURES = [
   {
     icon: CalendarCheck,
     title: "Smart revision planner",
-    text: "Due-date revision queues, weekly planner blocks and exam countdowns keep nothing slipping.",
+    text: "Due-date revision queues, weekly planner blocks and checklists keep nothing slipping.",
   },
   {
     icon: Flame,
@@ -56,7 +56,7 @@ const FEATURES = [
   {
     icon: BarChart3,
     title: "Progress analytics",
-    text: "Daily trends, weekly comparisons, subject split, study-by-hour charts and XP leaderboards.",
+    text: "Daily trends, weekly comparisons, subject split, study-by-hour charts and XP levels.",
   },
   {
     icon: Trophy,
@@ -90,7 +90,7 @@ const FAQS = [
   },
   {
     q: "How is this different from a plain Pomodoro app?",
-    a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision, habits, exams and analytics — your whole study system in one place.",
+    a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision, habits and analytics — your whole study system in one place.",
   },
 ];
 
