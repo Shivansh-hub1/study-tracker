@@ -569,3 +569,54 @@ select.select {
 }
 
 ::selection { background: var(--accent); color: #fff; }
+
+/* ================= Landing / public pages ================= */
+.land { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
+.land-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 28px; background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+.land-logo { display: flex; align-items: center; gap: 10px; font-size: 21px; font-weight: 800; color: var(--text); text-decoration: none; letter-spacing: -0.02em; }
+.land-logo-icon { width: 38px; height: 38px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-grad); color: #fff; box-shadow: var(--glow); }
+.land-links { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+.land-links a { color: var(--muted); text-decoration: none; font-size: 14px; font-weight: 600; transition: color 0.15s ease; }
+.land-links a:hover { color: var(--text); }
+.land main { flex: 1; width: 100%; max-width: 1120px; margin: 0 auto; padding: 0 24px; }
+.land-hero { text-align: center; padding: 96px 0 72px; }
+.land-badge { display: inline-flex; align-items: center; gap: 8px; padding: 7px 14px; border-radius: 999px; border: 1px solid var(--accent); background: var(--accent-soft); color: var(--accent); font-size: 13px; font-weight: 700; }
+.land-hero h1 { font-size: clamp(38px, 6vw, 64px); line-height: 1.08; letter-spacing: -0.03em; margin: 22px 0 18px; font-weight: 800; color: var(--text); }
+.land-sub { max-width: 640px; margin: 0 auto 30px; color: var(--muted); font-size: 17px; line-height: 1.65; }
+.land-cta { display: flex; gap: 14px; justify-content: center; flex-wrap: wrap; }
+.land-ticks { display: flex; gap: 22px; justify-content: center; list-style: none; padding: 0; margin: 26px 0 0; color: var(--muted); font-size: 13.5px; font-weight: 600; }
+.land-ticks li { display: flex; align-items: center; gap: 7px; }
+.land-ticks svg { color: #22c55e; }
+.land-section { padding: 64px 0; scroll-margin-top: 80px; }
+.land-section h2 { text-align: center; font-size: clamp(26px, 4vw, 36px); letter-spacing: -0.02em; font-weight: 800; margin: 0 0 10px; color: var(--text); }
+.land-sec-sub { text-align: center; color: var(--muted); margin: 0 0 36px; }
+.land-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 16px; }
+.land-card { padding: 22px; border-radius: 18px; transition: transform 0.18s ease, border-color 0.18s ease; }
+.land-card:hover { transform: translateY(-3px); border-color: var(--accent); }
+.land-card h3 { margin: 14px 0 8px; font-size: 16.5px; font-weight: 700; }
+.land-card p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.land-ico { width: 42px; height: 42px; border-radius: 12px; display: grid; place-items: center; background: var(--accent-soft); color: var(--accent); }
+.land-steps { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 16px; margin-bottom: 36px; }
+.land-step { padding: 22px; border-radius: 18px; }
+.land-num { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; background: var(--accent-grad); color: #fff; font-weight: 800; font-size: 15px; }
+.land-step h3 { margin: 14px 0 8px; font-size: 16px; }
+.land-step p { margin: 0; color: var(--muted); font-size: 14px; line-height: 1.6; }
+.land-faq { display: grid; grid-template-columns: 1fr; gap: 12px; max-width: 760px; margin: 0 auto; }
+.land-faq details { padding: 18px 22px; border-radius: 16px; }
+.land-faq summary { cursor: pointer; font-weight: 700; font-size: 15px; list-style: none; color: var(--text); }
+.land-faq summary::-webkit-details-marker { display: none; }
+.land-faq summary::before { content: "+"; margin-right: 10px; color: var(--accent); font-weight: 800; }
+.land-faq details[open] summary::before { content: "−"; }
+.land-faq p { margin: 12px 0 0; color: var(--muted); font-size: 14.5px; line-height: 1.65; }
+.land-final { text-align: center; padding: 52px 28px; border-radius: 22px; margin: 24px 0 64px; background: linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%); border: 1px solid var(--border); }
+.land-final h2 { font-size: clamp(24px, 4vw, 34px); letter-spacing: -0.02em; margin: 0 0 10px; }
+.land-final p { color: var(--muted); margin: 0 0 26px; }
+.land-footer { border-top: 1px solid var(--border); padding: 26px 28px; display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; color: var(--muted); font-size: 14px; }
+.land-footer nav { display: flex; gap: 18px; flex-wrap: wrap; }
+.land-footer a { color: var(--muted); text-decoration: none; font-weight: 600; }
+.land-footer a:hover { color: var(--text); }
+@media (max-width: 900px) {
+  .land-links a:not(.btn) { display: none; }
+  .land-nav { padding: 12px 18px; }
+  .land-hero { padding: 64px 0 48px; }
+}

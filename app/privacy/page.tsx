@@ -29,7 +29,7 @@ export default function PrivacyPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="land">
-        <header className="land-nav"><Link href="/" className="land-logo"><span className="land-logo-icon"><GraduationCap size={22} /></span>Focus<span className="glow-text">Flow</span></Link><nav className="land-links" aria-label="Primary"><Link href="/dsa">DSA</Link><Link href="/webdev">WebDev</Link><Link href="/revision">Revision</Link><Link href="/habits">Habits</Link><Link href="/progress">Analytics</Link><Link href="/achievements">Achievements</Link><Link href="/timer">Timer</Link><Link href="/login">Sign in</Link><Link href="/signup" className="btn btn-primary btn-sm">Start free <ArrowRight size={14} /></Link></nav></header>
+        <header className="land-nav"><Link href="/" className="land-logo"><span className="land-logo-icon"><GraduationCap size={22} /></span>Focus<span className="glow-text">Flow</span></Link><nav className="land-links" aria-label="Primary"><Link href="/#features">Features</Link><Link href="/#how">How it works</Link><Link href="/#faq">FAQ</Link><Link href="/login">Sign in</Link><Link href="/signup" className="btn btn-primary btn-sm">Start free <ArrowRight size={14} /></Link></nav></header>
         <main style={{ maxWidth: 800, margin: "0 auto", padding: "40px 20px" }}>
           <h1 style={{ fontSize: 32, marginBottom: 8 }}>Privacy Policy</h1>
           <p style={{ color: "var(--muted)", marginBottom: 32 }}>Last updated: {new Date().toLocaleDateString()}</p>

@@ -93,13 +93,9 @@ export default function Home() {
             Focus<span className="glow-text">Flow</span>
           </Link>
           <nav className="land-links" aria-label="Primary">
-            <Link href="/dsa">DSA Roadmap</Link>
-            <Link href="/webdev">WebDev Roadmap</Link>
-            <Link href="/revision">Revision</Link>
-            <Link href="/habits">Habits</Link>
-            <Link href="/progress">Analytics</Link>
-            <Link href="/achievements">Achievements</Link>
-            <Link href="/timer">Timer Demo</Link>
+            <Link href="#features">Features</Link>
+            <Link href="#how">How it works</Link>
+            <Link href="#faq">FAQ</Link>
             <Link href="/login">Sign in</Link>
             <Link href="/signup" className="btn btn-primary btn-sm">Get started free <ArrowRight size={14} /></Link>
           </nav>
@@ -121,7 +117,7 @@ export default function Home() {
             </ul>
           </section>
 
-          <section className="land-section" aria-labelledby="features-h">
+          <section id="features" className="land-section" aria-labelledby="features-h">
             <h2 id="features-h">Everything you need to study smarter</h2>
             <p className="land-sec-sub">One app for timing, planning, revising and reviewing.</p>
             <div className="land-grid">
@@ -135,7 +131,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="land-section" aria-labelledby="how-h">
+          <section id="how" className="land-section" aria-labelledby="how-h">
             <h2 id="how-h">Get started in under a minute</h2>
             <div className="land-steps">
               {STEPS.map((s) => (
@@ -151,7 +147,7 @@ export default function Home() {
             </div>
           </section>
 
-          <section className="land-section" aria-labelledby="faq-h">
+          <section id="faq" className="land-section" aria-labelledby="faq-h">
             <h2 id="faq-h">Frequently asked questions</h2>
             <div className="land-faq">
               {FAQS.map((f) => (

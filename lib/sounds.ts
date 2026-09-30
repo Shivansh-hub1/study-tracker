@@ -15,7 +15,9 @@ export type SoundType =
   | "habit-tick"
   | "error"
   | "click"
-  | "hover";
+  | "hover"
+  | "trash"
+  | "whoosh";
 
 interface SoundConfig {
   frequencies: number[];        // frequencies in Hz
@@ -121,11 +123,27 @@ const SOUNDS: Record<SoundType, SoundConfig> = {
     delay: 0,
     envelope: { attack: 0.01, decay: 0.1, sustain: 0.2, release: 0.2 },
   },
+  "trash": {
+    frequencies: [480, 320, 200], // descending removal
+    durations: [90, 90, 140],
+    type: "sawtooth",
+    volume: 0.25,
+    delay: 50,
+    envelope: { attack: 0.005, decay: 0.08, sustain: 0.1, release: 0.15 },
+  },
+  "whoosh": {
+    frequencies: [1400, 900, 600, 350], // fast falling sweep
+    durations: [40, 40, 50, 80],
+    type: "triangle",
+    volume: 0.3,
+    delay: 25,
+    envelope: { attack: 0.005, decay: 0.04, sustain: 0.1, release: 0.1 },
+  },
   "click": {
     frequencies: [1500],
-    durations: [15],
+    durations: [35],
     type: "sine",
-    volume: 0.1,
+    volume: 0.4,
     envelope: { attack: 0.001, decay: 0.01, sustain: 0, release: 0.02 },
   },
   "hover": {
@@ -140,7 +158,7 @@ const SOUNDS: Record<SoundType, SoundConfig> = {
 class SoundEngine {
   private ctx: AudioContext | null = null;
   private enabled = true;
-  private masterVolume = 0.5;
+  private masterVolume = 0.9;
   private unlocked = false;
 
   private getContext(): AudioContext {
@@ -224,6 +242,8 @@ class SoundEngine {
   habitTick() { this.play("habit-tick"); }
   error() { this.play("error"); }
   click() { this.play("click"); }
+  trash() { this.play("trash"); }
+  whoosh() { this.play("whoosh"); }
   hover() { this.play("hover"); }
 }
 
@@ -270,13 +290,20 @@ export function playSound(type: FFPlaySound) {
     case "achievement": soundEngine.achievementUnlock(); break;
     case "timer": soundEngine.countdownComplete(); break;
     case "success": soundEngine.topicComplete(); break;
-    case "whoosh": soundEngine.pomodoroBreakEnd(); break;
-    case "delete":
+    case "whoosh": soundEngine.whoosh(); break;
+    case "delete": soundEngine.trash(); break;
     case "error": soundEngine.error(); break;
-    case "pop":
+    case "pop": soundEngine.pomodoroStart(); break;
     case "click":
     default: soundEngine.click(); break;
   }
+}
+
+// unlock audio on first gesture (capture phase, fires before click handlers)
+if (typeof window !== "undefined") {
+  const preUnlock = () => { soundEngine.unlock(); };
+  document.addEventListener("pointerdown", preUnlock, { capture: true, once: true });
+  document.addEventListener("keydown", preUnlock, { capture: true, once: true });
 }
 
 // sync engine enabled state with saved preference on load
