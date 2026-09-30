@@ -6,7 +6,7 @@ const SECRET = new TextEncoder().encode(
   process.env.ST_SECRET || "study-tracker-dev-secret-change-me-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/signup", "/dsa", "/webdev", "/revision", "/habits", "/progress", "/achievements", "/timer", "/about", "/privacy", "/terms", "/blog"];
+const PUBLIC_PATHS = ["/login", "/signup", "/about", "/privacy", "/terms", "/blog"];
 const AUTH_PATHS = ["/login", "/signup"];
 
 export async function middleware(req: NextRequest) {

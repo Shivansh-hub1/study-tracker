@@ -4,6 +4,7 @@ import React, { useEffect, useState, useCallback } from "react";
 import { useStats } from "@/lib/client";
 import { BADGES, RC, CAT_LABEL } from "@/lib/achievements";
 import { Trophy, X, Sparkles } from "lucide-react";
+import { playSound } from "@/lib/sounds";
 
 const SEEN_KEY = "ff_achievements_seen_v2";
 const QUEUE_KEY = "ff_achievements_queue_v2";
@@ -20,20 +21,7 @@ function setSeen(seen: Set<string>) {
 }
 
 function beep(times = 3) {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    for (let i = 0; i < times; i++) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = i === 0 ? 880 : i === 1 ? 1108 : 1318;
-      const t = ctx.currentTime + i * 0.15;
-      g.gain.setValueAtTime(0.001, t);
-      g.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.3);
-      o.start(t); o.stop(t + 0.31);
-    }
-  } catch {}
+  playSound("achievement");
 }
 
 function Confetti() {
