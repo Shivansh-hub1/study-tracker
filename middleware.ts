@@ -7,6 +7,7 @@ const SECRET = new TextEncoder().encode(
 );
 
 const PUBLIC_PATHS = ["/login", "/signup", "/dsa", "/webdev", "/revision", "/habits", "/progress", "/achievements", "/timer", "/about", "/privacy", "/terms", "/blog"];
+const AUTH_PATHS = ["/login", "/signup"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -25,8 +26,8 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/api/auth") ||
       PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
     ) {
-      return NextResponse.next();
-    }
+    return NextResponse.next();
+  }
 
   const token = req.cookies.get("st_token")?.value;
   let valid = false;
@@ -47,8 +48,8 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged-in users shouldn't see auth pages
-  if (PUBLIC_PATHS.some((p) => pathname.startsWith(p))) {
+  // Logged-in users shouldn't see auth pages (login/signup only)
+  if (AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
     const url = req.nextUrl.clone();
     url.pathname = "/dashboard";
     return NextResponse.redirect(url);
