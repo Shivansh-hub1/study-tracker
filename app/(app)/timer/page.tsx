@@ -8,6 +8,7 @@ import {
 import { useFetch, api } from "@/lib/client";
 import { fmtClock } from "@/lib/utils";
 import { useToast } from "@/components/Providers";
+import { soundEngine } from "@/lib/sounds";
 
 type Mode = "pomodoro" | "countdown" | "stopwatch";
 type Phase = "work" | "short" | "long";
@@ -34,23 +35,6 @@ const DEFAULT_P: Persisted = {
   endsAt: null, remainingMs: 25 * 60000, durationMs: 25 * 60000,
   phase: "work", round: 0, startedAt: null, accumMs: 0, laps: [], topic: "",
 };
-
-function beep(times = 3) {
-  try {
-    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
-    for (let i = 0; i < times; i++) {
-      const o = ctx.createOscillator();
-      const g = ctx.createGain();
-      o.connect(g); g.connect(ctx.destination);
-      o.frequency.value = i % 2 === 0 ? 880 : 660;
-      const t = ctx.currentTime + i * 0.22;
-      g.gain.setValueAtTime(0.001, t);
-      g.gain.exponentialRampToValueAtTime(0.3, t + 0.02);
-      g.gain.exponentialRampToValueAtTime(0.001, t + 0.2);
-      o.start(t); o.stop(t + 0.21);
-    }
-  } catch {}
-}
 
 export default function TimersPage() {
   const { toast } = useToast();
@@ -175,40 +159,49 @@ export default function TimersPage() {
   );
 
   const notify = useCallback((title: string, body: string) => {
-    beep(3);
-    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
-      try { new Notification(title, { body, icon: "/favicon.ico" }); } catch {}
-    }
-  }, []);
+      soundEngine.play("countdown-complete");
+      if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+        try { new Notification(title, { body, icon: "/favicon.ico" }); } catch {}
+      }
+    }, []);
 
   const finishPhase = useCallback(
-    (cur: Persisted, wasAway = false) => {
-      if (completedRef.current && !wasAway) return;
-      completedRef.current = true;
-      if (cur.mode === "pomodoro") {
-        const finishedWork = cur.phase === "work";
-        if (finishedWork) logSession(cur.durationMs, "pomodoro");
-        const nextRound = finishedWork ? cur.round + 1 : cur.round;
-        const nextPhase: Phase = finishedWork ? (nextRound % pomoRounds === 0 ? "long" : "short") : "work";
-        const nextDur = nextPhase === "work" ? pomoWork : nextPhase === "short" ? pomoShort : pomoLong;
-        notify(
-          finishedWork ? "Focus block complete 🎉" : "Break over",
-          finishedWork ? `Time for a ${nextPhase === "long" ? "long" : "short"} break.` : `Round ${nextRound + 1} — back to it!`
-        );
-        persist({
-          ...cur, phase: nextPhase, round: nextRound, durationMs: nextDur, remainingMs: nextDur,
-          endsAt: autoNext ? Date.now() + nextDur : null,
-          status: autoNext ? "running" : "paused",
-        });
-        if (autoNext) completedRef.current = false;
-      } else if (cur.mode === "countdown") {
-        logSession(cur.durationMs, "timer");
-        notify("Timer finished ⏰", `Great — ${fmtClock(Math.round(cur.durationMs / 1000))} logged.`);
-        persist({ ...cur, status: "idle", remainingMs: cur.durationMs, endsAt: null });
-      }
-    },
-    [logSession, notify, persist, pomoWork, pomoShort, pomoLong, pomoRounds, autoNext]
-  );
+      (cur: Persisted, wasAway = false) => {
+        if (completedRef.current && !wasAway) return;
+        completedRef.current = true;
+        if (cur.mode === "pomodoro") {
+          const finishedWork = cur.phase === "work";
+          if (finishedWork) {
+            logSession(cur.durationMs, "pomodoro");
+            soundEngine.pomodoroFocusEnd();
+          } else {
+            soundEngine.pomodoroBreakEnd();
+          }
+          const nextRound = finishedWork ? cur.round + 1 : cur.round;
+          const nextPhase: Phase = finishedWork ? (nextRound % pomoRounds === 0 ? "long" : "short") : "work";
+          const nextDur = nextPhase === "work" ? pomoWork : nextPhase === "short" ? pomoShort : pomoLong;
+          notify(
+            finishedWork ? "Focus block complete 🎉" : "Break over",
+            finishedWork ? `Time for a ${nextPhase === "long" ? "long" : "short"} break.` : `Round ${nextRound + 1} — back to it!`
+          );
+          persist({
+            ...cur, phase: nextPhase, round: nextRound, durationMs: nextDur, remainingMs: nextDur,
+            endsAt: autoNext ? Date.now() + nextDur : null,
+            status: autoNext ? "running" : "paused",
+          });
+          if (autoNext) {
+            completedRef.current = false;
+            if (nextPhase === "work") soundEngine.pomodoroStart();
+          }
+        } else if (cur.mode === "countdown") {
+          logSession(cur.durationMs, "timer");
+          soundEngine.countdownComplete();
+          notify("Timer finished ⏰", `Great — ${fmtClock(Math.round(cur.durationMs / 1000))} logged.`);
+          persist({ ...cur, status: "idle", remainingMs: cur.durationMs, endsAt: null });
+        }
+      },
+      [logSession, notify, persist, pomoWork, pomoShort, pomoLong, pomoRounds, autoNext]
+    );
 
   useEffect(() => {
     if (isTimed && p.status === "running" && p.endsAt && now >= p.endsAt && !completedRef.current) {
@@ -227,88 +220,107 @@ export default function TimersPage() {
   }, [display, p.status, mode]);
 
   const switchMode = (m: Mode) => {
-    setMode(m);
-    const next: Persisted = m === "pomodoro"
-      ? { ...DEFAULT_P, mode: m, subjectId: p.subjectId, durationMs: pomoWork, remainingMs: pomoWork }
-      : m === "countdown"
-        ? { ...DEFAULT_P, mode: m, subjectId: p.subjectId, durationMs: Number(cdMin) * 60000, remainingMs: Number(cdMin) * 60000 }
-        : { ...DEFAULT_P, mode: m, subjectId: p.subjectId, remainingMs: 0, durationMs: 0, laps: [] };
-    persist(next);
-  };
+      soundEngine.click();
+      setMode(m);
+      const next: Persisted = m === "pomodoro"
+        ? { ...DEFAULT_P, mode: m, subjectId: p.subjectId, durationMs: pomoWork, remainingMs: pomoWork }
+        : m === "countdown"
+          ? { ...DEFAULT_P, mode: m, subjectId: p.subjectId, durationMs: Number(cdMin) * 60000, remainingMs: Number(cdMin) * 60000 }
+          : { ...DEFAULT_P, mode: m, subjectId: p.subjectId, remainingMs: 0, durationMs: 0, laps: [] };
+      persist(next);
+    };
 
   const start = () => {
-    completedRef.current = false;
-    if (mode === "stopwatch") {
-      persist({ ...p, status: "running", startedAt: Date.now() });
-    } else {
-      const dur = remaining > 0 ? remaining : p.durationMs;
-      persist({ ...p, status: "running", endsAt: Date.now() + dur, remainingMs: dur });
-    }
-  };
+      completedRef.current = false;
+      soundEngine.click();
+      if (mode === "stopwatch") {
+        persist({ ...p, status: "running", startedAt: Date.now() });
+      } else {
+        const dur = remaining > 0 ? remaining : p.durationMs;
+        persist({ ...p, status: "running", endsAt: Date.now() + dur, remainingMs: dur });
+        if (mode === "pomodoro") soundEngine.pomodoroStart();
+      }
+    };
 
-  const pause = () => {
-    if (mode === "stopwatch") {
-      persist({ ...p, status: "paused", accumMs: p.accumMs + (p.startedAt ? Date.now() - p.startedAt : 0), startedAt: null });
-    } else {
-      const rem = p.endsAt ? Math.max(0, p.endsAt - Date.now()) : p.remainingMs;
-      persist({ ...p, status: "paused", remainingMs: rem, endsAt: null });
-    }
-  };
+    const pause = () => {
+      soundEngine.click();
+      if (mode === "stopwatch") {
+        persist({ ...p, status: "paused", accumMs: p.accumMs + (p.startedAt ? Date.now() - p.startedAt : 0), startedAt: null });
+      } else {
+        const rem = p.endsAt ? Math.max(0, p.endsAt - Date.now()) : p.remainingMs;
+        persist({ ...p, status: "paused", remainingMs: rem, endsAt: null });
+      }
+    };
 
-  const reset = () => {
-    if (mode === "stopwatch") {
-      persist({ ...p, status: "idle", accumMs: 0, startedAt: null, laps: [] });
-    } else {
-      const dur = mode === "pomodoro" ? (p.phase === "work" ? pomoWork : p.phase === "short" ? pomoShort : pomoLong) : Number(cdMin) * 60000;
-      persist({ ...p, status: "idle", remainingMs: dur, durationMs: dur, endsAt: null });
-    }
-  };
+    const reset = () => {
+      soundEngine.click();
+      if (mode === "stopwatch") {
+        persist({ ...p, status: "idle", accumMs: 0, startedAt: null, laps: [] });
+      } else {
+        const dur = mode === "pomodoro" ? (p.phase === "work" ? pomoWork : p.phase === "short" ? pomoShort : pomoLong) : Number(cdMin) * 60000;
+        persist({ ...p, status: "idle", remainingMs: dur, durationMs: dur, endsAt: null });
+      }
+    };
 
-  const resetAll = () => persist({ ...DEFAULT_P, mode, subjectId: p.subjectId, durationMs: pomoWork, remainingMs: pomoWork });
+    const resetAll = () => {
+      soundEngine.click();
+      persist({ ...DEFAULT_P, mode, subjectId: p.subjectId, durationMs: pomoWork, remainingMs: pomoWork });
+    };
 
   const setCountdown = (min: number) => {
-    setCdMin(String(min));
-    persist({ ...p, mode: "countdown", status: "idle", remainingMs: min * 60000, durationMs: min * 60000, endsAt: null });
-  };
+      soundEngine.click();
+      setCdMin(String(min));
+      persist({ ...p, mode: "countdown", status: "idle", remainingMs: min * 60000, durationMs: min * 60000, endsAt: null });
+    };
 
-  const stopStopwatch = async () => {
-    const total = p.accumMs + (p.startedAt ? Date.now() - p.startedAt : 0);
-    persist({ ...p, status: "idle", accumMs: 0, startedAt: null, laps: [] });
-    if (total >= 60000) {
-      await logSession(total, "stopwatch");
-    } else {
-      toast("Under a minute — not logged", "info");
-    }
-  };
+    const stopStopwatch = async () => {
+      soundEngine.click();
+      const total = p.accumMs + (p.startedAt ? Date.now() - p.startedAt : 0);
+      persist({ ...p, status: "idle", accumMs: 0, startedAt: null, laps: [] });
+      if (total >= 60000) {
+        await logSession(total, "stopwatch");
+        soundEngine.stopwatchDone();
+      } else {
+        toast("Under a minute — not logged", "info");
+      }
+    };
 
-  const lap = () => {
-    if (p.status !== "running") return;
-    persist({ ...p, laps: [swElapsed, ...p.laps].slice(0, 20) });
-  };
+    const lap = () => {
+      if (p.status !== "running") return;
+      soundEngine.stopwatchLap();
+      persist({ ...p, laps: [swElapsed, ...p.laps].slice(0, 20) });
+    };
 
-  const setSubject = (id: number | null) => {
-    const s = subjects.find((x: any) => x.id === id);
-    const nm = s?.name || "";
-    const dsa = /dsa/i.test(nm);
-    const web = !dsa && /web|delta|mern/i.test(nm);
-    persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : web ? p.topic || currentWebTitle : "" });
-  };
+    const setSubject = (id: number | null) => {
+      soundEngine.click();
+      const s = subjects.find((x: any) => x.id === id);
+      const nm = s?.name || "";
+      const dsa = /dsa/i.test(nm);
+      const web = !dsa && /web|delta|mern/i.test(nm);
+      persist({ ...p, subjectId: id, topic: dsa ? p.topic || currentDsaTitle : web ? p.topic || currentWebTitle : "" });
+    };
 
-  const stepLecture = async (dir: 1 | -1) => {
-    if (!selTopic || (!isDsa && !isWeb)) return;
-    const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
-    try {
-      await api(journeyEndpoint, { method: "PATCH", body: JSON.stringify({ key: selTopic.key, lecture_idx: next }) });
-      await (isDsa ? reloadDsa() : reloadWeb());
-    } catch (e: any) { toast(e.message, "error"); }
-  };
+    const stepLecture = async (dir: 1 | -1) => {
+      if (!selTopic || (!isDsa && !isWeb)) return;
+      soundEngine.click();
+      const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
+      try {
+        await api(journeyEndpoint, { method: "PATCH", body: JSON.stringify({ key: selTopic.key, lecture_idx: next }) });
+        await (isDsa ? reloadDsa() : reloadWeb());
+        soundEngine.topicComplete();
+      } catch (e: any) {
+        soundEngine.error();
+        toast(e.message, "error");
+      }
+    };
 
-  const requestNotif = async () => {
-    if (typeof Notification === "undefined") return;
-    const perm = await Notification.requestPermission();
-    setNotif(perm === "granted");
-    toast(perm === "granted" ? "Notifications on" : "Notifications blocked", perm === "granted" ? "success" : "error");
-  };
+    const requestNotif = async () => {
+      if (typeof Notification === "undefined") return;
+      soundEngine.click();
+      const perm = await Notification.requestPermission();
+      setNotif(perm === "granted");
+      toast(perm === "granted" ? "Notifications on" : "Notifications blocked", perm === "granted" ? "success" : "error");
+    };
 
   const R = 132, C = 2 * Math.PI * R;
   const doneCount = journeyTopics.filter((t: any) => t.status === "done").length;

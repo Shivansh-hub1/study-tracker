@@ -6,28 +6,27 @@ const SECRET = new TextEncoder().encode(
   process.env.ST_SECRET || "study-tracker-dev-secret-change-me-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/signup"];
+const PUBLIC_PATHS = ["/login", "/signup", "/dsa", "/webdev", "/revision", "/habits", "/progress", "/achievements", "/timer", "/about", "/privacy", "/terms", "/blog"];
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
   if (
-    pathname === "/" ||
-    pathname.startsWith("/_next") ||
-    pathname.startsWith("/favicon") ||
-    pathname.startsWith("/robots.txt") ||
-    pathname.startsWith("/llms.txt") ||
-    pathname.startsWith("/sitemap.xml") ||
-    pathname.startsWith("/manifest") ||
-    pathname.startsWith("/opengraph-image") ||
-    pathname.startsWith("/apple-icon") ||
-    pathname.startsWith("/icon") ||
-    pathname.startsWith("/api/auth") ||
-    pathname.startsWith("/login") ||
-    pathname.startsWith("/signup")
-  ) {
-    return NextResponse.next();
-  }
+      pathname === "/" ||
+      pathname.startsWith("/_next") ||
+      pathname.startsWith("/favicon") ||
+      pathname.startsWith("/robots.txt") ||
+      pathname.startsWith("/llms.txt") ||
+      pathname.startsWith("/sitemap.xml") ||
+      pathname.startsWith("/manifest") ||
+      pathname.startsWith("/opengraph-image") ||
+      pathname.startsWith("/apple-icon") ||
+      pathname.startsWith("/icon") ||
+      pathname.startsWith("/api/auth") ||
+      PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+    ) {
+      return NextResponse.next();
+    }
 
   const token = req.cookies.get("st_token")?.value;
   let valid = false;
