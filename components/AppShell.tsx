@@ -2,6 +2,8 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
+import { Volume2, VolumeX } from "lucide-react";
+import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
@@ -63,6 +65,15 @@ export default function AppShell({ user, children }: { user: Me; children: React
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
+  const [soundOn, setSoundOn] = useState(true);
+
+  useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
+  const toggleSound = () => {
+    const next = !soundOn;
+    setSoundOn(next);
+    setSoundEnabled(next);
+    if (next) playSound("pop");
+  };
   const now = new Date();
   const daysLeft = Math.ceil((new Date(now.getFullYear() + 1, 0, 1).getTime() - now.getTime()) / 86400000);
 
@@ -98,7 +109,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           const Icon = n.icon;
           const active = pathname.startsWith(n.href);
           return (
-            <Link key={n.href} href={n.href} className={`snav ${active ? "active" : ""}`}>
+            <Link key={n.href} href={n.href} className={`snav ${active ? "active" : ""}`} onClick={() => playSound("click")}>
               <Icon size={17} /> {n.label}
               {n.href === "/revision" && dueCount > 0 && (
                 <span className="badge" style={{ marginLeft: "auto", fontSize: 11, padding: "2px 9px" }}>{dueCount}</span>
@@ -107,7 +118,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           );
         })}
         {user.role === "admin" && (
-          <Link href="/admin" className={`snav ${pathname.startsWith("/admin") ? "active" : ""}`}>
+          <Link href="/admin" className={`snav ${pathname.startsWith("/admin") ? "active" : ""}`} onClick={() => playSound("click")}>
             <ShieldCheck size={17} /> Admin Panel
           </Link>
         )}
@@ -130,13 +141,16 @@ export default function AppShell({ user, children }: { user: Me; children: React
 
       <div className="main">
         <div className="topbar no-print">
-          <button className="iconbtn hamb" onClick={() => setOpen((o) => !o)} aria-label="Menu">
+          <button className="iconbtn hamb" onClick={() => { playSound("click"); setOpen((o) => !o); }} aria-label="Menu">
             {open ? <X size={18} /> : <Menu size={18} />}
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>{NAV.find((n) => pathname.startsWith(n.href))?.label ?? (pathname.startsWith("/admin") ? "Admin Panel" : "FocusFlow")}</h1>
             <div className="sub">{now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} · {daysLeft} days left in {now.getFullYear()}</div>
           </div>
+          <button className="iconbtn" onClick={toggleSound} title={soundOn ? "Sound on" : "Sound off"} style={{ width: 34, height: 34, flexShrink: 0 }}>
+            {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
+          </button>
           <OfflineBadge />
         </div>
         {children}

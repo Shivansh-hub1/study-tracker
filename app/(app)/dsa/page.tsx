@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useState } from "react";
 import { Route, Check, Play, RotateCcw, Trophy, Plus, Clock, ChevronDown, CheckCheck } from "lucide-react";
 import Link from "next/link";
@@ -30,6 +31,7 @@ export default function DsaPage() {
   const aboveCount = currentIdx > 0 ? topics.slice(0, currentIdx).filter((t: any) => t.status !== "done").length : 0;
 
   const setStatus = async (key: string, status: string) => {
+    playSound(status === "mastered" ? "levelup" : "click");
     try {
       const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) });
       setData(updated);
@@ -40,6 +42,7 @@ export default function DsaPage() {
   };
 
   const setLecture = async (key: string, idx: number, len: number) => {
+    playSound("tick");
     try {
       const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
       setData(updated);
@@ -50,6 +53,7 @@ export default function DsaPage() {
   };
 
   const completeAbove = async () => {
+    playSound("levelup");
     try {
       const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "complete_above", key: data?.current }) });
       setData(updated);
@@ -60,6 +64,7 @@ export default function DsaPage() {
   };
 
   const createSubject = async () => {
+    playSound("pop");
     try {
       await api("/api/subjects", {
         method: "POST",
@@ -73,6 +78,7 @@ export default function DsaPage() {
   };
 
   const reset = async () => {
+    playSound("whoosh");
     if (!confirm("Restart the whole DSA journey? Time logs stay, statuses reset.")) return;
     try {
       const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "reset" }) });

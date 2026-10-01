@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useState } from "react";
 import { Plus, Trash2, Sprout, Check } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
@@ -25,11 +26,12 @@ export default function HabitsPage() {
     if (!name.trim()) return;
     try {
       await api("/api/habits", { method: "POST", body: JSON.stringify({ name, color }) });
-      setModal(false); setName(""); reload(); toast("Habit added", "success");
+      setModal(false); setName(""); reload(); playSound("pop"); toast("Habit added", "success");
     } catch (e: any) { toast(e.message, "error"); }
   };
 
   const toggle = async (h: any) => {
+    playSound("tick");
     try { await api("/api/habits", { method: "PATCH", body: JSON.stringify({ id: h.id, day: todayKey() }) }); reload(); }
     catch (e: any) { toast(e.message, "error"); }
   };

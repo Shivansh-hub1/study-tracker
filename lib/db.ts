@@ -153,9 +153,18 @@ const SCHEMA = [
     UNIQUE(user_id, habit_id, day)
   )`,
   `CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id, started_at)`,
+  `CREATE INDEX IF NOT EXISTS idx_sessions_subject ON sessions(subject_id)`,
   `CREATE INDEX IF NOT EXISTS idx_subjects_user ON subjects(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_goals_user ON goals(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_timetables_user ON timetables(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_dsa_user ON dsa_progress(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_web_user ON web_progress(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_freeze_user_day ON freeze_days(user_id, day)`,
+  `CREATE INDEX IF NOT EXISTS idx_planner_user ON planner_blocks(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_habits_user ON habits(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_habit_logs_user_day ON habit_logs(user_id, habit_id, day)`,
+  `CREATE INDEX IF NOT EXISTS idx_decks_user ON decks(user_id)`,
+  `CREATE INDEX IF NOT EXISTS idx_cards_deck ON cards(deck_id)`,
   `CREATE TABLE IF NOT EXISTS _meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL

@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
@@ -30,7 +31,7 @@ export default function LoginPage() {
       setErr(j.error || "Login failed");
       return;
     }
-    toast("Welcome back!", "success");
+    playSound("success"); toast("Welcome back!", "success");
     router.push("/dashboard");
     router.refresh();
   };

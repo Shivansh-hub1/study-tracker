@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useState } from "react";
 import { BookOpen, Plus, Pencil, Trash2, Target } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
@@ -20,10 +21,12 @@ export default function SubjectsPage() {
   const [busy, setBusy] = useState(false);
 
   const openCreate = () => {
+    playSound("pop");
     setName(""); setColor(SUBJECT_COLORS[subjects.length % SUBJECT_COLORS.length]); setTarget("300");
     setModal({});
   };
   const openEdit = (s: any) => {
+    playSound("click");
     setName(s.name); setColor(s.color); setTarget(String(s.target_minutes));
     setModal({ id: s.id });
   };
@@ -39,7 +42,7 @@ export default function SubjectsPage() {
       try {
         const { subject } = await api(`/api/subjects/${modal.id}`, { method: "PATCH", body: JSON.stringify(payload) });
         setData({ subjects: prev.map((s: any) => (s.id === modal.id ? { ...s, ...subject } : s)) } as any);
-        toast("Subject updated", "success");
+        playSound("success"); toast("Subject updated", "success");
         setModal(null);
       } catch (e: any) {
         setData({ subjects: prev } as any);
@@ -51,7 +54,7 @@ export default function SubjectsPage() {
       try {
         const { subject } = await api("/api/subjects", { method: "POST", body: JSON.stringify(payload) });
         setData({ subjects: [...prev, { ...subject, total_sec: 0, session_count: 0 }] } as any);
-        toast("Subject created", "success");
+        playSound("success"); toast("Subject created", "success");
         setModal(null);
       } catch (e: any) {
         setData({ subjects: prev } as any);
@@ -68,7 +71,7 @@ export default function SubjectsPage() {
     setData({ subjects: subjects.filter((x: any) => x.id !== s.id) } as any);
     try {
       await api(`/api/subjects/${s.id}`, { method: "DELETE" });
-      toast(`"${s.name}" deleted`, "success");
+      playSound("delete"); toast(`"${s.name}" deleted`, "success");
     } catch (e: any) {
       setData({ subjects: prev } as any);
       toast(e.message, "error");

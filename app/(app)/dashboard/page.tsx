@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
@@ -56,7 +57,7 @@ export default function DashboardPage() {
       setGoalsData({ goals: [...prev, goal] } as any);
       setGoalModal(false);
       setGTitle("");
-      toast("Goal added", "success");
+      playSound("pop"); toast("Goal added", "success");
     } catch (e: any) {
       setGoalsData({ goals: prev } as any);
       toast(e.message, "error");
@@ -70,7 +71,7 @@ export default function DashboardPage() {
     setGoalsData({ goals: goals.filter((g: any) => g.id !== id) } as any);
     try {
       await api(`/api/goals/${id}`, { method: "DELETE" });
-      toast("Goal removed", "success");
+      playSound("delete"); toast("Goal removed", "success");
     } catch (e: any) {
       setGoalsData({ goals: prev } as any);
       toast(e.message, "error");

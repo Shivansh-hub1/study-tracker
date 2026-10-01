@@ -269,7 +269,8 @@ const FF_SOUND_KEY = "ff_sound_enabled_v1";
 
 export type FFPlaySound =
   | "click" | "pop" | "success" | "delete"
-  | "achievement" | "timer" | "whoosh" | "error";
+  | "achievement" | "timer" | "whoosh" | "error"
+  | "tick" | "levelup" | "milestone";
 
 export function isSoundEnabled(): boolean {
   try {
@@ -294,6 +295,9 @@ export function playSound(type: FFPlaySound) {
     case "delete": soundEngine.trash(); break;
     case "error": soundEngine.error(); break;
     case "pop": soundEngine.pomodoroStart(); break;
+    case "tick": soundEngine.habitTick(); break;
+    case "levelup": soundEngine.levelUp(); break;
+    case "milestone": soundEngine.streakMilestone(); break;
     case "click":
     default: soundEngine.click(); break;
   }

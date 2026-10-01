@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useEffect, useState } from "react";
 import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
@@ -43,7 +44,7 @@ export default function SettingsPage() {
         body: JSON.stringify({ pomo_work: Number(work), pomo_short: Number(short), pomo_long: Number(long), pomo_rounds: Number(rounds), auto_next: autoNext }),
       });
       setData({ settings } as any);
-      toast("Pomodoro defaults saved", "success");
+      playSound("success"); toast("Pomodoro defaults saved", "success");
     } catch (e: any) {
       setData({ settings: prev } as any);
       toast(e.message, "error");
@@ -52,6 +53,7 @@ export default function SettingsPage() {
   };
 
   const logout = async () => {
+    playSound("whoosh");
     await fetch("/api/auth/logout", { method: "POST" });
     toast("Signed out. See you soon!", "success");
     router.push("/login");
@@ -102,7 +104,7 @@ export default function SettingsPage() {
           {THEMES.map((t) => (
             <button
               key={t.id}
-              onClick={() => setTheme(t.id)}
+              onClick={() => { playSound("click"); setTheme(t.id); }}
               className="card"
               style={{
                 padding: 12, cursor: "pointer", textAlign: "center",

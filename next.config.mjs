@@ -4,7 +4,10 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   generateEtags: true,
-  experimental: { serverComponentsExternalPackages: ["better-sqlite3", "@libsql/client"] },
+  experimental: {
+    serverComponentsExternalPackages: ["better-sqlite3", "@libsql/client"],
+    optimizePackageImports: ["lucide-react", "recharts"],
+  },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
   async headers() {

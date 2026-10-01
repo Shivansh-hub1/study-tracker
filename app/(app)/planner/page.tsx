@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useState } from "react";
 import { Plus, Trash2, CalendarDays } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
@@ -25,16 +26,18 @@ export default function PlannerPage() {
   const add = async () => {
     try {
       await api("/api/planner", { method: "POST", body: JSON.stringify({ day: Number(day), subject_id: subjectId || null, title, minutes: Number(minutes) }) });
-      setModal(false); setTitle(""); setMinutes("60"); reload(); toast("Block added", "success");
+      setModal(false); setTitle(""); setMinutes("60"); reload(); playSound("pop"); toast("Block added", "success");
     } catch (e: any) { toast(e.message, "error"); }
   };
 
   const toggle = async (b: any) => {
+    playSound("tick");
     try { await api("/api/planner", { method: "PATCH", body: JSON.stringify({ id: b.id, done: b.done_week !== weekKey }) }); reload(); }
     catch (e: any) { toast(e.message, "error"); }
   };
 
   const remove = async (id: number) => {
+    playSound("delete");
     try { await api(`/api/planner?id=${id}`, { method: "DELETE" }); reload(); }
     catch (e: any) { toast(e.message, "error"); }
   };

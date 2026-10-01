@@ -13,7 +13,7 @@ export async function signToken(userId: number) {
   return new SignJWT({ uid: userId })
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
-    .setExpirationTime("30d")
+    .setExpirationTime("60d")
     .sign(SECRET);
 }
 
@@ -56,7 +56,8 @@ export function setAuthCookie(token: string) {
     httpOnly: true,
     sameSite: "lax",
     path: "/",
-    maxAge: 60 * 60 * 24 * 30,
+    maxAge: 60 * 60 * 24 * 60,
+    secure: process.env.NODE_ENV === "production",
   });
 }
 

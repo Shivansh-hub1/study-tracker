@@ -6,7 +6,7 @@ import { enqueueOffline } from "./offline";
 // Tiny in-memory GET cache: reopening a section within 30s is instant,
 // and any mutation (POST/PATCH/DELETE) busts it so data never goes stale.
 const cache = new Map<string, { at: number; data: any }>();
-const CACHE_TTL = 30 * 1000;
+const CACHE_TTL = 60 * 1000;
 // Dedupes concurrent identical GETs (two components asking at once = one request)
 const inflight = new Map<string, Promise<any>>();
 

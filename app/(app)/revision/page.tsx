@@ -1,5 +1,6 @@
 "use client";
 
+import { playSound } from "@/lib/sounds";
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
 import { History, CalendarClock, CheckCheck, Play, X, Brain } from "lucide-react";
@@ -59,12 +60,14 @@ export default function RevisionPage() {
   };
 
   const endSession = () => {
+    playSound("whoosh");
     setSession(null);
     refresh();
   };
 
   const rateSession = async (rating: string) => {
     if (!session || session.length === 0 || busy) return;
+    playSound(rating === "again" ? "error" : rating === "hard" ? "click" : rating === "easy" ? "levelup" : "success");
     const it = session[0];
     setBusy(true);
     try {
