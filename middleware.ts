@@ -9,8 +9,22 @@ const SECRET = new TextEncoder().encode(
 const PUBLIC_PATHS = ["/login", "/signup", "/about", "/privacy", "/terms", "/blog"];
 const AUTH_PATHS = ["/login", "/signup"];
 
+const CANONICAL_HOST = (process.env.VERCEL_PROJECT_PRODUCTION_URL || "yourstudytracker.vercel.app").toLowerCase();
+
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
+
+  // Always land on ONE domain: every *.vercel.app preview/deployment URL
+  // redirects to the production host, so the login cookie is never split
+  // across different domains (this was causing repeated logins).
+  const host = (req.headers.get("host") || "").toLowerCase();
+  if (host && host !== CANONICAL_HOST && host.endsWith(".vercel.app")) {
+    const url = req.nextUrl.clone();
+    url.protocol = "https:";
+    url.host = CANONICAL_HOST;
+    url.port = "";
+    return NextResponse.redirect(url, 308);
+  }
 
   if (
       pathname === "/" ||
