@@ -303,6 +303,11 @@ async function initTurso(): Promise<DB> {
     }
     await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
   }
+  // v2: profile pictures (must ALSO run here — initTurso returns before migrateIfNeeded)
+  if (snap.v !== "2") {
+    try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch { /* column already exists */ }
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','2')");
+  }
   if (!snap.owner) await createOwner(db);
   return db;
 }
