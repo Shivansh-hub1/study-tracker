@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
@@ -11,6 +11,7 @@ function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "habits"))) return NextResponse.json({ disabled: true });
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
 
@@ -49,6 +50,7 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "habits"))) return NextResponse.json({ error: "Habit tracking is currently turned off" }, { status: 403 });
 
   bustUser(user.id);
   const { name, color } = await req.json().catch(() => ({}));
@@ -66,6 +68,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "habits"))) return NextResponse.json({ error: "Habit tracking is currently turned off" }, { status: 403 });
 
   bustUser(user.id);
   const { id, day } = await req.json().catch(() => ({}));
@@ -83,6 +86,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "habits"))) return NextResponse.json({ error: "Habit tracking is currently turned off" }, { status: 403 });
 
   bustUser(user.id);
   const id = Number(new URL(req.url).searchParams.get("id"));

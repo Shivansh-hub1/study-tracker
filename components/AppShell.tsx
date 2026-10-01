@@ -7,6 +7,7 @@ import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
+import { useFetch } from "@/lib/client";
 import AchievementPopup from "./AchievementPopup";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
@@ -64,6 +65,7 @@ function OfflineBadge() {
 
 export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
   const pathname = usePathname();
+  const { data: features } = useFetch("/api/features");
   const [open, setOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
@@ -113,7 +115,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           </span>
         </div>
         <div className="ssection">Menu</div>
-        {NAV.map((n) => {
+        {NAV.filter((n) => !((n.href === "/habits" && features?.habits === false) || (n.href === "/planner" && features?.planner === false))).map((n) => {
           const Icon = n.icon;
           const active = pathname.startsWith(n.href);
           return (

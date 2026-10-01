@@ -14,6 +14,8 @@ export const THEMES = [
   { id: "glass-dark", name: "Frost Dark", swatch: "linear-gradient(135deg,#4c1d95,#9d174d,#0e7490)" },
   { id: "aurora", name: "Aurora", swatch: "linear-gradient(135deg,#22d3ee,#a78bfa,#f472b6)", shop: 250 },
   { id: "sunset", name: "Sunset", swatch: "linear-gradient(135deg,#f97316,#ef4444,#a855f7)", shop: 250 },
+  { id: "ocean", name: "Ocean", swatch: "linear-gradient(135deg,#38bdf8,#14b8a6,#3b82f6)", shop: 250 },
+  { id: "forest", name: "Forest", swatch: "linear-gradient(135deg,#34d399,#a3e635,#059669)", shop: 250 },
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };

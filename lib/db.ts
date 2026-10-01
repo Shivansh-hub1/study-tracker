@@ -581,3 +581,8 @@ async function seedIfEmpty(db: DB, exec: (stmts: Stmt[]) => Promise<void>, assum
   await exec(stmts);
   console.log("[db] Seeded demo + sample users");
 }
+
+export async function featureOn(db: any, key: string) {
+  const m = (await db.get("SELECT value FROM _meta WHERE key = ?", key)) as any;
+  return !m || m.value !== "0";
+}

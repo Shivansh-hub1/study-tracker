@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { bustUser } from "@/lib/api-cache";
 
@@ -14,6 +14,7 @@ function mondayKey(d: Date) {
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "planner"))) return NextResponse.json({ disabled: true });
   const db = await getDb();
   const blocks = await db.all(
     `SELECT b.*, s.name as subject_name, s.color as subject_color FROM planner_blocks b
@@ -26,6 +27,7 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "planner"))) return NextResponse.json({ error: "The planner is currently turned off" }, { status: 403 });
 
   bustUser(user.id);
   const { day, subject_id, title, minutes } = await req.json().catch(() => ({}));
@@ -48,6 +50,7 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "planner"))) return NextResponse.json({ error: "The planner is currently turned off" }, { status: 403 });
 
   bustUser(user.id);
   const { id, done } = await req.json().catch(() => ({}));
@@ -61,6 +64,7 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  if (!(await featureOn(await getDb(), "planner"))) return NextResponse.json({ error: "The planner is currently turned off" }, { status: 403 });
 
   bustUser(user.id);
   const id = Number(new URL(req.url).searchParams.get("id"));

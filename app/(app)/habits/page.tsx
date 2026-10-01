@@ -38,6 +38,16 @@ export default function HabitsPage() {
 
   if (loading && !data) return <div className="grid"><CardSkeleton height={200} /></div>;
 
+  if (data?.disabled) return (
+    <div className="grid">
+      <div className="card" style={{ padding: "48px 24px", textAlign: "center" }}>
+        <div style={{ fontSize: 40, marginBottom: 10 }}>🌱</div>
+        <h2 style={{ fontSize: 18, fontWeight: 800 }}>Habit tracker is turned off</h2>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>An admin has temporarily disabled this feature.</p>
+      </div>
+    </div>
+  );
+
   return (
     <div className="grid" style={{ gap: 20 }}>
       <div style={{ display: "flex", justifyContent: "flex-end" }}>

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { DSA_TOPICS } from "@/lib/dsa";
@@ -65,6 +65,7 @@ export async function GET() {
   dueOf(dsaRows, DSA_TOPICS, "DSA");
   dueOf(webRows, WEBDEV_TOPICS, "WebDev");
 
+  const plannerOn = await featureOn(db, "planner");
   // 2) Today's planner blocks
   const monday = new Date(nowLocal);
   monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
@@ -75,7 +76,7 @@ export async function GET() {
      WHERE b.user_id = ? AND b.day = ?`,
     user.id, todayDow
   )) as any[];
-  if (blocks.length) {
+  if (plannerOn && blocks.length) {
     const done = blocks.filter((b: any) => b.done_week === weekKey).length;
     const mins = blocks.reduce((a: number, b: any) => a + Number(b.minutes || 0), 0);
     plan.push({

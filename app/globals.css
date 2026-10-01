@@ -657,3 +657,40 @@ select.select {
   .land-nav { padding: 12px 18px; }
   .land-hero { padding: 64px 0 48px; }
 }
+
+:root[data-theme="ocean"] {
+  --bg: #06121f;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(56, 189, 248, 0.16) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(20, 184, 166, 0.14) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(59, 130, 246, 0.12) 0%, transparent 55%);
+  --surface: #0b1c2e;
+  --surface-2: #10263c;
+  --border: #1d3550;
+  --text: #e3f2ff;
+  --muted: #7f9cb8;
+  --accent: #38bdf8;
+  --accent-2: #14b8a6;
+  --accent-soft: rgba(56, 189, 248, 0.13);
+  --accent-grad: linear-gradient(135deg, #38bdf8, #14b8a6 55%, #3b82f6);
+  --glow: 0 4px 24px rgba(56, 189, 248, 0.28);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(56, 189, 248, 0.4);
+}
+:root[data-theme="forest"] {
+  --bg: #0a120d;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(52, 211, 153, 0.15) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(163, 230, 53, 0.1) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(5, 150, 105, 0.14) 0%, transparent 55%);
+  --surface: #0f1c14;
+  --surface-2: #14251b;
+  --border: #23402e;
+  --text: #e8f7ee;
+  --muted: #8fb3a0;
+  --accent: #34d399;
+  --accent-2: #a3e635;
+  --accent-soft: rgba(52, 211, 153, 0.13);
+  --accent-grad: linear-gradient(135deg, #34d399, #a3e635 55%, #059669);
+  --glow: 0 4px 24px rgba(52, 211, 153, 0.26);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(52, 211, 153, 0.4);
+}

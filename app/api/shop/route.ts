@@ -10,6 +10,10 @@ const SHOP_ITEMS = [
   { key: "freeze1", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked).", icon: "❄️", cost: 100, repeatable: true },
   { key: "theme_aurora", name: "Aurora Theme", desc: "Northern-lights premium color scheme for the whole app.", icon: "🌌", cost: 250, repeatable: false },
   { key: "theme_sunset", name: "Sunset Theme", desc: "Warm golden-dusk premium color scheme.", icon: "🌇", cost: 250, repeatable: false },
+  { key: "theme_ocean", name: "Ocean Theme", desc: "Deep-sea blues and teals premium color scheme.", icon: "🌊", cost: 250, repeatable: false },
+  { key: "theme_forest", name: "Forest Theme", desc: "Calm woodland greens premium color scheme.", icon: "🌲", cost: 250, repeatable: false },
+  { key: "confetti", name: "Celebration Confetti", desc: "A confetti burst every time you save a study session.", icon: "🎉", cost: 150, repeatable: false },
+  { key: "flame", name: "Golden Streak Flame", desc: "Your dashboard streak card turns golden forever.", icon: "👑", cost: 150, repeatable: false },
 ];
 
 async function wallet(db: any, userId: number) {

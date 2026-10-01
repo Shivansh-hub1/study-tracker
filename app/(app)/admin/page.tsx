@@ -11,28 +11,29 @@ import { Modal, EmptyState, Spinner, Stat, CardSkeleton, Dot, FieldError } from 
 import { useToast } from "@/components/Providers";
 import { playSound } from "@/lib/sounds";
 import { bustCache } from "@/lib/client";
-import { Sparkles } from "lucide-react";
+import { Sparkles, Sprout, CalendarDays } from "lucide-react";
 
 export default function AdminPage() {
   const { toast } = useToast();
   const { data, loading, error, setData } = useFetch("/api/admin/users");
   const { data: adminSettings, reload: reloadAdminSettings } = useFetch("/api/admin/settings");
-  const [planBusy, setPlanBusy] = useState(false);
-  const toggleSmartPlan = async () => {
+  const [busyFeature, setBusyFeature] = useState<string | null>(null);
+  const toggleFeature = async (key: string, label: string) => {
     playSound("click");
-    setPlanBusy(true);
+    setBusyFeature(key);
     try {
-      const next = !(adminSettings?.smartPlan ?? true);
-      await api("/api/admin/settings", { method: "POST", body: JSON.stringify({ smartPlan: next }) }, { queueOffline: false });
+      const next = !(adminSettings?.[key] ?? true);
+      await api("/api/admin/settings", { method: "POST", body: JSON.stringify({ feature: key, value: next }) }, { queueOffline: false });
       playSound("success");
-      toast(`Smart daily plan ${next ? "enabled" : "disabled"}`, "success");
+      toast(`${label} ${next ? "enabled" : "disabled"}`, "success");
+      bustCache("/api/features");
       bustCache("/api/smart-plan");
       reloadAdminSettings();
     } catch (e: any) {
       playSound("error");
       toast(e.message, "error");
     } finally {
-      setPlanBusy(false);
+      setBusyFeature(null);
     }
   };
   const users = useMemo(() => data?.users || [], [data]);
@@ -133,21 +134,27 @@ export default function AdminPage() {
   return (
     <div className="grid" style={{ gap: 20 }}>
       {/* Feature switches */}
-      <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-        <Sparkles size={18} style={{ color: "var(--accent)" }} />
-        <div style={{ flex: 1, minWidth: 200 }}>
-          <div style={{ fontWeight: 800, fontSize: 14 }}>Smart daily plan</div>
-          <div style={{ fontSize: 12, color: "var(--muted)" }}>Shows an auto-generated plan card (revision due, planner blocks, weak subject) on every user&apos;s dashboard.</div>
+      {[
+        { key: "smartPlan", label: "Smart daily plan", desc: "Auto-generated plan card (revision due, planner blocks, weak subject) on every user dashboard.", icon: <Sparkles size={18} style={{ color: "var(--accent)" }} /> },
+        { key: "habits", label: "Habit tracker", desc: "Daily habits page (tick habits, build streaks) for all users.", icon: <Sprout size={18} style={{ color: "#10b981" }} /> },
+        { key: "planner", label: "Weekly planner", desc: "Weekly study-block planner for all users.", icon: <CalendarDays size={18} style={{ color: "#6366f1" }} /> },
+      ].map((f) => (
+        <div key={f.key} className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+          {f.icon}
+          <div style={{ flex: 1, minWidth: 200 }}>
+            <div style={{ fontWeight: 800, fontSize: 14 }}>{f.label}</div>
+            <div style={{ fontSize: 12, color: "var(--muted)" }}>{f.desc}</div>
+          </div>
+          <button
+            className={adminSettings?.[f.key] === false ? "btn" : "btn btn-primary"}
+            disabled={busyFeature === f.key || !adminSettings}
+            onClick={() => toggleFeature(f.key, f.label)}
+            style={{ minWidth: 110, fontWeight: 800 }}
+          >
+            {adminSettings ? (adminSettings[f.key] ? "ON — turn off" : "OFF — turn on") : "Loading..."}
+          </button>
         </div>
-        <button
-          className={adminSettings?.smartPlan === false ? "btn" : "btn btn-primary"}
-          disabled={planBusy || !adminSettings}
-          onClick={toggleSmartPlan}
-          style={{ minWidth: 110, fontWeight: 800 }}
-        >
-          {adminSettings ? (adminSettings.smartPlan ? "ON — turn off" : "OFF — turn on") : "Loading..."}
-        </button>
-      </div>
+      ))}
       <div className="grid grid-4">
         <Stat icon={<Users size={22} />} label="Total users" value={String(users.length)} accent="#6366f1" />
         <Stat icon={<UserCheck size={22} />} label="Active today" value={String(activeToday)} accent="#10b981" />

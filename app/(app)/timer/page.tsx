@@ -9,6 +9,7 @@ import { useFetch, api } from "@/lib/client";
 import { fmtClock } from "@/lib/utils";
 import { useToast } from "@/components/Providers";
 import { soundEngine } from "@/lib/sounds";
+import { burstConfetti } from "@/lib/confetti";
 
 type Mode = "pomodoro" | "countdown" | "stopwatch";
 type Phase = "work" | "short" | "long";
@@ -42,6 +43,7 @@ export default function TimersPage() {
   const { data: settingsData } = useFetch("/api/settings");
   const { data: dsaData, reload: reloadDsa } = useFetch("/api/dsa");
   const { data: webData, reload: reloadWeb } = useFetch("/api/webdev");
+  const { data: shopData } = useFetch("/api/shop");
   const subjects = subjectsData?.subjects || [];
   const settings = settingsData?.settings;
 
@@ -176,9 +178,10 @@ export default function TimersPage() {
           }),
         }, { queueOffline: true });
         toast(r?._queued ? `No internet — ${fmtClock(seconds)} saved, will sync` : `Logged ${fmtClock(seconds)} of focus`, "success");
+        if (!r?._queued && (shopData?.items || []).some((i: any) => i.key === "confetti" && i.owned)) burstConfetti();
       } catch {}
     },
-    [p.subjectId, p.phase, p.topic, selLecture?.title, toast]
+    [p.subjectId, p.phase, p.topic, selLecture?.title, toast, shopData]
   );
 
   const notify = useCallback((title: string, body: string) => {
