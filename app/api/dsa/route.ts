@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureDsaTopics, DB } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { DSA_TOPICS, DSA_KEY_SET, DsaStatus } from "@/lib/dsa";
 import { DSA_LECTURES } from "@/lib/dsa-lectures";
 
@@ -93,12 +94,18 @@ async function demoteOthers(db: DB, userId: number, now: string) {
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json(await payload(user.id));
+  const __hit2 = cacheGet(`u${user.id}:dsa`);
+  if (__hit2) return NextResponse.json(__hit2);
+  const __data = await payload(user.id);
+  cacheSet(`u${user.id}:dsa`, __data);
+  return NextResponse.json(__data);
 }
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const body = await req.json().catch(() => ({}));
   const { key, status, lecture_idx } = body as { key: string; status?: DsaStatus; lecture_idx?: number };
   if (!key || !DSA_KEY_SET.has(key)) {
@@ -150,6 +157,8 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const body = await req.json().catch(() => ({}));
   if (body.action === "complete_above") {
     const key = body.key as string;

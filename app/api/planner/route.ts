@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -25,6 +26,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const { day, subject_id, title, minutes } = await req.json().catch(() => ({}));
   const d = Number(day);
   if (!Number.isInteger(d) || d < 0 || d > 6) return NextResponse.json({ error: "day must be 0 (Mon)–6 (Sun)" }, { status: 400 });
@@ -45,6 +48,8 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const { id, done } = await req.json().catch(() => ({}));
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const db = await getDb();
@@ -56,6 +61,8 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const id = Number(new URL(req.url).searchParams.get("id"));
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const db = await getDb();

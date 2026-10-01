@@ -7,6 +7,8 @@ import { enqueueOffline } from "./offline";
 // and any mutation (POST/PATCH/DELETE) busts it so data never goes stale.
 const cache = new Map<string, { at: number; data: any }>();
 const CACHE_TTL = 30 * 1000;
+// Dedupes concurrent identical GETs (two components asking at once = one request)
+const inflight = new Map<string, Promise<any>>();
 
 export function bustCache(prefix?: string) {
   if (!prefix) {
@@ -19,6 +21,18 @@ export function bustCache(prefix?: string) {
 }
 
 export async function api(path: string, options?: RequestInit, opts?: { queueOffline?: boolean }) {
+  const method = (options?.method || "GET").toUpperCase();
+  if (method === "GET" && inflight.has(path)) return inflight.get(path)!;
+  const p = apiRequest(path, options, opts);
+  if (method === "GET") {
+    inflight.set(path, p);
+    const clear = () => inflight.delete(path);
+    p.then(clear, clear);
+  }
+  return p;
+}
+
+async function apiRequest(path: string, options?: RequestInit, opts?: { queueOffline?: boolean }) {
   let res: Response;
   try {
     res = await fetch(path, {
@@ -48,18 +62,20 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (background = false) => {
     if (!path) return;
-    setLoading(true);
-    setError(null);
+    if (!background) {
+      setLoading(true);
+      setError(null);
+    }
     try {
       const d = await api(path);
       cache.set(path, { at: Date.now(), data: d });
       setData(d);
     } catch (e: any) {
-      setError(e.message);
+      if (!background) setError(e.message);
     } finally {
-      setLoading(false);
+      if (!background) setLoading(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [path]);
@@ -67,10 +83,12 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
   useEffect(() => {
     if (!path) return;
     const hit = cache.get(path);
-    if (hit && Date.now() - hit.at < CACHE_TTL) {
+    if (hit) {
+      // show cached data instantly; refresh in background if stale
       setData(hit.data);
       setLoading(false);
       setError(null);
+      if (Date.now() - hit.at >= CACHE_TTL) reload(true);
       return;
     }
     reload();

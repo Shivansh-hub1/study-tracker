@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -9,6 +10,10 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0; // minutes ahead of UTC (e.g. 330 IST)
+
+  const __ck = `u${user.id}:stats:${offsetMin}`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
 
   // All 4 reads in parallel: 1 round trip instead of 4 sequential.
@@ -23,7 +28,7 @@ export async function GET(req: NextRequest) {
     db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
   ]);
 
-  return NextResponse.json({
-    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin),
-  });
+  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin) };
+  cacheSet(__ck, __payload);
+  return NextResponse.json(__payload);
 }

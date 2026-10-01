@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -16,6 +17,8 @@ export async function GET() {
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const db = await getDb();
   await ensureSettings(db, user.id);
   const b = await req.json().catch(() => ({}));

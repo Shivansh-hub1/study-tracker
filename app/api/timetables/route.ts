@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { bustUser } from "@/lib/api-cache";
 import { generateTimetable, TTConfig } from "@/lib/timetable";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,8 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const body = await req.json().catch(() => ({}));
   const cfg = body.config as TTConfig;
   if (!cfg?.days || !cfg?.subjects) return NextResponse.json({ error: "Invalid config" }, { status: 400 });

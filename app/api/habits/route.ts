@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -12,6 +13,10 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
+
+  const __ck = `u${user.id}:habits:${offsetMin}`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
   const habits = (await db.all("SELECT * FROM habits WHERE user_id = ? ORDER BY id ASC", user.id)) as any[];
   const logs = (await db.all("SELECT habit_id, day FROM habit_logs WHERE user_id = ?", user.id)) as any[];
@@ -36,12 +41,16 @@ export async function GET(req: NextRequest) {
     }
     return { ...h, streak, doneToday: set.has(todayK), last7, total: set.size };
   });
-  return NextResponse.json({ habits: out });
+  const __data = { habits: out };
+  cacheSet(__ck, __data);
+  return NextResponse.json(__data);
 }
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const { name, color } = await req.json().catch(() => ({}));
   if (!name?.trim()) return NextResponse.json({ error: "Habit name is required" }, { status: 400 });
   const db = await getDb();
@@ -57,6 +66,8 @@ export async function POST(req: NextRequest) {
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const { id, day } = await req.json().catch(() => ({}));
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const k = /^\d{4}-\d{2}-\d{2}$/.test(String(day || "")) ? String(day) : dateKey(new Date());
@@ -72,6 +83,8 @@ export async function PATCH(req: NextRequest) {
 export async function DELETE(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const id = Number(new URL(req.url).searchParams.get("id"));
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
   const db = await getDb();

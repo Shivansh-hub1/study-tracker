@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureWebTopics, DB } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { WEBDEV_TOPICS, WEBDEV_KEY_SET, WebdevStatus } from "@/lib/webdev";
 import { WEBDEV_LECTURES } from "@/lib/webdev-lectures";
 
@@ -93,12 +94,18 @@ async function demoteOthers(db: DB, userId: number, now: string) {
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  return NextResponse.json(await payload(user.id));
+  const __hit2 = cacheGet(`u${user.id}:webdev`);
+  if (__hit2) return NextResponse.json(__hit2);
+  const __data = await payload(user.id);
+  cacheSet(`u${user.id}:webdev`, __data);
+  return NextResponse.json(__data);
 }
 
 export async function PATCH(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const body = await req.json().catch(() => ({}));
   const { key, status, lecture_idx } = body as { key: string; status?: WebdevStatus; lecture_idx?: number };
   if (!key || !WEBDEV_KEY_SET.has(key)) {
@@ -150,6 +157,8 @@ export async function PATCH(req: NextRequest) {
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const body = await req.json().catch(() => ({}));
   if (body.action === "complete_above") {
     const key = body.key as string;

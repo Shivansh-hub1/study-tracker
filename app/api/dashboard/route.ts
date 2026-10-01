@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,10 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+
+  const __ck = `u${user.id}:dash:${offsetMin}`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
   const todayK = dateKey(nowLocal);
@@ -58,12 +63,14 @@ export async function GET(req: NextRequest) {
     await db.run("UPDATE settings SET freeze_stock = ?, freeze_week = ? WHERE user_id = ?", stock, week, user.id);
   }
 
-  return NextResponse.json({
+  const __payload = {
     stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin),
     goals,
     sessions: recent,
     subjects,
     stock,
     frozenToday: !!fRow,
-  });
+  };
+  cacheSet(__ck, __payload);
+  return NextResponse.json(__payload);
 }

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings, DB } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -26,6 +27,10 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+
+  const __ck = `u${user.id}:streak:${offsetMin}`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
   await ensureSettings(db, user.id);
@@ -34,12 +39,16 @@ export async function GET(req: NextRequest) {
     db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, dateKey(nowLocal)),
   ]);
   const stock = await weekGrant(db, user.id, mondayKey(nowLocal), s);
-  return NextResponse.json({ stock, frozenToday: !!f });
+  const __data = { stock, frozenToday: !!f };
+  cacheSet(__ck, __data);
+  return NextResponse.json(__data);
 }
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
   const body = await req.json().catch(() => ({}));
   if (body.action !== "freeze" && body.action !== "unfreeze") return NextResponse.json({ error: "Unknown action" }, { status: 400 });

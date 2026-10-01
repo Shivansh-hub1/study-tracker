@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +12,10 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url);
   const limit = Math.min(500, Number(url.searchParams.get("limit")) || 100);
   const subjectId = url.searchParams.get("subject_id");
+
+  const __ck = `u${user.id}:sessions:${limit}:${subjectId || 0}`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
 
@@ -23,12 +28,16 @@ export async function GET(req: NextRequest) {
   if (to) { sql += " AND se.started_at <= ?"; args.push(to); }
   sql += " ORDER BY se.started_at DESC LIMIT ?";
   args.push(limit);
-  return NextResponse.json({ sessions: await db.all(sql, ...args) });
+  const __data = { sessions: await db.all(sql, ...args) };
+  cacheSet(__ck, __data);
+  return NextResponse.json(__data);
 }
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const body = await req.json().catch(() => ({}));
   const { subject_id, type, started_at, ended_at, duration_sec, notes, topic } = body;
   const dur = Math.max(1, Math.round(Number(duration_sec) || 0));

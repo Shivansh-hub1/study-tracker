@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -9,13 +10,21 @@ const KINDS = ["daily_minutes", "weekly_minutes", "monthly_minutes", "weekly_ses
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const __ck = `u${user.id}:goals`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
-  return NextResponse.json({ goals: await db.all("SELECT * FROM goals WHERE user_id = ? ORDER BY created_at ASC", user.id) });
+  const __data = { goals: await db.all("SELECT * FROM goals WHERE user_id = ? ORDER BY created_at ASC", user.id) };
+  cacheSet(__ck, __data);
+  return NextResponse.json(__data);
 }
 
 export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  bustUser(user.id);
   const { title, kind, target } = await req.json().catch(() => ({}));
   if (!title?.trim()) return NextResponse.json({ error: "Goal title is required" }, { status: 400 });
   if (!KINDS.includes(kind)) return NextResponse.json({ error: "Invalid goal kind" }, { status: 400 });
