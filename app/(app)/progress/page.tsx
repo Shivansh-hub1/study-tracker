@@ -7,7 +7,7 @@ import {
   ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
   RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
 } from "recharts";
-import { useStats } from "@/lib/client";
+import { useStats, useFetch } from "@/lib/client";
 import { fmtMinutes } from "@/lib/utils";
 import { EmptyState, Dot, CardSkeleton } from "@/components/ui";
 import Heatmap from "@/components/Heatmap";
@@ -22,6 +22,8 @@ export default function ProgressPage() {
   const { data, loading } = useStats();
   const [metric, setMetric] = useState<"minutes" | "sessions">("minutes");
   const stats = data?.stats;
+  const { data: shopData } = useFetch("/api/shop");
+  const yearView = (shopData?.items || []).some((i: any) => i.key === "unlock_year" && i.owned);
 
   const best = useMemo(() => {
     if (!stats) return null;
@@ -235,8 +237,9 @@ export default function ProgressPage() {
 
       {/* Heatmap */}
       <div className="card">
-        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — full year</h2>
-        <Heatmap data={stats.heat} weeks={53} compact />
+        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap {yearView ? "— full year" : "— last 20 weeks"}</h2>
+        <Heatmap data={stats.heat} weeks={yearView ? 53 : 20} compact />
+        {!yearView && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>🔒 The 53-week full-year view is a Shop unlock (300 XP).</p>}
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
           Less
           {[0.15, 0.35, 0.55, 0.8, 1].map((o) => (

@@ -1,7 +1,8 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut } from "lucide-react";
+import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut, Smile, Lock } from "lucide-react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFetch, api } from "@/lib/client";
 import { Spinner } from "@/components/ui";
@@ -13,7 +14,23 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
   const { data: shopData } = useFetch("/api/shop");
-  const ownedThemes = new Set((shopData?.items || []).filter((i: any) => i.owned).map((i: any) => i.key.replace("theme_", "")));
+  const ownedThemes = new Set((shopData?.items || []).filter((i: any) => i.key.startsWith("theme_") && i.owned).map((i: any) => i.key.replace("theme_", "")));
+  const ownedAvatars = (shopData?.items || []).filter((i: any) => i.key.startsWith("avatar_") && i.owned);
+  const ownedTitles = (shopData?.items || []).filter((i: any) => i.key.startsWith("title_") && i.owned);
+  const ownedExport = (shopData?.items || []).some((i: any) => i.key === "unlock_export" && i.owned);
+  const [avatar, setAvatar] = useState("");
+  const [title, setTitle] = useState("");
+  useEffect(() => {
+    try {
+      setAvatar(localStorage.getItem("ff_avatar") || "");
+      setTitle(localStorage.getItem("ff_title") || "");
+    } catch {}
+  }, [shopData]);
+  const pickFlair = (kind: "avatar" | "title", key: string) => {
+    playSound("click");
+    if (kind === "avatar") { setAvatar(key); localStorage.setItem("ff_avatar", key); }
+    else { setTitle(key); localStorage.setItem("ff_title", key); }
+  };
   const pickTheme = (t: any) => {
     if (t.shop && !ownedThemes.has(t.id)) {
       playSound("error");
@@ -132,6 +149,40 @@ export default function SettingsPage() {
         </div>
       </div>
 
+      {/* Profile flair */}
+      <div className="card">
+        <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Smile size={16} /> Profile flair</h2>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>Avatars and titles you unlock in the Shop appear here and show next to your name.</p>
+        {ownedAvatars.length === 0 && ownedTitles.length === 0 ? (
+          <div style={{ fontSize: 13, color: "var(--muted)" }}>Nothing unlocked yet — grab avatars and titles in the <Link href="/shop" style={{ color: "var(--accent)", fontWeight: 700 }}>XP Shop</Link>.</div>
+        ) : (
+          <div className="grid" style={{ gap: 16 }}>
+            {ownedAvatars.length > 0 && (
+              <div>
+                <div className="label" style={{ marginBottom: 8 }}>Avatar</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn" style={avatar ? {} : { borderColor: "var(--accent)", borderWidth: 2 }} onClick={() => pickFlair("avatar", "")}>None</button>
+                  {ownedAvatars.map((a: any) => (
+                    <button key={a.key} className="btn" style={{ fontSize: 17, ...(avatar === a.key ? { borderColor: "var(--accent)", borderWidth: 2 } : {}) }} onClick={() => pickFlair("avatar", a.key)}>{a.icon}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+            {ownedTitles.length > 0 && (
+              <div>
+                <div className="label" style={{ marginBottom: 8 }}>Title</div>
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+                  <button className="btn" style={title ? {} : { borderColor: "var(--accent)", borderWidth: 2 }} onClick={() => pickFlair("title", "")}>None</button>
+                  {ownedTitles.map((t: any) => (
+                    <button key={t.key} className="btn" style={{ fontWeight: 700, ...(title === t.key ? { borderColor: "var(--accent)", borderWidth: 2 } : {}) }} onClick={() => pickFlair("title", t.key)}>{t.icon} {t.name.replace("Title: ", "")}</button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+
       {/* Account */}
       <div className="card">
         <h2 style={{ fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><User size={16} /> Account</h2>
@@ -154,8 +205,16 @@ export default function SettingsPage() {
           Everything is stored in a local SQLite database. Export it any time — sessions as a spreadsheet-friendly CSV, or the full account (subjects, sessions, goals, timetables) as JSON.
         </p>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
-          <a className="btn" href="/api/export?format=csv"><FileSpreadsheet size={15} /> Sessions CSV</a>
-          <a className="btn" href="/api/export?format=json"><FileJson size={15} /> Full JSON export</a>
+          {ownedExport ? (
+            <>
+              <a className="btn" href="/api/export?format=csv"><FileSpreadsheet size={15} /> Sessions CSV</a>
+              <a className="btn" href="/api/export?format=json"><FileJson size={15} /> Full JSON export</a>
+            </>
+          ) : (
+            <button className="btn" onClick={() => { playSound("error"); toast("🔒 Data Export is a Shop unlock — grab it in the XP Shop for 150 XP", "error"); }}>
+              <Lock size={15} /> 🔒 Unlock in the XP Shop
+            </button>
+          )}
         </div>
       </div>
     </div>

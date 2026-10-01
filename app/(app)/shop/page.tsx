@@ -64,8 +64,15 @@ export default function ShopPage() {
           <EmptyState icon={<ShoppingBag size={26} />} title="Shop is empty" hint="Come back later — new drops incoming." />
         </div>
       ) : (
-        <div className="grid grid-3">
-          {items.map((it: any) => (
+        <>
+        {["Utility", "Unlocks", "Themes", "Profile", "Cosmetics"].map((cat) => {
+          const catItems = items.filter((it: any) => (it.cat || "Cosmetics") === cat);
+          if (!catItems.length) return null;
+          return (
+          <div key={cat} className="grid" style={{ gap: 12 }}>
+            <h2 style={{ fontSize: 15.5, fontWeight: 800, marginTop: 6 }}>{cat}</h2>
+            <div className="grid grid-3">
+          {catItems.map((it: any) => (
             <div key={it.key} className="card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, position: "relative", overflow: "hidden" }}>
               {it.owned && (
                 <div style={{ position: "absolute", top: 12, right: 12 }} className="badge" >
@@ -100,7 +107,11 @@ export default function ShopPage() {
               )}
             </div>
           ))}
-        </div>
+            </div>
+          </div>
+          );
+        })}
+        </>
       )}
     </div>
   );

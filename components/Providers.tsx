@@ -16,6 +16,12 @@ export const THEMES = [
   { id: "sunset", name: "Sunset", swatch: "linear-gradient(135deg,#f97316,#ef4444,#a855f7)", shop: 250 },
   { id: "ocean", name: "Ocean", swatch: "linear-gradient(135deg,#38bdf8,#14b8a6,#3b82f6)", shop: 250 },
   { id: "forest", name: "Forest", swatch: "linear-gradient(135deg,#34d399,#a3e635,#059669)", shop: 250 },
+  { id: "sakura", name: "Sakura", swatch: "linear-gradient(135deg,#fda4af,#f9a8d4,#c084fc)", shop: 250 },
+  { id: "dracula", name: "Dracula", swatch: "linear-gradient(135deg,#bd93f9,#ff79c6,#ff5555)", shop: 300 },
+  { id: "nord", name: "Nord", swatch: "linear-gradient(135deg,#88c0d0,#81a1c1,#5e81ac)", shop: 300 },
+  { id: "vapor", name: "Vaporwave", swatch: "linear-gradient(135deg,#f472b6,#a78bfa,#22d3ee)", shop: 300 },
+  { id: "coffee", name: "Coffee", swatch: "linear-gradient(135deg,#d4a373,#a47148,#6f4518)", shop: 250 },
+  { id: "royal", name: "Royal Gold", swatch: "linear-gradient(135deg,#f59e0b,#fbbf24,#a16207)", shop: 400 },
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };

@@ -2,6 +2,42 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check } from "lucide-react";
 import { SITE_DESCRIPTION, SITE_NAME, siteBaseUrl } from "@/lib/seo";
+import { getDb, featureOn } from "@/lib/db";
+
+export const dynamic = "force-dynamic";
+
+async function flagPair() {
+  try {
+    const db = await getDb();
+    const [habits, planner] = await Promise.all([featureOn(db, "habits"), featureOn(db, "planner")]);
+    return { habits, planner };
+  } catch {
+    return { habits: true, planner: true };
+  }
+}
+
+function contentFor(habits: boolean, planner: boolean) {
+  const features = FEATURES.map((f) => {
+    if (!planner && f.title === "Smart revision planner") return { ...f, text: "Due-date revision queues and checklists keep nothing slipping." };
+    if (!habits && f.title === "Habits & streaks") return { ...f, title: "Streaks & consistency", text: "Study streaks with freeze days and a consistency heatmap that keeps you honest." };
+    return f;
+  });
+  const heroBits: string[] = ["a focus timer", "DSA & WebDev roadmaps", planner ? "a revision planner" : "revision queues"];
+  if (habits) heroBits.push("daily habits");
+  heroBits.push("analytics");
+  const sub = `FocusFlow combines ${heroBits.slice(0, -1).join(", ")} and ${heroBits[heroBits.length - 1]} — your complete study system in one place.`;
+  const coreBits: string[] = ["timer", "roadmaps"];
+  if (planner) coreBits.push("planner");
+  if (habits) coreBits.push("habits");
+  const featList = coreBits.join(", ") + " and analytics";
+  const faqs = FAQS.map((f) => {
+    if (!planner && f.q === "Is FocusFlow free?") return { ...f, a: `Yes. Every feature — ${featList} — is free for learners.` };
+    if (!habits && f.q === "How is this different from a plain Pomodoro app?")
+      return { ...f, a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision and analytics — your whole study system in one place." };
+    return f;
+  });
+  return { features, faqs, sub };
+}
 
 const FEATURES = [
   { icon: Timer, title: "Focus timer & Pomodoro", text: "Stopwatch, countdown and Pomodoro modes with lap tracking, background mode and one-tap session logging." },
@@ -46,7 +82,8 @@ export async function generateMetadata(): Promise<Metadata> {
 }
 
 const base = siteBaseUrl();
-const jsonLd = {
+function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
+  return {
   "@context": "https://schema.org",
   "@graph": [
     {
@@ -66,13 +103,13 @@ const jsonLd = {
       operatingSystem: "Web",
       description: SITE_DESCRIPTION,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
-      featureList: FEATURES.map((f) => f.title).join(", "),
+      featureList: features.map((f) => f.title).join(", "),
       aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "127", bestRating: "5", worstRating: "1" },
     },
     {
       "@type": "FAQPage",
       "@id": `${base}/#faq`,
-      mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+      mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
     },
     {
       "@type": "BreadcrumbList",
@@ -80,9 +117,13 @@ const jsonLd = {
       itemListElement: [{ "@type": "ListItem", position: 1, name: "Home", item: `${base}/` }],
     },
   ],
-};
+  };
+}
 
-export default function Home() {
+export default async function Home() {
+  const { habits, planner } = await flagPair();
+  const { features, faqs, sub } = contentFor(habits, planner);
+  const jsonLd = jsonLdFor(features, faqs);
   return (
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
@@ -105,7 +146,7 @@ export default function Home() {
           <section className="land-hero">
             <p className="land-badge"><Check size={14} /> Free study tracker for students & developers</p>
             <h1>Track every study session.<br /><span className="glow-text">Stay consistent. Grow.</span></h1>
-            <p className="land-sub">FocusFlow combines a focus timer, DSA & WebDev roadmaps, revision planner, habits and analytics — your complete study system in one place.</p>
+            <p className="land-sub">{sub}</p>
             <div className="land-cta">
               <Link href="/signup" className="btn btn-primary btn-lg">Start tracking free <ArrowRight size={17} /></Link>
               <Link href="/login" className="btn btn-lg">Sign in</Link>
@@ -121,7 +162,7 @@ export default function Home() {
             <h2 id="features-h">Everything you need to study smarter</h2>
             <p className="land-sec-sub">One app for timing, planning, revising and reviewing.</p>
             <div className="land-grid">
-              {FEATURES.map((f) => (
+              {features.map((f) => (
                 <article key={f.title} className="card land-card">
                   <span className="land-ico"><f.icon size={20} /></span>
                   <h3>{f.title}</h3>
@@ -150,7 +191,7 @@ export default function Home() {
           <section id="faq" className="land-section" aria-labelledby="faq-h">
             <h2 id="faq-h">Frequently asked questions</h2>
             <div className="land-faq">
-              {FAQS.map((f) => (
+              {faqs.map((f) => (
                 <details key={f.q} className="card">
                   <summary>{f.q}</summary>
                   <p>{f.a}</p>

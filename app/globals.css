@@ -694,3 +694,115 @@ select.select {
   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
   --ring: rgba(52, 211, 153, 0.4);
 }
+
+:root[data-theme="sakura"] {
+  --bg: #fdf2f6;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(244, 114, 182, 0.14) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(192, 132, 252, 0.10) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(251, 191, 36, 0.08) 0%, transparent 55%);
+  --surface: #ffffff;
+  --surface-2: #fdf5f9;
+  --border: #f4cfe0;
+  --text: #4a2436;
+  --muted: #a3728a;
+  --accent: #ec4899;
+  --accent-2: #a855f7;
+  --accent-soft: rgba(236, 72, 153, 0.12);
+  --accent-grad: linear-gradient(135deg, #ec4899, #a855f7 55%, #f472b6);
+  --glow: 0 4px 24px rgba(236, 72, 153, 0.22);
+  --shadow: 0 1px 3px rgba(80, 30, 55, 0.08), 0 8px 24px rgba(80, 30, 55, 0.08);
+  --ring: rgba(236, 72, 153, 0.35);
+}
+:root[data-theme="dracula"] {
+  --bg: #1a1626;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(189, 147, 249, 0.15) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(255, 121, 198, 0.12) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(255, 85, 85, 0.10) 0%, transparent 55%);
+  --surface: #241e33;
+  --surface-2: #2c2440;
+  --border: #3d3355;
+  --text: #f1e9ff;
+  --muted: #a89fc4;
+  --accent: #bd93f9;
+  --accent-2: #ff79c6;
+  --accent-soft: rgba(189, 147, 249, 0.13);
+  --accent-grad: linear-gradient(135deg, #bd93f9, #ff79c6 55%, #ff5555);
+  --glow: 0 4px 24px rgba(189, 147, 249, 0.28);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(189, 147, 249, 0.4);
+}
+:root[data-theme="nord"] {
+  --bg: #242933;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(136, 192, 208, 0.13) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(129, 161, 193, 0.12) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(94, 129, 172, 0.14) 0%, transparent 55%);
+  --surface: #2e3440;
+  --surface-2: #3b4252;
+  --border: #4c566a;
+  --text: #eceff4;
+  --muted: #9aa5b8;
+  --accent: #88c0d0;
+  --accent-2: #81a1c1;
+  --accent-soft: rgba(136, 192, 208, 0.12);
+  --accent-grad: linear-gradient(135deg, #88c0d0, #81a1c1 55%, #5e81ac);
+  --glow: 0 4px 24px rgba(136, 192, 208, 0.24);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(136, 192, 208, 0.4);
+}
+:root[data-theme="vapor"] {
+  --bg: #150f2e;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(34, 211, 238, 0.16) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(244, 114, 182, 0.14) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(167, 139, 250, 0.12) 0%, transparent 55%);
+  --surface: #1e173d;
+  --surface-2: #271e4d;
+  --border: #3a2e66;
+  --text: #f2ecff;
+  --muted: #9d92c7;
+  --accent: #22d3ee;
+  --accent-2: #f472b6;
+  --accent-soft: rgba(34, 211, 238, 0.13);
+  --accent-grad: linear-gradient(135deg, #f472b6, #a78bfa 50%, #22d3ee);
+  --glow: 0 4px 24px rgba(34, 211, 238, 0.28);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(34, 211, 238, 0.4);
+}
+:root[data-theme="coffee"] {
+  --bg: #171009;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(212, 163, 115, 0.14) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(164, 113, 72, 0.12) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(111, 69, 24, 0.12) 0%, transparent 55%);
+  --surface: #221810;
+  --surface-2: #2d2016;
+  --border: #40301f;
+  --text: #f7ecdf;
+  --muted: #b39a80;
+  --accent: #d4a373;
+  --accent-2: #a47148;
+  --accent-soft: rgba(212, 163, 115, 0.13);
+  --accent-grad: linear-gradient(135deg, #d4a373, #a47148 55%, #6f4518);
+  --glow: 0 4px 24px rgba(212, 163, 115, 0.26);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(212, 163, 115, 0.4);
+}
+:root[data-theme="royal"] {
+  --bg: #14100a;
+  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(245, 158, 11, 0.14) 0%, transparent 55%),
+    radial-gradient(900px 600px at -10% 25%, rgba(161, 98, 7, 0.12) 0%, transparent 50%),
+    radial-gradient(700px 500px at 50% 110%, rgba(245, 183, 107, 0.08) 0%, transparent 55%);
+  --surface: #1f1910;
+  --surface-2: #292113;
+  --border: #3d3319;
+  --text: #f9f1dd;
+  --muted: #b3a67f;
+  --accent: #f59e0b;
+  --accent-2: #fbbf24;
+  --accent-soft: rgba(245, 158, 11, 0.13);
+  --accent-grad: linear-gradient(135deg, #f59e0b, #fbbf24 55%, #a16207);
+  --glow: 0 4px 24px rgba(245, 158, 11, 0.28);
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+  --ring: rgba(245, 158, 11, 0.4);
+}
+.brand-anim { background: linear-gradient(90deg, #f472b6, #a78bfa, #22d3ee, #34d399, #f59e0b, #f472b6); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ff-gradient-flow 6s linear infinite; }
+.rainbow-text { background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981, #3b82f6, #a855f7, #ef4444); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ff-gradient-flow 5s linear infinite; }
+@keyframes ff-gradient-flow { to { background-position: 300% 0; } }

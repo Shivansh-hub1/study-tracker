@@ -1,0 +1,570 @@
+diff --git a/app/(app)/dashboard/page.tsx b/app/(app)/dashboard/page.tsx
+index f34754f..0f4a13c 100644
+--- a/app/(app)/dashboard/page.tsx
++++ b/app/(app)/dashboard/page.tsx
+@@ -40,6 +40,7 @@ export default function DashboardPage() {
+   const { data: smartPlan } = useFetch("/api/smart-plan");
+   const { data: shopData } = useFetch("/api/shop");
+   const goldenFlame = (shopData?.items || []).some((i: any) => i.key === "flame" && i.owned);
++  const rainbowStreak = (shopData?.items || []).some((i: any) => i.key === "rainbow_streak" && i.owned);
+   const shareRef = useRef<HTMLCanvasElement>(null);
+ 
+   const stats = dashData?.stats;
+@@ -225,7 +226,7 @@ export default function DashboardPage() {
+       )}
+ 
+       <div className="grid grid-4">
+-        <Stat icon={<Flame size={22} />} label="Day streak" value={`${stats?.streak ?? 0}`} sub={goldenFlame ? "golden streak ✨" : "consecutive days"} accent={goldenFlame ? "#f59e0b" : "#f97316"} />
++        <Stat icon={<Flame size={22} />} label="Day streak" value={rainbowStreak ? ((<span className="rainbow-text">{stats?.streak ?? 0}</span>) as any) : `${stats?.streak ?? 0}`} sub={goldenFlame ? "golden streak ✨" : "consecutive days"} accent={goldenFlame ? "#f59e0b" : "#f97316"} />
+         <Stat icon={<Clock size={22} />} label="Today" value={fmtMinutes(stats?.todayMin ?? 0)} sub="focused time" accent="#6366f1" />
+         <Stat icon={<CalendarDays size={22} />} label="This week" value={fmtMinutes(stats?.weekMin ?? 0)} sub={`${stats?.weekSessions ?? 0} sessions`} accent="#10b981" />
+         <Stat icon={<TrendingUp size={22} />} label="All time" value={`${stats?.totalHours ?? 0}h`} sub={`${stats?.totalSessions ?? 0} sessions`} accent="#ec4899" />
+diff --git a/app/(app)/progress/page.tsx b/app/(app)/progress/page.tsx
+index 1642793..0d3d32d 100644
+--- a/app/(app)/progress/page.tsx
++++ b/app/(app)/progress/page.tsx
+@@ -7,7 +7,7 @@ import {
+   ResponsiveContainer, AreaChart, Area, BarChart, Bar, LineChart, Line, PieChart, Pie, Cell,
+   RadarChart, Radar, PolarGrid, PolarAngleAxis, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
+ } from "recharts";
+-import { useStats } from "@/lib/client";
++import { useStats, useFetch } from "@/lib/client";
+ import { fmtMinutes } from "@/lib/utils";
+ import { EmptyState, Dot, CardSkeleton } from "@/components/ui";
+ import Heatmap from "@/components/Heatmap";
+@@ -22,6 +22,8 @@ export default function ProgressPage() {
+   const { data, loading } = useStats();
+   const [metric, setMetric] = useState<"minutes" | "sessions">("minutes");
+   const stats = data?.stats;
++  const { data: shopData } = useFetch("/api/shop");
++  const yearView = (shopData?.items || []).some((i: any) => i.key === "unlock_year" && i.owned);
+ 
+   const best = useMemo(() => {
+     if (!stats) return null;
+@@ -235,8 +237,9 @@ export default function ProgressPage() {
+ 
+       {/* Heatmap */}
+       <div className="card">
+-        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — full year</h2>
+-        <Heatmap data={stats.heat} weeks={53} compact />
++        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap {yearView ? "— full year" : "— last 20 weeks"}</h2>
++        <Heatmap data={stats.heat} weeks={yearView ? 53 : 20} compact />
++        {!yearView && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>🔒 The 53-week full-year view is a Shop unlock (300 XP).</p>}
+         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
+           Less
+           {[0.15, 0.35, 0.55, 0.8, 1].map((o) => (
+diff --git a/app/(app)/settings/page.tsx b/app/(app)/settings/page.tsx
+index d398f34..058404f 100644
+--- a/app/(app)/settings/page.tsx
++++ b/app/(app)/settings/page.tsx
+@@ -1,7 +1,8 @@
+ "use client";
+ 
+ import React, { useEffect, useState } from "react";
+-import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut } from "lucide-react";
++import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut, Smile, Lock } from "lucide-react";
++import Link from "next/link";
+ import { useRouter } from "next/navigation";
+ import { useFetch, api } from "@/lib/client";
+ import { Spinner } from "@/components/ui";
+@@ -13,7 +14,23 @@ export default function SettingsPage() {
+   const { toast } = useToast();
+   const { theme, setTheme } = useTheme();
+   const { data: shopData } = useFetch("/api/shop");
+-  const ownedThemes = new Set((shopData?.items || []).filter((i: any) => i.owned).map((i: any) => i.key.replace("theme_", "")));
++  const ownedThemes = new Set((shopData?.items || []).filter((i: any) => i.key.startsWith("theme_") && i.owned).map((i: any) => i.key.replace("theme_", "")));
++  const ownedAvatars = (shopData?.items || []).filter((i: any) => i.key.startsWith("avatar_") && i.owned);
++  const ownedTitles = (shopData?.items || []).filter((i: any) => i.key.startsWith("title_") && i.owned);
++  const ownedExport = (shopData?.items || []).some((i: any) => i.key === "unlock_export" && i.owned);
++  const [avatar, setAvatar] = useState("");
++  const [title, setTitle] = useState("");
++  useEffect(() => {
++    try {
++      setAvatar(localStorage.getItem("ff_avatar") || "");
++      setTitle(localStorage.getItem("ff_title") || "");
++    } catch {}
++  }, [shopData]);
++  const pickFlair = (kind: "avatar" | "title", key: string) => {
++    playSound("click");
++    if (kind === "avatar") { setAvatar(key); localStorage.setItem("ff_avatar", key); }
++    else { setTitle(key); localStorage.setItem("ff_title", key); }
++  };
+   const pickTheme = (t: any) => {
+     if (t.shop && !ownedThemes.has(t.id)) {
+       playSound("error");
+@@ -132,6 +149,40 @@ export default function SettingsPage() {
+         </div>
+       </div>
+ 
++      {/* Profile flair */}
++      <div className="card">
++        <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Smile size={16} /> Profile flair</h2>
++        <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>Avatars and titles you unlock in the Shop appear here and show next to your name.</p>
++        {ownedAvatars.length === 0 && ownedTitles.length === 0 ? (
++          <div style={{ fontSize: 13, color: "var(--muted)" }}>Nothing unlocked yet — grab avatars and titles in the <Link href="/shop" style={{ color: "var(--accent)", fontWeight: 700 }}>XP Shop</Link>.</div>
++        ) : (
++          <div className="grid" style={{ gap: 16 }}>
++            {ownedAvatars.length > 0 && (
++              <div>
++                <div className="label" style={{ marginBottom: 8 }}>Avatar</div>
++                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
++                  <button className="btn" style={avatar ? {} : { borderColor: "var(--accent)", borderWidth: 2 }} onClick={() => pickFlair("avatar", "")}>None</button>
++                  {ownedAvatars.map((a: any) => (
++                    <button key={a.key} className="btn" style={{ fontSize: 17, ...(avatar === a.key ? { borderColor: "var(--accent)", borderWidth: 2 } : {}) }} onClick={() => pickFlair("avatar", a.key)}>{a.icon}</button>
++                  ))}
++                </div>
++              </div>
++            )}
++            {ownedTitles.length > 0 && (
++              <div>
++                <div className="label" style={{ marginBottom: 8 }}>Title</div>
++                <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
++                  <button className="btn" style={title ? {} : { borderColor: "var(--accent)", borderWidth: 2 }} onClick={() => pickFlair("title", "")}>None</button>
++                  {ownedTitles.map((t: any) => (
++                    <button key={t.key} className="btn" style={{ fontWeight: 700, ...(title === t.key ? { borderColor: "var(--accent)", borderWidth: 2 } : {}) }} onClick={() => pickFlair("title", t.key)}>{t.icon} {t.name.replace("Title: ", "")}</button>
++                  ))}
++                </div>
++              </div>
++            )}
++          </div>
++        )}
++      </div>
++
+       {/* Account */}
+       <div className="card">
+         <h2 style={{ fontSize: 15, marginBottom: 14, display: "flex", alignItems: "center", gap: 8 }}><User size={16} /> Account</h2>
+@@ -154,8 +205,16 @@ export default function SettingsPage() {
+           Everything is stored in a local SQLite database. Export it any time — sessions as a spreadsheet-friendly CSV, or the full account (subjects, sessions, goals, timetables) as JSON.
+         </p>
+         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
+-          <a className="btn" href="/api/export?format=csv"><FileSpreadsheet size={15} /> Sessions CSV</a>
+-          <a className="btn" href="/api/export?format=json"><FileJson size={15} /> Full JSON export</a>
++          {ownedExport ? (
++            <>
++              <a className="btn" href="/api/export?format=csv"><FileSpreadsheet size={15} /> Sessions CSV</a>
++              <a className="btn" href="/api/export?format=json"><FileJson size={15} /> Full JSON export</a>
++            </>
++          ) : (
++            <button className="btn" onClick={() => { playSound("error"); toast("🔒 Data Export is a Shop unlock — grab it in the XP Shop for 150 XP", "error"); }}>
++              <Lock size={15} /> 🔒 Unlock in the XP Shop
++            </button>
++          )}
+         </div>
+       </div>
+     </div>
+diff --git a/app/(app)/shop/page.tsx b/app/(app)/shop/page.tsx
+index 9372dca..df8d0d9 100644
+--- a/app/(app)/shop/page.tsx
++++ b/app/(app)/shop/page.tsx
+@@ -64,8 +64,15 @@ export default function ShopPage() {
+           <EmptyState icon={<ShoppingBag size={26} />} title="Shop is empty" hint="Come back later — new drops incoming." />
+         </div>
+       ) : (
+-        <div className="grid grid-3">
+-          {items.map((it: any) => (
++        <>
++        {["Utility", "Unlocks", "Themes", "Profile", "Cosmetics"].map((cat) => {
++          const catItems = items.filter((it: any) => (it.cat || "Cosmetics") === cat);
++          if (!catItems.length) return null;
++          return (
++          <div key={cat} className="grid" style={{ gap: 12 }}>
++            <h2 style={{ fontSize: 15.5, fontWeight: 800, marginTop: 6 }}>{cat}</h2>
++            <div className="grid grid-3">
++          {catItems.map((it: any) => (
+             <div key={it.key} className="card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, position: "relative", overflow: "hidden" }}>
+               {it.owned && (
+                 <div style={{ position: "absolute", top: 12, right: 12 }} className="badge" >
+@@ -100,7 +107,11 @@ export default function ShopPage() {
+               )}
+             </div>
+           ))}
+-        </div>
++            </div>
++          </div>
++          );
++        })}
++        </>
+       )}
+     </div>
+   );
+diff --git a/app/api/export/route.ts b/app/api/export/route.ts
+index 13d4cb3..8318cb6 100644
+--- a/app/api/export/route.ts
++++ b/app/api/export/route.ts
+@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
+   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+   const format = new URL(req.url).searchParams.get("format") || "json";
+   const db = await getDb();
++  const unlock = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'unlock_export'", user.id)) as any;
++  if (!unlock) return NextResponse.json({ error: "Data export is locked — unlock it in the XP Shop" }, { status: 403 });
+ 
+   const sessions = (await db.all(
+     `SELECT se.id, s.name as subject, se.topic as topic, se.type, se.started_at, se.ended_at, se.duration_sec, se.notes
+diff --git a/app/api/shop/route.ts b/app/api/shop/route.ts
+index 5089f28..06b5a23 100644
+--- a/app/api/shop/route.ts
++++ b/app/api/shop/route.ts
+@@ -7,13 +7,34 @@ import { computeStats } from "@/lib/stats";
+ export const dynamic = "force-dynamic";
+ 
+ const SHOP_ITEMS = [
+-  { key: "freeze1", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked).", icon: "❄️", cost: 100, repeatable: true },
+-  { key: "theme_aurora", name: "Aurora Theme", desc: "Northern-lights premium color scheme for the whole app.", icon: "🌌", cost: 250, repeatable: false },
+-  { key: "theme_sunset", name: "Sunset Theme", desc: "Warm golden-dusk premium color scheme.", icon: "🌇", cost: 250, repeatable: false },
+-  { key: "theme_ocean", name: "Ocean Theme", desc: "Deep-sea blues and teals premium color scheme.", icon: "🌊", cost: 250, repeatable: false },
+-  { key: "theme_forest", name: "Forest Theme", desc: "Calm woodland greens premium color scheme.", icon: "🌲", cost: 250, repeatable: false },
+-  { key: "confetti", name: "Celebration Confetti", desc: "A confetti burst every time you save a study session.", icon: "🎉", cost: 150, repeatable: false },
+-  { key: "flame", name: "Golden Streak Flame", desc: "Your dashboard streak card turns golden forever.", icon: "👑", cost: 150, repeatable: false },
++  { key: "freeze1", cat: "Utility", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked, 5 with Deep Freeze).", icon: "❄️", cost: 100, repeatable: true },
++  { key: "deep_freeze", cat: "Utility", name: "Deep Freeze", desc: "Permanently raises your streak-freeze stock cap from 3 to 5.", icon: "🧊", cost: 400, repeatable: false },
++  { key: "unlock_year", cat: "Unlocks", name: "Full-Year Heatmap", desc: "Unlocks the 53-week full-year heatmap on the Progress page (free view: last 20 weeks).", icon: "🗓️", cost: 300, repeatable: false },
++  { key: "unlock_export", cat: "Unlocks", name: "Data Export", desc: "Unlocks CSV and full-JSON data export in Settings.", icon: "📦", cost: 150, repeatable: false },
++  { key: "theme_aurora", cat: "Themes", name: "Aurora Theme", desc: "Northern-lights premium color scheme for the whole app.", icon: "🌌", cost: 250, repeatable: false },
++  { key: "theme_sunset", cat: "Themes", name: "Sunset Theme", desc: "Warm golden-dusk premium color scheme.", icon: "🌇", cost: 250, repeatable: false },
++  { key: "theme_ocean", cat: "Themes", name: "Ocean Theme", desc: "Deep-sea blues and teals premium color scheme.", icon: "🌊", cost: 250, repeatable: false },
++  { key: "theme_forest", cat: "Themes", name: "Forest Theme", desc: "Calm woodland greens premium color scheme.", icon: "🌲", cost: 250, repeatable: false },
++  { key: "theme_sakura", cat: "Themes", name: "Sakura Theme", desc: "Soft cherry-blossom pink light premium color scheme.", icon: "🌸", cost: 250, repeatable: false },
++  { key: "theme_dracula", cat: "Themes", name: "Dracula Theme", desc: "Classic dark purple-and-red premium color scheme.", icon: "🧛", cost: 300, repeatable: false },
++  { key: "theme_nord", cat: "Themes", name: "Nord Theme", desc: "Cool arctic blue-grey premium color scheme.", icon: "🏔️", cost: 300, repeatable: false },
++  { key: "theme_vapor", cat: "Themes", name: "Vaporwave Theme", desc: "Retro purple-cyan neon premium color scheme.", icon: "🌆", cost: 300, repeatable: false },
++  { key: "theme_coffee", cat: "Themes", name: "Coffee Theme", desc: "Warm roasted-brown premium color scheme.", icon: "☕", cost: 250, repeatable: false },
++  { key: "theme_royal", cat: "Themes", name: "Royal Gold Theme", desc: "Regal dark-and-gold premium color scheme.", icon: "👑", cost: 400, repeatable: false },
++  { key: "avatar_cat", cat: "Profile", name: "Avatar: Cat", desc: "Show a cat emoji next to your name in the sidebar.", icon: "🐱", cost: 75, repeatable: false },
++  { key: "avatar_fox", cat: "Profile", name: "Avatar: Fox", desc: "Show a fox emoji next to your name in the sidebar.", icon: "🦊", cost: 75, repeatable: false },
++  { key: "avatar_tiger", cat: "Profile", name: "Avatar: Tiger", desc: "Show a tiger emoji next to your name in the sidebar.", icon: "🐯", cost: 75, repeatable: false },
++  { key: "avatar_dragon", cat: "Profile", name: "Avatar: Dragon", desc: "Show a dragon emoji next to your name in the sidebar.", icon: "🐲", cost: 100, repeatable: false },
++  { key: "avatar_rocket", cat: "Profile", name: "Avatar: Rocket", desc: "Show a rocket emoji next to your name in the sidebar.", icon: "🚀", cost: 100, repeatable: false },
++  { key: "avatar_ninja", cat: "Profile", name: "Avatar: Ninja", desc: "Show a ninja emoji next to your name in the sidebar.", icon: "🥷", cost: 100, repeatable: false },
++  { key: "title_nightowl", cat: "Profile", name: "Title: Night Owl", desc: "Show the Night Owl title under your name in the sidebar.", icon: "🌙", cost: 100, repeatable: false },
++  { key: "title_deepworker", cat: "Profile", name: "Title: Deep Worker", desc: "Show the Deep Worker title under your name in the sidebar.", icon: "🧘", cost: 100, repeatable: false },
++  { key: "title_codemonkey", cat: "Profile", name: "Title: Code Monkey", desc: "Show the Code Monkey title under your name in the sidebar.", icon: "💻", cost: 100, repeatable: false },
++  { key: "title_ironwill", cat: "Profile", name: "Title: Iron Will", desc: "Show the Iron Will title under your name in the sidebar.", icon: "⚔️", cost: 150, repeatable: false },
++  { key: "confetti", cat: "Cosmetics", name: "Celebration Confetti", desc: "A confetti burst every time you save a study session.", icon: "🎉", cost: 150, repeatable: false },
++  { key: "flame", cat: "Cosmetics", name: "Golden Streak Flame", desc: "Your dashboard streak card turns golden forever.", icon: "🔥", cost: 150, repeatable: false },
++  { key: "anim_title", cat: "Cosmetics", name: "Animated Title", desc: "The FocusFlow logo gets a flowing animated rainbow gradient.", icon: "✨", cost: 150, repeatable: false },
++  { key: "rainbow_streak", cat: "Cosmetics", name: "Rainbow Streak", desc: "Your dashboard streak number gets an animated rainbow gradient.", icon: "🌈", cost: 150, repeatable: false },
+ ];
+ 
+ async function wallet(db: any, userId: number) {
+@@ -64,9 +85,11 @@ export async function POST(req: NextRequest) {
+   }
+ 
+   if (def.key === "freeze1") {
++    const deep = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'deep_freeze'", user.id)) as any;
++    const cap = deep ? 5 : 3;
+     const s = (await db.get("SELECT freeze_stock FROM settings WHERE user_id = ?", user.id)) as any;
+-    if (Number(s?.freeze_stock ?? 0) >= 3) {
+-      return NextResponse.json({ error: "Freeze stock is full (3/3)" }, { status: 400 });
++    if (Number(s?.freeze_stock ?? 0) >= cap) {
++      return NextResponse.json({ error: `Freeze stock is full (${cap}/${cap})` }, { status: 400 });
+     }
+   }
+ 
+diff --git a/app/globals.css b/app/globals.css
+index 6b9d24a..6c21cd8 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -694,3 +694,115 @@ select.select {
+   --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
+   --ring: rgba(52, 211, 153, 0.4);
+ }
++
++:root[data-theme="sakura"] {
++  --bg: #fdf2f6;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(244, 114, 182, 0.14) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 25%, rgba(192, 132, 252, 0.10) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(251, 191, 36, 0.08) 0%, transparent 55%);
++  --surface: #ffffff;
++  --surface-2: #fdf5f9;
++  --border: #f4cfe0;
++  --text: #4a2436;
++  --muted: #a3728a;
++  --accent: #ec4899;
++  --accent-2: #a855f7;
++  --accent-soft: rgba(236, 72, 153, 0.12);
++  --accent-grad: linear-gradient(135deg, #ec4899, #a855f7 55%, #f472b6);
++  --glow: 0 4px 24px rgba(236, 72, 153, 0.22);
++  --shadow: 0 1px 3px rgba(80, 30, 55, 0.08), 0 8px 24px rgba(80, 30, 55, 0.08);
++  --ring: rgba(236, 72, 153, 0.35);
++}
++:root[data-theme="dracula"] {
++  --bg: #1a1626;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(189, 147, 249, 0.15) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 25%, rgba(255, 121, 198, 0.12) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(255, 85, 85, 0.10) 0%, transparent 55%);
++  --surface: #241e33;
++  --surface-2: #2c2440;
++  --border: #3d3355;
++  --text: #f1e9ff;
++  --muted: #a89fc4;
++  --accent: #bd93f9;
++  --accent-2: #ff79c6;
++  --accent-soft: rgba(189, 147, 249, 0.13);
++  --accent-grad: linear-gradient(135deg, #bd93f9, #ff79c6 55%, #ff5555);
++  --glow: 0 4px 24px rgba(189, 147, 249, 0.28);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(189, 147, 249, 0.4);
++}
++:root[data-theme="nord"] {
++  --bg: #242933;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(136, 192, 208, 0.13) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 25%, rgba(129, 161, 193, 0.12) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(94, 129, 172, 0.14) 0%, transparent 55%);
++  --surface: #2e3440;
++  --surface-2: #3b4252;
++  --border: #4c566a;
++  --text: #eceff4;
++  --muted: #9aa5b8;
++  --accent: #88c0d0;
++  --accent-2: #81a1c1;
++  --accent-soft: rgba(136, 192, 208, 0.12);
++  --accent-grad: linear-gradient(135deg, #88c0d0, #81a1c1 55%, #5e81ac);
++  --glow: 0 4px 24px rgba(136, 192, 208, 0.24);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(136, 192, 208, 0.4);
++}
++:root[data-theme="vapor"] {
++  --bg: #150f2e;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(34, 211, 238, 0.16) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 25%, rgba(244, 114, 182, 0.14) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(167, 139, 250, 0.12) 0%, transparent 55%);
++  --surface: #1e173d;
++  --surface-2: #271e4d;
++  --border: #3a2e66;
++  --text: #f2ecff;
++  --muted: #9d92c7;
++  --accent: #22d3ee;
++  --accent-2: #f472b6;
++  --accent-soft: rgba(34, 211, 238, 0.13);
++  --accent-grad: linear-gradient(135deg, #f472b6, #a78bfa 50%, #22d3ee);
++  --glow: 0 4px 24px rgba(34, 211, 238, 0.28);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(34, 211, 238, 0.4);
++}
++:root[data-theme="coffee"] {
++  --bg: #171009;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(212, 163, 115, 0.14) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 25%, rgba(164, 113, 72, 0.12) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(111, 69, 24, 0.12) 0%, transparent 55%);
++  --surface: #221810;
++  --surface-2: #2d2016;
++  --border: #40301f;
++  --text: #f7ecdf;
++  --muted: #b39a80;
++  --accent: #d4a373;
++  --accent-2: #a47148;
++  --accent-soft: rgba(212, 163, 115, 0.13);
++  --accent-grad: linear-gradient(135deg, #d4a373, #a47148 55%, #6f4518);
++  --glow: 0 4px 24px rgba(212, 163, 115, 0.26);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(212, 163, 115, 0.4);
++}
++:root[data-theme="royal"] {
++  --bg: #14100a;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(245, 158, 11, 0.14) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 25%, rgba(161, 98, 7, 0.12) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(245, 183, 107, 0.08) 0%, transparent 55%);
++  --surface: #1f1910;
++  --surface-2: #292113;
++  --border: #3d3319;
++  --text: #f9f1dd;
++  --muted: #b3a67f;
++  --accent: #f59e0b;
++  --accent-2: #fbbf24;
++  --accent-soft: rgba(245, 158, 11, 0.13);
++  --accent-grad: linear-gradient(135deg, #f59e0b, #fbbf24 55%, #a16207);
++  --glow: 0 4px 24px rgba(245, 158, 11, 0.28);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(245, 158, 11, 0.4);
++}
++.brand-anim { background: linear-gradient(90deg, #f472b6, #a78bfa, #22d3ee, #34d399, #f59e0b, #f472b6); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ff-gradient-flow 6s linear infinite; }
++.rainbow-text { background: linear-gradient(90deg, #ef4444, #f59e0b, #10b981, #3b82f6, #a855f7, #ef4444); background-size: 300% 100%; -webkit-background-clip: text; background-clip: text; color: transparent; animation: ff-gradient-flow 5s linear infinite; }
++@keyframes ff-gradient-flow { to { background-position: 300% 0; } }
+diff --git a/app/page.tsx b/app/page.tsx
+index 23b9976..0bb2fb5 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -2,6 +2,42 @@ import type { Metadata } from "next";
+ import Link from "next/link";
+ import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check } from "lucide-react";
+ import { SITE_DESCRIPTION, SITE_NAME, siteBaseUrl } from "@/lib/seo";
++import { getDb, featureOn } from "@/lib/db";
++
++export const dynamic = "force-dynamic";
++
++async function flagPair() {
++  try {
++    const db = await getDb();
++    const [habits, planner] = await Promise.all([featureOn(db, "habits"), featureOn(db, "planner")]);
++    return { habits, planner };
++  } catch {
++    return { habits: true, planner: true };
++  }
++}
++
++function contentFor(habits: boolean, planner: boolean) {
++  const features = FEATURES.map((f) => {
++    if (!planner && f.title === "Smart revision planner") return { ...f, text: "Due-date revision queues and checklists keep nothing slipping." };
++    if (!habits && f.title === "Habits & streaks") return { ...f, title: "Streaks & consistency", text: "Study streaks with freeze days and a consistency heatmap that keeps you honest." };
++    return f;
++  });
++  const heroBits: string[] = ["a focus timer", "DSA & WebDev roadmaps", planner ? "a revision planner" : "revision queues"];
++  if (habits) heroBits.push("daily habits");
++  heroBits.push("analytics");
++  const sub = `FocusFlow combines ${heroBits.slice(0, -1).join(", ")} and ${heroBits[heroBits.length - 1]} — your complete study system in one place.`;
++  const coreBits: string[] = ["timer", "roadmaps"];
++  if (planner) coreBits.push("planner");
++  if (habits) coreBits.push("habits");
++  const featList = coreBits.join(", ") + " and analytics";
++  const faqs = FAQS.map((f) => {
++    if (!planner && f.q === "Is FocusFlow free?") return { ...f, a: `Yes. Every feature — ${featList} — is free for learners.` };
++    if (!habits && f.q === "How is this different from a plain Pomodoro app?")
++      return { ...f, a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision and analytics — your whole study system in one place." };
++    return f;
++  });
++  return { features, faqs, sub };
++}
+ 
+ const FEATURES = [
+   { icon: Timer, title: "Focus timer & Pomodoro", text: "Stopwatch, countdown and Pomodoro modes with lap tracking, background mode and one-tap session logging." },
+@@ -46,7 +82,8 @@ export async function generateMetadata(): Promise<Metadata> {
+ }
+ 
+ const base = siteBaseUrl();
+-const jsonLd = {
++function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
++  return {
+   "@context": "https://schema.org",
+   "@graph": [
+     {
+@@ -66,13 +103,13 @@ const jsonLd = {
+       operatingSystem: "Web",
+       description: SITE_DESCRIPTION,
+       offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
+-      featureList: FEATURES.map((f) => f.title).join(", "),
++      featureList: features.map((f) => f.title).join(", "),
+       aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "127", bestRating: "5", worstRating: "1" },
+     },
+     {
+       "@type": "FAQPage",
+       "@id": `${base}/#faq`,
+-      mainEntity: FAQS.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
++      mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
+     },
+     {
+       "@type": "BreadcrumbList",
+@@ -80,9 +117,13 @@ const jsonLd = {
+       itemListElement: [{ "@type": "ListItem", position: 1, name: "Home", item: `${base}/` }],
+     },
+   ],
+-};
++  };
++}
+ 
+-export default function Home() {
++export default async function Home() {
++  const { habits, planner } = await flagPair();
++  const { features, faqs, sub } = contentFor(habits, planner);
++  const jsonLd = jsonLdFor(features, faqs);
+   return (
+     <>
+       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
+@@ -105,7 +146,7 @@ export default function Home() {
+           <section className="land-hero">
+             <p className="land-badge"><Check size={14} /> Free study tracker for students & developers</p>
+             <h1>Track every study session.<br /><span className="glow-text">Stay consistent. Grow.</span></h1>
+-            <p className="land-sub">FocusFlow combines a focus timer, DSA & WebDev roadmaps, revision planner, habits and analytics — your complete study system in one place.</p>
++            <p className="land-sub">{sub}</p>
+             <div className="land-cta">
+               <Link href="/signup" className="btn btn-primary btn-lg">Start tracking free <ArrowRight size={17} /></Link>
+               <Link href="/login" className="btn btn-lg">Sign in</Link>
+@@ -121,7 +162,7 @@ export default function Home() {
+             <h2 id="features-h">Everything you need to study smarter</h2>
+             <p className="land-sec-sub">One app for timing, planning, revising and reviewing.</p>
+             <div className="land-grid">
+-              {FEATURES.map((f) => (
++              {features.map((f) => (
+                 <article key={f.title} className="card land-card">
+                   <span className="land-ico"><f.icon size={20} /></span>
+                   <h3>{f.title}</h3>
+@@ -150,7 +191,7 @@ export default function Home() {
+           <section id="faq" className="land-section" aria-labelledby="faq-h">
+             <h2 id="faq-h">Frequently asked questions</h2>
+             <div className="land-faq">
+-              {FAQS.map((f) => (
++              {faqs.map((f) => (
+                 <details key={f.q} className="card">
+                   <summary>{f.q}</summary>
+                   <p>{f.a}</p>
+diff --git a/components/AppShell.tsx b/components/AppShell.tsx
+index 01c218d..fd34b46 100644
+--- a/components/AppShell.tsx
++++ b/components/AppShell.tsx
+@@ -66,9 +66,11 @@ function OfflineBadge() {
+ export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
+   const pathname = usePathname();
+   const { data: features } = useFetch("/api/features");
++  const { data: shopData } = useFetch("/api/shop");
+   const [open, setOpen] = useState(false);
+   const [dueCount, setDueCount] = useState(0);
+   const [soundOn, setSoundOn] = useState(true);
++  const [flair, setFlair] = useState<{ avatar: string; title: string }>({ avatar: "", title: "" });
+ 
+   useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
+ 
+@@ -86,8 +88,16 @@ export default function AppShell({ user, children }: { user: Me; children: React
+   };
+   const now = new Date();
+   const daysLeft = Math.ceil((new Date(now.getFullYear() + 1, 0, 1).getTime() - now.getTime()) / 86400000);
++  const ownedItem = (key: string) => (shopData?.items || []).some((i: any) => i.key === key && i.owned);
++  const avatarItem = flair.avatar ? (shopData?.items || []).find((i: any) => i.key === flair.avatar && i.owned) : null;
++  const titleItem = flair.title ? (shopData?.items || []).find((i: any) => i.key === flair.title && i.owned) : null;
+ 
+   useEffect(() => setOpen(false), [pathname]);
++  useEffect(() => {
++    try {
++      setFlair({ avatar: localStorage.getItem("ff_avatar") || "", title: localStorage.getItem("ff_title") || "" });
++    } catch {}
++  }, [pathname]);
+   useEffect(() => {
+     let on = true;
+     (async () => {
+@@ -111,7 +121,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
+             <GraduationCap size={19} />
+           </div>
+           <span>
+-            Focus<span className="glow-text">Flow</span>
++            Focus<span className={ownedItem("anim_title") ? "glow-text brand-anim" : "glow-text"}>Flow</span>
+           </span>
+         </div>
+         <div className="ssection">Menu</div>
+@@ -140,10 +150,11 @@ export default function AppShell({ user, children }: { user: Me; children: React
+               display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, boxShadow: "var(--glow)",
+             }}
+           >
+-            {user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
++            {avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+           </div>
+           <div style={{ minWidth: 0, flex: 1 }}>
+             <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
++            {titleItem && <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--accent)", letterSpacing: 0.3 }}>{titleItem.name.replace("Title: ", "")}</div>}
+             <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+           </div>
+         </div>
+diff --git a/components/Providers.tsx b/components/Providers.tsx
+index c524915..d858fbd 100644
+--- a/components/Providers.tsx
++++ b/components/Providers.tsx
+@@ -16,6 +16,12 @@ export const THEMES = [
+   { id: "sunset", name: "Sunset", swatch: "linear-gradient(135deg,#f97316,#ef4444,#a855f7)", shop: 250 },
+   { id: "ocean", name: "Ocean", swatch: "linear-gradient(135deg,#38bdf8,#14b8a6,#3b82f6)", shop: 250 },
+   { id: "forest", name: "Forest", swatch: "linear-gradient(135deg,#34d399,#a3e635,#059669)", shop: 250 },
++  { id: "sakura", name: "Sakura", swatch: "linear-gradient(135deg,#fda4af,#f9a8d4,#c084fc)", shop: 250 },
++  { id: "dracula", name: "Dracula", swatch: "linear-gradient(135deg,#bd93f9,#ff79c6,#ff5555)", shop: 300 },
++  { id: "nord", name: "Nord", swatch: "linear-gradient(135deg,#88c0d0,#81a1c1,#5e81ac)", shop: 300 },
++  { id: "vapor", name: "Vaporwave", swatch: "linear-gradient(135deg,#f472b6,#a78bfa,#22d3ee)", shop: 300 },
++  { id: "coffee", name: "Coffee", swatch: "linear-gradient(135deg,#d4a373,#a47148,#6f4518)", shop: 250 },
++  { id: "royal", name: "Royal Gold", swatch: "linear-gradient(135deg,#f59e0b,#fbbf24,#a16207)", shop: 400 },
+ ] as const;
+ 
+ type ThemeCtx = { theme: string; setTheme: (t: string) => void };

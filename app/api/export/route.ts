@@ -14,6 +14,8 @@ export async function GET(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   const format = new URL(req.url).searchParams.get("format") || "json";
   const db = await getDb();
+  const unlock = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'unlock_export'", user.id)) as any;
+  if (!unlock) return NextResponse.json({ error: "Data export is locked — unlock it in the XP Shop" }, { status: 403 });
 
   const sessions = (await db.all(
     `SELECT se.id, s.name as subject, se.topic as topic, se.type, se.started_at, se.ended_at, se.duration_sec, se.notes

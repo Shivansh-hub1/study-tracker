@@ -66,9 +66,11 @@ function OfflineBadge() {
 export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
   const pathname = usePathname();
   const { data: features } = useFetch("/api/features");
+  const { data: shopData } = useFetch("/api/shop");
   const [open, setOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
   const [soundOn, setSoundOn] = useState(true);
+  const [flair, setFlair] = useState<{ avatar: string; title: string }>({ avatar: "", title: "" });
 
   useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
 
@@ -86,8 +88,16 @@ export default function AppShell({ user, children }: { user: Me; children: React
   };
   const now = new Date();
   const daysLeft = Math.ceil((new Date(now.getFullYear() + 1, 0, 1).getTime() - now.getTime()) / 86400000);
+  const ownedItem = (key: string) => (shopData?.items || []).some((i: any) => i.key === key && i.owned);
+  const avatarItem = flair.avatar ? (shopData?.items || []).find((i: any) => i.key === flair.avatar && i.owned) : null;
+  const titleItem = flair.title ? (shopData?.items || []).find((i: any) => i.key === flair.title && i.owned) : null;
 
   useEffect(() => setOpen(false), [pathname]);
+  useEffect(() => {
+    try {
+      setFlair({ avatar: localStorage.getItem("ff_avatar") || "", title: localStorage.getItem("ff_title") || "" });
+    } catch {}
+  }, [pathname]);
   useEffect(() => {
     let on = true;
     (async () => {
@@ -111,7 +121,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
             <GraduationCap size={19} />
           </div>
           <span>
-            Focus<span className="glow-text">Flow</span>
+            Focus<span className={ownedItem("anim_title") ? "glow-text brand-anim" : "glow-text"}>Flow</span>
           </span>
         </div>
         <div className="ssection">Menu</div>
@@ -140,10 +150,11 @@ export default function AppShell({ user, children }: { user: Me; children: React
               display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, boxShadow: "var(--glow)",
             }}
           >
-            {user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+            {avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
+            {titleItem && <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--accent)", letterSpacing: 0.3 }}>{titleItem.name.replace("Title: ", "")}</div>}
             <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
           </div>
         </div>

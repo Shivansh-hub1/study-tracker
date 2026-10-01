@@ -7,13 +7,34 @@ import { computeStats } from "@/lib/stats";
 export const dynamic = "force-dynamic";
 
 const SHOP_ITEMS = [
-  { key: "freeze1", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked).", icon: "❄️", cost: 100, repeatable: true },
-  { key: "theme_aurora", name: "Aurora Theme", desc: "Northern-lights premium color scheme for the whole app.", icon: "🌌", cost: 250, repeatable: false },
-  { key: "theme_sunset", name: "Sunset Theme", desc: "Warm golden-dusk premium color scheme.", icon: "🌇", cost: 250, repeatable: false },
-  { key: "theme_ocean", name: "Ocean Theme", desc: "Deep-sea blues and teals premium color scheme.", icon: "🌊", cost: 250, repeatable: false },
-  { key: "theme_forest", name: "Forest Theme", desc: "Calm woodland greens premium color scheme.", icon: "🌲", cost: 250, repeatable: false },
-  { key: "confetti", name: "Celebration Confetti", desc: "A confetti burst every time you save a study session.", icon: "🎉", cost: 150, repeatable: false },
-  { key: "flame", name: "Golden Streak Flame", desc: "Your dashboard streak card turns golden forever.", icon: "👑", cost: 150, repeatable: false },
+  { key: "freeze1", cat: "Utility", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked, 5 with Deep Freeze).", icon: "❄️", cost: 100, repeatable: true },
+  { key: "deep_freeze", cat: "Utility", name: "Deep Freeze", desc: "Permanently raises your streak-freeze stock cap from 3 to 5.", icon: "🧊", cost: 400, repeatable: false },
+  { key: "unlock_year", cat: "Unlocks", name: "Full-Year Heatmap", desc: "Unlocks the 53-week full-year heatmap on the Progress page (free view: last 20 weeks).", icon: "🗓️", cost: 300, repeatable: false },
+  { key: "unlock_export", cat: "Unlocks", name: "Data Export", desc: "Unlocks CSV and full-JSON data export in Settings.", icon: "📦", cost: 150, repeatable: false },
+  { key: "theme_aurora", cat: "Themes", name: "Aurora Theme", desc: "Northern-lights premium color scheme for the whole app.", icon: "🌌", cost: 250, repeatable: false },
+  { key: "theme_sunset", cat: "Themes", name: "Sunset Theme", desc: "Warm golden-dusk premium color scheme.", icon: "🌇", cost: 250, repeatable: false },
+  { key: "theme_ocean", cat: "Themes", name: "Ocean Theme", desc: "Deep-sea blues and teals premium color scheme.", icon: "🌊", cost: 250, repeatable: false },
+  { key: "theme_forest", cat: "Themes", name: "Forest Theme", desc: "Calm woodland greens premium color scheme.", icon: "🌲", cost: 250, repeatable: false },
+  { key: "theme_sakura", cat: "Themes", name: "Sakura Theme", desc: "Soft cherry-blossom pink light premium color scheme.", icon: "🌸", cost: 250, repeatable: false },
+  { key: "theme_dracula", cat: "Themes", name: "Dracula Theme", desc: "Classic dark purple-and-red premium color scheme.", icon: "🧛", cost: 300, repeatable: false },
+  { key: "theme_nord", cat: "Themes", name: "Nord Theme", desc: "Cool arctic blue-grey premium color scheme.", icon: "🏔️", cost: 300, repeatable: false },
+  { key: "theme_vapor", cat: "Themes", name: "Vaporwave Theme", desc: "Retro purple-cyan neon premium color scheme.", icon: "🌆", cost: 300, repeatable: false },
+  { key: "theme_coffee", cat: "Themes", name: "Coffee Theme", desc: "Warm roasted-brown premium color scheme.", icon: "☕", cost: 250, repeatable: false },
+  { key: "theme_royal", cat: "Themes", name: "Royal Gold Theme", desc: "Regal dark-and-gold premium color scheme.", icon: "👑", cost: 400, repeatable: false },
+  { key: "avatar_cat", cat: "Profile", name: "Avatar: Cat", desc: "Show a cat emoji next to your name in the sidebar.", icon: "🐱", cost: 75, repeatable: false },
+  { key: "avatar_fox", cat: "Profile", name: "Avatar: Fox", desc: "Show a fox emoji next to your name in the sidebar.", icon: "🦊", cost: 75, repeatable: false },
+  { key: "avatar_tiger", cat: "Profile", name: "Avatar: Tiger", desc: "Show a tiger emoji next to your name in the sidebar.", icon: "🐯", cost: 75, repeatable: false },
+  { key: "avatar_dragon", cat: "Profile", name: "Avatar: Dragon", desc: "Show a dragon emoji next to your name in the sidebar.", icon: "🐲", cost: 100, repeatable: false },
+  { key: "avatar_rocket", cat: "Profile", name: "Avatar: Rocket", desc: "Show a rocket emoji next to your name in the sidebar.", icon: "🚀", cost: 100, repeatable: false },
+  { key: "avatar_ninja", cat: "Profile", name: "Avatar: Ninja", desc: "Show a ninja emoji next to your name in the sidebar.", icon: "🥷", cost: 100, repeatable: false },
+  { key: "title_nightowl", cat: "Profile", name: "Title: Night Owl", desc: "Show the Night Owl title under your name in the sidebar.", icon: "🌙", cost: 100, repeatable: false },
+  { key: "title_deepworker", cat: "Profile", name: "Title: Deep Worker", desc: "Show the Deep Worker title under your name in the sidebar.", icon: "🧘", cost: 100, repeatable: false },
+  { key: "title_codemonkey", cat: "Profile", name: "Title: Code Monkey", desc: "Show the Code Monkey title under your name in the sidebar.", icon: "💻", cost: 100, repeatable: false },
+  { key: "title_ironwill", cat: "Profile", name: "Title: Iron Will", desc: "Show the Iron Will title under your name in the sidebar.", icon: "⚔️", cost: 150, repeatable: false },
+  { key: "confetti", cat: "Cosmetics", name: "Celebration Confetti", desc: "A confetti burst every time you save a study session.", icon: "🎉", cost: 150, repeatable: false },
+  { key: "flame", cat: "Cosmetics", name: "Golden Streak Flame", desc: "Your dashboard streak card turns golden forever.", icon: "🔥", cost: 150, repeatable: false },
+  { key: "anim_title", cat: "Cosmetics", name: "Animated Title", desc: "The FocusFlow logo gets a flowing animated rainbow gradient.", icon: "✨", cost: 150, repeatable: false },
+  { key: "rainbow_streak", cat: "Cosmetics", name: "Rainbow Streak", desc: "Your dashboard streak number gets an animated rainbow gradient.", icon: "🌈", cost: 150, repeatable: false },
 ];
 
 async function wallet(db: any, userId: number) {
@@ -64,9 +85,11 @@ export async function POST(req: NextRequest) {
   }
 
   if (def.key === "freeze1") {
+    const deep = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'deep_freeze'", user.id)) as any;
+    const cap = deep ? 5 : 3;
     const s = (await db.get("SELECT freeze_stock FROM settings WHERE user_id = ?", user.id)) as any;
-    if (Number(s?.freeze_stock ?? 0) >= 3) {
-      return NextResponse.json({ error: "Freeze stock is full (3/3)" }, { status: 400 });
+    if (Number(s?.freeze_stock ?? 0) >= cap) {
+      return NextResponse.json({ error: `Freeze stock is full (${cap}/${cap})` }, { status: 400 });
     }
   }
 

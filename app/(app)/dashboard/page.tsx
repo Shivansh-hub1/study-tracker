@@ -40,6 +40,7 @@ export default function DashboardPage() {
   const { data: smartPlan } = useFetch("/api/smart-plan");
   const { data: shopData } = useFetch("/api/shop");
   const goldenFlame = (shopData?.items || []).some((i: any) => i.key === "flame" && i.owned);
+  const rainbowStreak = (shopData?.items || []).some((i: any) => i.key === "rainbow_streak" && i.owned);
   const shareRef = useRef<HTMLCanvasElement>(null);
 
   const stats = dashData?.stats;
@@ -225,7 +226,7 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-4">
-        <Stat icon={<Flame size={22} />} label="Day streak" value={`${stats?.streak ?? 0}`} sub={goldenFlame ? "golden streak ✨" : "consecutive days"} accent={goldenFlame ? "#f59e0b" : "#f97316"} />
+        <Stat icon={<Flame size={22} />} label="Day streak" value={rainbowStreak ? ((<span className="rainbow-text">{stats?.streak ?? 0}</span>) as any) : `${stats?.streak ?? 0}`} sub={goldenFlame ? "golden streak ✨" : "consecutive days"} accent={goldenFlame ? "#f59e0b" : "#f97316"} />
         <Stat icon={<Clock size={22} />} label="Today" value={fmtMinutes(stats?.todayMin ?? 0)} sub="focused time" accent="#6366f1" />
         <Stat icon={<CalendarDays size={22} />} label="This week" value={fmtMinutes(stats?.weekMin ?? 0)} sub={`${stats?.weekSessions ?? 0} sessions`} accent="#10b981" />
         <Stat icon={<TrendingUp size={22} />} label="All time" value={`${stats?.totalHours ?? 0}h`} sub={`${stats?.totalSessions ?? 0} sessions`} accent="#ec4899" />
