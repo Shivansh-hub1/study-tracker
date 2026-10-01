@@ -7,17 +7,51 @@ import { enqueueOffline } from "./offline";
 // and any mutation (POST/PATCH/DELETE) busts it so data never goes stale.
 const cache = new Map<string, { at: number; data: any }>();
 const CACHE_TTL = 60 * 1000;
+// Persisted to localStorage so revisits + offline are instant (topics, sessions, roadmaps...)
+const LS_PREFIX = "ff_c:";
+const MAX_PERSIST = 400_000;
+
+function cacheSet(path: string, at: number, data: any) {
+  cache.set(path, { at, data });
+  try {
+    const raw = JSON.stringify({ at, data });
+    if (raw.length <= MAX_PERSIST) localStorage.setItem(LS_PREFIX + path, raw);
+  } catch {}
+}
+
+// Seed memory cache from localStorage on boot
+if (typeof window !== "undefined") {
+  try {
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith(LS_PREFIX)) {
+        const raw = JSON.parse(localStorage.getItem(k) || "null");
+        if (raw && typeof raw.at === "number" && raw.data !== undefined) {
+          cache.set(k.slice(LS_PREFIX.length), raw);
+        }
+      }
+    }
+  } catch {}
+}
 // Dedupes concurrent identical GETs (two components asking at once = one request)
 const inflight = new Map<string, Promise<any>>();
 
 export function bustCache(prefix?: string) {
-  if (!prefix) {
-    cache.clear();
-    return;
-  }
   const drop: string[] = [];
-  cache.forEach((_v, k) => { if (k.startsWith(prefix)) drop.push(k); });
+  cache.forEach((_v, k) => { if (!prefix || k.startsWith(prefix)) drop.push(k); });
   for (const k of drop) cache.delete(k);
+  if (typeof window !== "undefined") {
+    try {
+      const lsDrop: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const k = localStorage.key(i);
+        if (k && k.startsWith(LS_PREFIX) && (!prefix || k.slice(LS_PREFIX.length).startsWith(prefix))) {
+          lsDrop.push(k);
+        }
+      }
+      for (const k of lsDrop) localStorage.removeItem(k);
+    } catch {}
+  }
 }
 
 export async function api(path: string, options?: RequestInit, opts?: { queueOffline?: boolean }) {
@@ -70,10 +104,11 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
     }
     try {
       const d = await api(path);
-      cache.set(path, { at: Date.now(), data: d });
+      cacheSet(path, Date.now(), d);
       setData(d);
     } catch (e: any) {
-      if (!background) setError(e.message);
+      // offline: keep showing cached data silently
+      if (!background && (typeof navigator === "undefined" || navigator.onLine)) setError(e.message);
     } finally {
       if (!background) setLoading(false);
     }
@@ -82,6 +117,16 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
 
   useEffect(() => {
     if (!path) return;
+    // Offline: serve whatever we have (even stale), never hit the network
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const off = cache.get(path);
+      if (off) {
+        setData(off.data);
+        setLoading(false);
+        setError(null);
+      }
+      return;
+    }
     const hit = cache.get(path);
     if (hit) {
       // show cached data instantly; refresh in background if stale
@@ -94,6 +139,14 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
     reload();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload, ...deps]);
+
+  // Refresh when the connection comes back
+  useEffect(() => {
+    const onOnline = () => reload(true);
+    window.addEventListener("online", onOnline);
+    return () => window.removeEventListener("online", onOnline);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [reload]);
 
   // After offline mutations sync, visible data refreshes itself.
   useEffect(() => {

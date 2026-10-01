@@ -32,7 +32,10 @@ const CACHE_STRATEGIES = {
 self.addEventListener("install", (event) => {
   event.waitUntil(
     caches.open(CACHE_NAME).then((cache) => {
-      return cache.addAll(STATIC_ASSETS.map((url) => new Request(url, { credentials: "same-origin" })));
+      // allSettled: one failing URL must not break offline support entirely
+      return Promise.allSettled(
+        STATIC_ASSETS.map((url) => cache.add(new Request(url, { credentials: "same-origin" })))
+      );
     })
   );
   self.skipWaiting();

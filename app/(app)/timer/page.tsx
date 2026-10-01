@@ -305,7 +305,7 @@ export default function TimersPage() {
       soundEngine.click();
       const next = Math.max(0, Math.min(selLectures.length, selLectureIdx + dir));
       try {
-        await api(journeyEndpoint, { method: "PATCH", body: JSON.stringify({ key: selTopic.key, lecture_idx: next }) });
+        await api(journeyEndpoint, { method: "PATCH", body: JSON.stringify({ key: selTopic.key, lecture_idx: next }) }, { queueOffline: true });
         await (isDsa ? reloadDsa() : reloadWeb());
         soundEngine.topicComplete();
       } catch (e: any) {

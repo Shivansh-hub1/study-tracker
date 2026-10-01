@@ -25,14 +25,14 @@ export default function HabitsPage() {
   const add = async () => {
     if (!name.trim()) return;
     try {
-      await api("/api/habits", { method: "POST", body: JSON.stringify({ name, color }) });
+      await api("/api/habits", { method: "POST", body: JSON.stringify({ name, color }) }, { queueOffline: true });
       setModal(false); setName(""); reload(); playSound("pop"); toast("Habit added", "success");
     } catch (e: any) { toast(e.message, "error"); }
   };
 
   const toggle = async (h: any) => {
     playSound("tick");
-    try { await api("/api/habits", { method: "PATCH", body: JSON.stringify({ id: h.id, day: todayKey() }) }); reload(); }
+    try { await api("/api/habits", { method: "PATCH", body: JSON.stringify({ id: h.id, day: todayKey() }) }, { queueOffline: true }); reload(); }
     catch (e: any) { toast(e.message, "error"); }
   };
 
@@ -62,7 +62,7 @@ export default function HabitsPage() {
               <button className={`btn btn-sm ${h.doneToday ? "" : "btn-primary"}`} onClick={() => toggle(h)}>
                 {h.doneToday ? <><Check size={14} /> Done</> : "Tick today"}
               </button>
-              <button className="iconbtn" style={{ width: 30, height: 30 }} onClick={async () => { await api(`/api/habits?id=${h.id}`, { method: "DELETE" }); reload(); }}><Trash2 size={14} /></button>
+              <button className="iconbtn" style={{ width: 30, height: 30 }} onClick={async () => { await api(`/api/habits?id=${h.id}`, { method: "DELETE" }, { queueOffline: true }); reload(); }}><Trash2 size={14} /></button>
             </div>
           ))}
         </div>

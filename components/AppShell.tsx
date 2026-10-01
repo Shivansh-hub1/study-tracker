@@ -68,6 +68,13 @@ export default function AppShell({ user, children }: { user: Me; children: React
   const [soundOn, setSoundOn] = useState(true);
 
   useEffect(() => { setSoundOn(isSoundEnabled()); }, []);
+
+  // Offline app shell: register the service worker in production
+  useEffect(() => {
+    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      navigator.serviceWorker.register("/sw.js").catch(() => {});
+    }
+  }, []);
   const toggleSound = () => {
     const next = !soundOn;
     setSoundOn(next);

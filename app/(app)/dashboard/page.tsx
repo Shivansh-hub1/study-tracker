@@ -53,7 +53,7 @@ export default function DashboardPage() {
     const prev = goals;
     setGoalsData({ goals: [...goals, temp] } as any);
     try {
-      const { goal } = await api("/api/goals", { method: "POST", body: JSON.stringify({ title: gTitle, kind: gKind, target: Number(gTarget) }) });
+      const { goal } = await api("/api/goals", { method: "POST", body: JSON.stringify({ title: gTitle, kind: gKind, target: Number(gTarget) }) }, { queueOffline: true });
       setGoalsData({ goals: [...prev, goal] } as any);
       setGoalModal(false);
       setGTitle("");
@@ -70,7 +70,7 @@ export default function DashboardPage() {
     const prev = goals;
     setGoalsData({ goals: goals.filter((g: any) => g.id !== id) } as any);
     try {
-      await api(`/api/goals/${id}`, { method: "DELETE" });
+      await api(`/api/goals/${id}`, { method: "DELETE" }, { queueOffline: true });
       playSound("delete"); toast("Goal removed", "success");
     } catch (e: any) {
       setGoalsData({ goals: prev } as any);
@@ -80,7 +80,7 @@ export default function DashboardPage() {
 
   const useFreeze = async () => {
     try {
-      const r = await api(`/api/streak?offset=${-new Date().getTimezoneOffset()}`, { method: "POST", body: JSON.stringify({ action: "freeze" }) });
+      const r = await api(`/api/streak?offset=${-new Date().getTimezoneOffset()}`, { method: "POST", body: JSON.stringify({ action: "freeze" }) }, { queueOffline: true });
       setStreakData(r as any);
       reloadStats();
       toast("Streak frozen \u2744\uFE0F Come back tomorrow!", "success");
@@ -91,7 +91,7 @@ export default function DashboardPage() {
 
   const unFreeze = async () => {
     try {
-      const r = await api(`/api/streak?offset=${-new Date().getTimezoneOffset()}`, { method: "POST", body: JSON.stringify({ action: "unfreeze" }) });
+      const r = await api(`/api/streak?offset=${-new Date().getTimezoneOffset()}`, { method: "POST", body: JSON.stringify({ action: "unfreeze" }) }, { queueOffline: true });
       setStreakData(r as any);
       reloadStats();
       toast("Unfrozen — study today to keep the streak!", "success");

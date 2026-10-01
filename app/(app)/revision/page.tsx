@@ -45,7 +45,7 @@ export default function RevisionPage() {
 
   const rate = async (it: Item, rating: string) => {
     try {
-      await api(it.apiPath, { method: "POST", body: JSON.stringify({ action: "revise", key: it.key, rating }) });
+      await api(it.apiPath, { method: "POST", body: JSON.stringify({ action: "revise", key: it.key, rating }) }, { queueOffline: true });
       refresh();
       toast(rating === "again" ? "Again tomorrow — it'll stick 💪" : rating === "hard" ? "Back in 3 days" : "Revised! Back in 7 days ✅", "success");
     } catch (e: any) {
@@ -71,7 +71,7 @@ export default function RevisionPage() {
     const it = session[0];
     setBusy(true);
     try {
-      await api(it.apiPath, { method: "POST", body: JSON.stringify({ action: "revise", key: it.key, rating }) });
+      await api(it.apiPath, { method: "POST", body: JSON.stringify({ action: "revise", key: it.key, rating }) }, { queueOffline: true });
       const rest = session.slice(1);
       setDoneCount((c) => c + 1);
       if (rest.length === 0) {

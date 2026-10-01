@@ -40,7 +40,7 @@ export default function SubjectsPage() {
       // optimistic update
       setData({ subjects: subjects.map((s: any) => (s.id === modal.id ? { ...s, ...payload } : s)) } as any);
       try {
-        const { subject } = await api(`/api/subjects/${modal.id}`, { method: "PATCH", body: JSON.stringify(payload) });
+        const { subject } = await api(`/api/subjects/${modal.id}`, { method: "PATCH", body: JSON.stringify(payload) }, { queueOffline: true });
         setData({ subjects: prev.map((s: any) => (s.id === modal.id ? { ...s, ...subject } : s)) } as any);
         playSound("success"); toast("Subject updated", "success");
         setModal(null);
@@ -52,7 +52,7 @@ export default function SubjectsPage() {
       const temp = { id: -Date.now(), ...payload, total_sec: 0, session_count: 0 };
       setData({ subjects: [...subjects, temp] } as any);
       try {
-        const { subject } = await api("/api/subjects", { method: "POST", body: JSON.stringify(payload) });
+        const { subject } = await api("/api/subjects", { method: "POST", body: JSON.stringify(payload) }, { queueOffline: true });
         setData({ subjects: [...prev, { ...subject, total_sec: 0, session_count: 0 }] } as any);
         playSound("success"); toast("Subject created", "success");
         setModal(null);
@@ -70,7 +70,7 @@ export default function SubjectsPage() {
     const prev = subjects;
     setData({ subjects: subjects.filter((x: any) => x.id !== s.id) } as any);
     try {
-      await api(`/api/subjects/${s.id}`, { method: "DELETE" });
+      await api(`/api/subjects/${s.id}`, { method: "DELETE" }, { queueOffline: true });
       playSound("delete"); toast(`"${s.name}" deleted`, "success");
     } catch (e: any) {
       setData({ subjects: prev } as any);

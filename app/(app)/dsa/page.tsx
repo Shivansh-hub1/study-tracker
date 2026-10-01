@@ -33,7 +33,7 @@ export default function DsaPage() {
   const setStatus = async (key: string, status: string) => {
     playSound(status === "mastered" ? "levelup" : "click");
     try {
-      const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) });
+      const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, status }) }, { queueOffline: true });
       setData(updated);
       if (status === "done") toast("Topic done! Next one unlocked 🎉", "success");
     } catch (e: any) {
@@ -44,7 +44,7 @@ export default function DsaPage() {
   const setLecture = async (key: string, idx: number, len: number) => {
     playSound("tick");
     try {
-      const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) });
+      const updated = await api("/api/dsa", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) }, { queueOffline: true });
       setData(updated);
       if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
     } catch (e: any) {
@@ -55,7 +55,7 @@ export default function DsaPage() {
   const completeAbove = async () => {
     playSound("levelup");
     try {
-      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "complete_above", key: data?.current }) });
+      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "complete_above", key: data?.current }) }, { queueOffline: true });
       setData(updated);
       toast("Earlier modules marked done", "success");
     } catch (e: any) {
@@ -69,7 +69,7 @@ export default function DsaPage() {
       await api("/api/subjects", {
         method: "POST",
         body: JSON.stringify({ name: "DSA", color: "#f59e0b", target_minutes: 600 }),
-      });
+      }, { queueOffline: true });
       await reloadSubjects();
       toast("DSA subject created — timers will now auto-pick topics", "success");
     } catch (e: any) {
@@ -81,7 +81,7 @@ export default function DsaPage() {
     playSound("whoosh");
     if (!confirm("Restart the whole DSA journey? Time logs stay, statuses reset.")) return;
     try {
-      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "reset" }) });
+      const updated = await api("/api/dsa", { method: "POST", body: JSON.stringify({ action: "reset" }) }, { queueOffline: true });
       setData(updated);
       toast("Journey restarted", "success");
     } catch (e: any) {

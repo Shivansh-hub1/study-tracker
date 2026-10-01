@@ -42,7 +42,7 @@ export default function SettingsPage() {
       const { settings } = await api("/api/settings", {
         method: "PATCH",
         body: JSON.stringify({ pomo_work: Number(work), pomo_short: Number(short), pomo_long: Number(long), pomo_rounds: Number(rounds), auto_next: autoNext }),
-      });
+      }, { queueOffline: true });
       setData({ settings } as any);
       playSound("success"); toast("Pomodoro defaults saved", "success");
     } catch (e: any) {
