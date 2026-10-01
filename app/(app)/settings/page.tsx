@@ -1,17 +1,28 @@
 "use client";
 
-import { playSound } from "@/lib/sounds";
 import React, { useEffect, useState } from "react";
 import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useFetch, api } from "@/lib/client";
 import { Spinner } from "@/components/ui";
 import { THEMES, useTheme, useToast } from "@/components/Providers";
+import { playSound } from "@/lib/sounds";
 
 export default function SettingsPage() {
   const router = useRouter();
   const { toast } = useToast();
   const { theme, setTheme } = useTheme();
+  const { data: shopData } = useFetch("/api/shop");
+  const ownedThemes = new Set((shopData?.items || []).filter((i: any) => i.owned).map((i: any) => i.key.replace("theme_", "")));
+  const pickTheme = (t: any) => {
+    if (t.shop && !ownedThemes.has(t.id)) {
+      playSound("error");
+      toast(`🔒 ${t.name} is a premium theme — unlock it in the Shop for ${t.shop} XP`, "error");
+      return;
+    }
+    playSound("click");
+    setTheme(t.id);
+  };
   const { data: me } = useFetch("/api/auth/me");
   const { data: settingsData, loading, setData } = useFetch("/api/settings");
   const s = settingsData?.settings;
@@ -101,10 +112,10 @@ export default function SettingsPage() {
         <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Palette size={16} /> Appearance</h2>
         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>Pick a vibe — from clean daylight to full neon.</p>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
-          {THEMES.map((t) => (
+          {THEMES.map((t: any) => (
             <button
               key={t.id}
-              onClick={() => { playSound("click"); setTheme(t.id); }}
+              onClick={() => pickTheme(t)}
               className="card"
               style={{
                 padding: 12, cursor: "pointer", textAlign: "center",
@@ -115,7 +126,7 @@ export default function SettingsPage() {
               <div style={{ height: 44, borderRadius: 10, background: t.swatch, marginBottom: 8, display: "grid", placeItems: "center", color: "#fff" }}>
                 {theme === t.id && <Check size={18} strokeWidth={3} />}
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.name}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.shop && !ownedThemes.has(t.id as any) ? `🔒 ${t.name} · ${t.shop} XP` : t.name}</div>
             </button>
           ))}
         </div>

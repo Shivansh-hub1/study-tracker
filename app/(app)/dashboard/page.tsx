@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
-  BookOpen, Timer as TimerIcon, Snowflake, Share2,
+  BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2,
 } from "lucide-react";
 import {
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
@@ -37,6 +37,7 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const setStreakData = (r: any) => setDashData((prev: any) => ({ ...prev, ...r }));
   const [shareOpen, setShareOpen] = useState(false);
+  const { data: smartPlan } = useFetch("/api/smart-plan");
   const shareRef = useRef<HTMLCanvasElement>(null);
 
   const stats = dashData?.stats;
@@ -194,6 +195,33 @@ export default function DashboardPage() {
       )}
 
       {/* Stats row */}
+      {smartPlan?.enabled && smartPlan?.plan?.length > 0 && (
+        <div className="card" style={{ padding: "16px 20px", background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%)" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
+            <Sparkles2 size={16} style={{ color: "var(--accent)" }} />
+            <h2 style={{ fontSize: 14.5, fontWeight: 800 }}>Today&apos;s smart plan</h2>
+            <span className="badge" style={{ fontSize: 10.5, background: "var(--accent-soft)", color: "var(--accent)" }}>auto</span>
+          </div>
+          <div className="grid grid-2" style={{ gap: 10 }}>
+            {smartPlan.plan.slice(0, 4).map((p: any, i: number) => (
+              <Link
+                key={i}
+                href={p.href}
+                onClick={() => playSound("click")}
+                className="card"
+                style={{ padding: "11px 14px", display: "flex", gap: 11, alignItems: "center", textDecoration: "none", color: "inherit", border: "1px solid var(--border)" }}
+              >
+                <span style={{ fontSize: 19 }}>{p.icon}</span>
+                <span style={{ minWidth: 0 }}>
+                  <span style={{ display: "block", fontWeight: 700, fontSize: 13.5 }}>{p.title}</span>
+                  <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.sub}</span>
+                </span>
+              </Link>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="grid grid-4">
         <Stat icon={<Flame size={22} />} label="Day streak" value={`${stats?.streak ?? 0}`} sub="consecutive days" accent="#f97316" />
         <Stat icon={<Clock size={22} />} label="Today" value={fmtMinutes(stats?.todayMin ?? 0)} sub="focused time" accent="#6366f1" />

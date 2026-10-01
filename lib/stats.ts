@@ -9,7 +9,8 @@ export function computeStats(
   frozenRows: any[],
   revD: any,
   revW: any,
-  offsetMin: number
+  offsetMin: number,
+  spentXp: number = 0
 ) {
   const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
@@ -124,6 +125,7 @@ export function computeStats(
     level,
     xpInto: xp - xpCur,
     xpNeed: xpNext - xpCur,
+    xpAvailable: Math.max(0, xp - spentXp),
     revised: revisedTotal,
     totalHours: Math.round((totalSec / 3600) * 10) / 10,
     totalSessions: sessions.length,

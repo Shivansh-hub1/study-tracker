@@ -9,10 +9,32 @@ import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, timeAgo, prettyDate, prettyDT } from "@/lib/utils";
 import { Modal, EmptyState, Spinner, Stat, CardSkeleton, Dot, FieldError } from "@/components/ui";
 import { useToast } from "@/components/Providers";
+import { playSound } from "@/lib/sounds";
+import { bustCache } from "@/lib/client";
+import { Sparkles } from "lucide-react";
 
 export default function AdminPage() {
   const { toast } = useToast();
   const { data, loading, error, setData } = useFetch("/api/admin/users");
+  const { data: adminSettings, reload: reloadAdminSettings } = useFetch("/api/admin/settings");
+  const [planBusy, setPlanBusy] = useState(false);
+  const toggleSmartPlan = async () => {
+    playSound("click");
+    setPlanBusy(true);
+    try {
+      const next = !(adminSettings?.smartPlan ?? true);
+      await api("/api/admin/settings", { method: "POST", body: JSON.stringify({ smartPlan: next }) }, { queueOffline: false });
+      playSound("success");
+      toast(`Smart daily plan ${next ? "enabled" : "disabled"}`, "success");
+      bustCache("/api/smart-plan");
+      reloadAdminSettings();
+    } catch (e: any) {
+      playSound("error");
+      toast(e.message, "error");
+    } finally {
+      setPlanBusy(false);
+    }
+  };
   const users = useMemo(() => data?.users || [], [data]);
   const [q, setQ] = useState("");
 
@@ -110,6 +132,22 @@ export default function AdminPage() {
 
   return (
     <div className="grid" style={{ gap: 20 }}>
+      {/* Feature switches */}
+      <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
+        <Sparkles size={18} style={{ color: "var(--accent)" }} />
+        <div style={{ flex: 1, minWidth: 200 }}>
+          <div style={{ fontWeight: 800, fontSize: 14 }}>Smart daily plan</div>
+          <div style={{ fontSize: 12, color: "var(--muted)" }}>Shows an auto-generated plan card (revision due, planner blocks, weak subject) on every user&apos;s dashboard.</div>
+        </div>
+        <button
+          className={adminSettings?.smartPlan === false ? "btn" : "btn btn-primary"}
+          disabled={planBusy || !adminSettings}
+          onClick={toggleSmartPlan}
+          style={{ minWidth: 110, fontWeight: 800 }}
+        >
+          {adminSettings ? (adminSettings.smartPlan ? "ON — turn off" : "OFF — turn on") : "Loading..."}
+        </button>
+      </div>
       <div className="grid grid-4">
         <Stat icon={<Users size={22} />} label="Total users" value={String(users.length)} accent="#6366f1" />
         <Stat icon={<UserCheck size={22} />} label="Active today" value={String(activeToday)} accent="#10b981" />

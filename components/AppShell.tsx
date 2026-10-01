@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
-import { Volume2, VolumeX } from "lucide-react";
+import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
 import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
@@ -24,6 +24,7 @@ const NAV = [
   { href: "/planner", label: "Planner", icon: CalendarDays },
   { href: "/habits", label: "Habits", icon: Sprout },
   { href: "/achievements", label: "Achievements", icon: Trophy },
+  { href: "/shop", label: "XP Shop", icon: ShoppingBag },
   { href: "/progress", label: "Progress", icon: TrendingUp },
   { href: "/sessions", label: "Sessions", icon: ListChecks },
   { href: "/settings", label: "Settings", icon: Settings },

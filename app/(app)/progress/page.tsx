@@ -235,8 +235,8 @@ export default function ProgressPage() {
 
       {/* Heatmap */}
       <div className="card">
-        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — daily focus over 20 weeks</h2>
-        <Heatmap data={stats.heat} />
+        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — full year</h2>
+        <Heatmap data={stats.heat} weeks={53} compact />
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
           Less
           {[0.15, 0.35, 0.55, 0.8, 1].map((o) => (

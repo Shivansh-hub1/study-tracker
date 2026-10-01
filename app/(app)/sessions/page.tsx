@@ -47,6 +47,26 @@ export default function SessionsPage() {
     setSoundOn(isSoundEnabled());
   }, []);
 
+  // Keyboard shortcuts: / search · N new session
+  React.useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.key === "/") {
+        e.preventDefault();
+        playSound("click");
+        document.getElementById("sessions-search")?.focus();
+      } else if (e.key === "n" || e.key === "N") {
+        e.preventDefault();
+        openCreate();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const toggleSound = () => {
     const next = !soundOn;
     setSoundOn(next);
@@ -280,7 +300,7 @@ export default function SessionsPage() {
 
         <div style={{ position: "relative", flex: "1 1 200px", maxWidth: 260 }}>
           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
-          <input className="input" placeholder="Search topic, notes..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 30, borderRadius: 12, fontWeight: 500 }} />
+          <input id="sessions-search" className="input" placeholder="Search topic, notes...  (press /)" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 30, borderRadius: 12, fontWeight: 500 }} />
         </div>
 
         <span className="badge" style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--accent)", fontWeight: 700, padding: "6px 12px", borderRadius: 999 }}>

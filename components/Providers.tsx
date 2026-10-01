@@ -12,6 +12,8 @@ export const THEMES = [
   { id: "ember", name: "Ember Neon", swatch: "linear-gradient(135deg,#ef4444,#fbbf24)" },
   { id: "glass-light", name: "Frost Light", swatch: "linear-gradient(135deg,#c7d2fe,#f9a8d4,#a5f3fc)" },
   { id: "glass-dark", name: "Frost Dark", swatch: "linear-gradient(135deg,#4c1d95,#9d174d,#0e7490)" },
+  { id: "aurora", name: "Aurora", swatch: "linear-gradient(135deg,#22d3ee,#a78bfa,#f472b6)", shop: 250 },
+  { id: "sunset", name: "Sunset", swatch: "linear-gradient(135deg,#f97316,#ef4444,#a855f7)", shop: 250 },
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };

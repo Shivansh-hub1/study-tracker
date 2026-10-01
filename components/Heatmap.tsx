@@ -2,8 +2,8 @@
 
 import React, { useMemo } from "react";
 
-export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number }) {
-  const { cols, max } = useMemo(() => {
+export default function Heatmap({ data, weeks = 20, compact = false }: { data: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number; compact?: boolean }) {
+  const { cols, max, months } = useMemo(() => {
     const byDate: Record<string, number> = {};
     const frozen = new Set<string>();
     let max = 0;
@@ -24,7 +24,17 @@ export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: stri
       }
       cols.push(col);
     }
-    return { cols, max };
+    // month labels: where the month of a column's Monday changes
+    const months: Array<{ i: number; label: string }> = [];
+    let lastM = -1;
+    cols.forEach((col, i) => {
+      const first = col[0];
+      if (first) {
+        const m = Number(first.date.slice(5, 7)) - 1;
+        if (m !== lastM) { months.push({ i, label: new Date(first.date).toLocaleString("en", { month: "short" }) }); lastM = m; }
+      }
+    });
+    return { cols, max, months };
   }, [data, weeks]);
 
   const level = (v: number) => {
@@ -41,20 +51,33 @@ export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: stri
     { background: "var(--accent)", border: "1px solid transparent", boxShadow: "0 0 6px var(--accent)" },
   ];
 
+  const gap = compact ? 2 : 4;
+  const cell = compact ? { width: 9, height: 9 } : undefined;
   return (
-    <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 6 }}>
-      {cols.map((col, i) => (
-        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-          {col.map((c) => (
-            <div
-              key={c.date}
-              className="heat-cell"
-              title={`${c.date} — ${c.v >= 60 ? `${Math.floor(c.v / 60)}h ${c.v % 60}m` : `${c.v}m`}`}
-              style={c.future ? { opacity: 0.25 } : c.f && c.v <= 0 ? { background: "rgba(125, 211, 252, 0.5)", border: "1px solid rgba(125,211,252,.9)" } : styles[level(c.v)]}
-            />
-          ))}
-        </div>
-      ))}
+    <div>
+      <div style={{ display: "flex", gap, overflowX: "auto", paddingBottom: 2 }}>
+        {cols.map((col, i) => {
+          const m = months.find((x: any) => x.i === i);
+          return (
+            <div key={i} style={{ display: "flex", flexDirection: "column", gap }}>
+              <div style={{ height: 14, fontSize: 9, color: "var(--muted)", fontWeight: 700, whiteSpace: "nowrap" }}>
+                {m ? m.label : ""}
+              </div>
+              {col.map((c) => (
+                <div
+                  key={c.date}
+                  className="heat-cell"
+                  title={`${c.date} — ${c.v >= 60 ? `${Math.floor(c.v / 60)}h ${c.v % 60}m` : `${c.v}m`}`}
+                  style={{
+                    ...(cell || {}),
+                    ...(c.future ? { opacity: 0.25 } : c.f && c.v <= 0 ? { background: "rgba(125, 211, 252, 0.5)", border: "1px solid rgba(125,211,252,.9)" } : styles[level(c.v)]),
+                  }}
+                />
+              ))}
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }

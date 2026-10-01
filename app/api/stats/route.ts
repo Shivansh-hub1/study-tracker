@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
     db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
   ]);
 
-  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin) };
+  const spentRow = (await db.get("SELECT COALESCE(SUM(cost),0) as c FROM xp_purchases WHERE user_id = ?", user.id)) as any;
+  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0)) };
   cacheSet(__ck, __payload);
   return NextResponse.json(__payload);
 }

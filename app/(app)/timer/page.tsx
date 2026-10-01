@@ -109,6 +109,29 @@ export default function TimersPage() {
     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
   }, []);
 
+  // Keyboard shortcuts: Space start/pause · R reset · L lap
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      const t = e.target as HTMLElement;
+      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      if (e.code === "Space") {
+        e.preventDefault();
+        soundEngine.click();
+        if (p.status === "running") pause();
+        else start();
+      } else if (e.key === "r" || e.key === "R") {
+        soundEngine.whoosh();
+        reset();
+      } else if ((e.key === "l" || e.key === "L") && mode === "stopwatch" && p.status === "running") {
+        soundEngine.stopwatchLap();
+      }
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [p.status, mode]);
+
   useEffect(() => {
     if (!hydrated || (!dsaData && !webData)) return;
     const want = isDsa ? currentDsaTitle : isWeb ? currentWebTitle : "";

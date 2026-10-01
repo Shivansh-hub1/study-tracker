@@ -1,0 +1,879 @@
+diff --git a/app/(app)/admin/page.tsx b/app/(app)/admin/page.tsx
+index 128b2b9..5452890 100644
+--- a/app/(app)/admin/page.tsx
++++ b/app/(app)/admin/page.tsx
+@@ -9,10 +9,32 @@ import { useFetch, api } from "@/lib/client";
+ import { fmtMinutes, timeAgo, prettyDate, prettyDT } from "@/lib/utils";
+ import { Modal, EmptyState, Spinner, Stat, CardSkeleton, Dot, FieldError } from "@/components/ui";
+ import { useToast } from "@/components/Providers";
++import { playSound } from "@/lib/sounds";
++import { bustCache } from "@/lib/client";
++import { Sparkles } from "lucide-react";
+ 
+ export default function AdminPage() {
+   const { toast } = useToast();
+   const { data, loading, error, setData } = useFetch("/api/admin/users");
++  const { data: adminSettings, reload: reloadAdminSettings } = useFetch("/api/admin/settings");
++  const [planBusy, setPlanBusy] = useState(false);
++  const toggleSmartPlan = async () => {
++    playSound("click");
++    setPlanBusy(true);
++    try {
++      const next = !(adminSettings?.smartPlan ?? true);
++      await api("/api/admin/settings", { method: "POST", body: JSON.stringify({ smartPlan: next }) }, { queueOffline: false });
++      playSound("success");
++      toast(`Smart daily plan ${next ? "enabled" : "disabled"}`, "success");
++      bustCache("/api/smart-plan");
++      reloadAdminSettings();
++    } catch (e: any) {
++      playSound("error");
++      toast(e.message, "error");
++    } finally {
++      setPlanBusy(false);
++    }
++  };
+   const users = useMemo(() => data?.users || [], [data]);
+   const [q, setQ] = useState("");
+ 
+@@ -110,6 +132,22 @@ export default function AdminPage() {
+ 
+   return (
+     <div className="grid" style={{ gap: 20 }}>
++      {/* Feature switches */}
++      <div className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
++        <Sparkles size={18} style={{ color: "var(--accent)" }} />
++        <div style={{ flex: 1, minWidth: 200 }}>
++          <div style={{ fontWeight: 800, fontSize: 14 }}>Smart daily plan</div>
++          <div style={{ fontSize: 12, color: "var(--muted)" }}>Shows an auto-generated plan card (revision due, planner blocks, weak subject) on every user&apos;s dashboard.</div>
++        </div>
++        <button
++          className={adminSettings?.smartPlan === false ? "btn" : "btn btn-primary"}
++          disabled={planBusy || !adminSettings}
++          onClick={toggleSmartPlan}
++          style={{ minWidth: 110, fontWeight: 800 }}
++        >
++          {adminSettings ? (adminSettings.smartPlan ? "ON — turn off" : "OFF — turn on") : "Loading..."}
++        </button>
++      </div>
+       <div className="grid grid-4">
+         <Stat icon={<Users size={22} />} label="Total users" value={String(users.length)} accent="#6366f1" />
+         <Stat icon={<UserCheck size={22} />} label="Active today" value={String(activeToday)} accent="#10b981" />
+diff --git a/app/(app)/dashboard/page.tsx b/app/(app)/dashboard/page.tsx
+index f933eae..2a074cd 100644
+--- a/app/(app)/dashboard/page.tsx
++++ b/app/(app)/dashboard/page.tsx
+@@ -5,7 +5,7 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
+ import Link from "next/link";
+ import {
+   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
+-  BookOpen, Timer as TimerIcon, Snowflake, Share2,
++  BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2,
+ } from "lucide-react";
+ import {
+   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
+@@ -37,6 +37,7 @@ export default function DashboardPage() {
+   const [saving, setSaving] = useState(false);
+   const setStreakData = (r: any) => setDashData((prev: any) => ({ ...prev, ...r }));
+   const [shareOpen, setShareOpen] = useState(false);
++  const { data: smartPlan } = useFetch("/api/smart-plan");
+   const shareRef = useRef<HTMLCanvasElement>(null);
+ 
+   const stats = dashData?.stats;
+@@ -194,6 +195,33 @@ export default function DashboardPage() {
+       )}
+ 
+       {/* Stats row */}
++      {smartPlan?.enabled && smartPlan?.plan?.length > 0 && (
++        <div className="card" style={{ padding: "16px 20px", background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%)" }}>
++          <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
++            <Sparkles2 size={16} style={{ color: "var(--accent)" }} />
++            <h2 style={{ fontSize: 14.5, fontWeight: 800 }}>Today&apos;s smart plan</h2>
++            <span className="badge" style={{ fontSize: 10.5, background: "var(--accent-soft)", color: "var(--accent)" }}>auto</span>
++          </div>
++          <div className="grid grid-2" style={{ gap: 10 }}>
++            {smartPlan.plan.slice(0, 4).map((p: any, i: number) => (
++              <Link
++                key={i}
++                href={p.href}
++                onClick={() => playSound("click")}
++                className="card"
++                style={{ padding: "11px 14px", display: "flex", gap: 11, alignItems: "center", textDecoration: "none", color: "inherit", border: "1px solid var(--border)" }}
++              >
++                <span style={{ fontSize: 19 }}>{p.icon}</span>
++                <span style={{ minWidth: 0 }}>
++                  <span style={{ display: "block", fontWeight: 700, fontSize: 13.5 }}>{p.title}</span>
++                  <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.sub}</span>
++                </span>
++              </Link>
++            ))}
++          </div>
++        </div>
++      )}
++
+       <div className="grid grid-4">
+         <Stat icon={<Flame size={22} />} label="Day streak" value={`${stats?.streak ?? 0}`} sub="consecutive days" accent="#f97316" />
+         <Stat icon={<Clock size={22} />} label="Today" value={fmtMinutes(stats?.todayMin ?? 0)} sub="focused time" accent="#6366f1" />
+diff --git a/app/(app)/progress/page.tsx b/app/(app)/progress/page.tsx
+index aa4b9ab..1642793 100644
+--- a/app/(app)/progress/page.tsx
++++ b/app/(app)/progress/page.tsx
+@@ -235,8 +235,8 @@ export default function ProgressPage() {
+ 
+       {/* Heatmap */}
+       <div className="card">
+-        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — daily focus over 20 weeks</h2>
+-        <Heatmap data={stats.heat} />
++        <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap — full year</h2>
++        <Heatmap data={stats.heat} weeks={53} compact />
+         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
+           Less
+           {[0.15, 0.35, 0.55, 0.8, 1].map((o) => (
+diff --git a/app/(app)/sessions/page.tsx b/app/(app)/sessions/page.tsx
+index 06efc36..42d937b 100644
+--- a/app/(app)/sessions/page.tsx
++++ b/app/(app)/sessions/page.tsx
+@@ -47,6 +47,26 @@ export default function SessionsPage() {
+     setSoundOn(isSoundEnabled());
+   }, []);
+ 
++  // Keyboard shortcuts: / search · N new session
++  React.useEffect(() => {
++    const onKey = (e: KeyboardEvent) => {
++      const t = e.target as HTMLElement;
++      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
++      if (e.metaKey || e.ctrlKey || e.altKey) return;
++      if (e.key === "/") {
++        e.preventDefault();
++        playSound("click");
++        document.getElementById("sessions-search")?.focus();
++      } else if (e.key === "n" || e.key === "N") {
++        e.preventDefault();
++        openCreate();
++      }
++    };
++    window.addEventListener("keydown", onKey);
++    return () => window.removeEventListener("keydown", onKey);
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, []);
++
+   const toggleSound = () => {
+     const next = !soundOn;
+     setSoundOn(next);
+@@ -280,7 +300,7 @@ export default function SessionsPage() {
+ 
+         <div style={{ position: "relative", flex: "1 1 200px", maxWidth: 260 }}>
+           <Search size={14} style={{ position: "absolute", left: 10, top: "50%", transform: "translateY(-50%)", color: "var(--muted)" }} />
+-          <input className="input" placeholder="Search topic, notes..." value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 30, borderRadius: 12, fontWeight: 500 }} />
++          <input id="sessions-search" className="input" placeholder="Search topic, notes...  (press /)" value={search} onChange={(e) => setSearch(e.target.value)} style={{ paddingLeft: 30, borderRadius: 12, fontWeight: 500 }} />
+         </div>
+ 
+         <span className="badge" style={{ background: "var(--accent-soft)", color: "var(--accent)", border: "1px solid var(--accent)", fontWeight: 700, padding: "6px 12px", borderRadius: 999 }}>
+diff --git a/app/(app)/settings/page.tsx b/app/(app)/settings/page.tsx
+index 0844192..d398f34 100644
+--- a/app/(app)/settings/page.tsx
++++ b/app/(app)/settings/page.tsx
+@@ -1,17 +1,28 @@
+ "use client";
+ 
+-import { playSound } from "@/lib/sounds";
+ import React, { useEffect, useState } from "react";
+ import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut } from "lucide-react";
+ import { useRouter } from "next/navigation";
+ import { useFetch, api } from "@/lib/client";
+ import { Spinner } from "@/components/ui";
+ import { THEMES, useTheme, useToast } from "@/components/Providers";
++import { playSound } from "@/lib/sounds";
+ 
+ export default function SettingsPage() {
+   const router = useRouter();
+   const { toast } = useToast();
+   const { theme, setTheme } = useTheme();
++  const { data: shopData } = useFetch("/api/shop");
++  const ownedThemes = new Set((shopData?.items || []).filter((i: any) => i.owned).map((i: any) => i.key.replace("theme_", "")));
++  const pickTheme = (t: any) => {
++    if (t.shop && !ownedThemes.has(t.id)) {
++      playSound("error");
++      toast(`🔒 ${t.name} is a premium theme — unlock it in the Shop for ${t.shop} XP`, "error");
++      return;
++    }
++    playSound("click");
++    setTheme(t.id);
++  };
+   const { data: me } = useFetch("/api/auth/me");
+   const { data: settingsData, loading, setData } = useFetch("/api/settings");
+   const s = settingsData?.settings;
+@@ -101,10 +112,10 @@ export default function SettingsPage() {
+         <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Palette size={16} /> Appearance</h2>
+         <p style={{ fontSize: 13, color: "var(--muted)", marginBottom: 14 }}>Pick a vibe — from clean daylight to full neon.</p>
+         <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 10 }}>
+-          {THEMES.map((t) => (
++          {THEMES.map((t: any) => (
+             <button
+               key={t.id}
+-              onClick={() => { playSound("click"); setTheme(t.id); }}
++              onClick={() => pickTheme(t)}
+               className="card"
+               style={{
+                 padding: 12, cursor: "pointer", textAlign: "center",
+@@ -115,7 +126,7 @@ export default function SettingsPage() {
+               <div style={{ height: 44, borderRadius: 10, background: t.swatch, marginBottom: 8, display: "grid", placeItems: "center", color: "#fff" }}>
+                 {theme === t.id && <Check size={18} strokeWidth={3} />}
+               </div>
+-              <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.name}</div>
++              <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.shop && !ownedThemes.has(t.id as any) ? `🔒 ${t.name} · ${t.shop} XP` : t.name}</div>
+             </button>
+           ))}
+         </div>
+diff --git a/app/(app)/shop/page.tsx b/app/(app)/shop/page.tsx
+new file mode 100644
+index 0000000..9372dca
+--- /dev/null
++++ b/app/(app)/shop/page.tsx
+@@ -0,0 +1,107 @@
++"use client";
++
++import React from "react";
++import { ShoppingBag, Zap, Lock, Check } from "lucide-react";
++import { useFetch, api, bustCache } from "@/lib/client";
++import { playSound } from "@/lib/sounds";
++import { useToast } from "@/components/Providers";
++import { EmptyState, CardSkeleton } from "@/components/ui";
++
++export default function ShopPage() {
++  const { toast } = useToast();
++  const { data, loading, reload } = useFetch("/api/shop");
++  const [busy, setBusy] = React.useState<string | null>(null);
++
++  const buy = async (item: any) => {
++    playSound("click");
++    setBusy(item.key);
++    try {
++      const res: any = await api("/api/shop", { method: "POST", body: JSON.stringify({ item: item.key }) });
++      playSound("success");
++      toast(`${item.name} unlocked! −${item.cost} XP`, "success");
++      bustCache("/api/shop");
++      bustCache("/api/stats");
++      bustCache("/api/dashboard");
++      reload();
++    } catch (e: any) {
++      playSound("error");
++      toast(e.message, "error");
++    } finally {
++      setBusy(null);
++    }
++  };
++
++  if (loading && !data) {
++    return (
++      <div className="grid" style={{ gap: 20 }}>
++        <CardSkeleton height={90} />
++        <div className="grid grid-3"><CardSkeleton height={210} /><CardSkeleton height={210} /><CardSkeleton height={210} /></div>
++      </div>
++    );
++  }
++
++  const items = data?.items || [];
++
++  return (
++    <div className="grid" style={{ gap: 20 }}>
++      {/* XP wallet */}
++      <div className="card" style={{ padding: "18px 22px", display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap", background: "linear-gradient(135deg, var(--surface) 0%, var(--surface-2) 100%)" }}>
++        <div style={{ width: 46, height: 46, borderRadius: 14, background: "var(--accent-soft)", display: "grid", placeItems: "center", color: "var(--accent)" }}>
++          <Zap size={22} />
++        </div>
++        <div style={{ flex: 1, minWidth: 180 }}>
++          <div style={{ fontWeight: 800, fontSize: 19 }}>
++            {data?.xpAvailable ?? 0} XP <span style={{ fontSize: 12.5, fontWeight: 600, color: "var(--muted)" }}>spendable</span>
++          </div>
++          <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{data?.xp ?? 0} earned lifetime · {data?.spent ?? 0} spent</div>
++        </div>
++        <div className="badge" style={{ fontSize: 12 }}>Earn XP: 1 per focus minute · 5 per revised topic</div>
++      </div>
++
++      {/* Items */}
++      {items.length === 0 ? (
++        <div className="card">
++          <EmptyState icon={<ShoppingBag size={26} />} title="Shop is empty" hint="Come back later — new drops incoming." />
++        </div>
++      ) : (
++        <div className="grid grid-3">
++          {items.map((it: any) => (
++            <div key={it.key} className="card" style={{ padding: 20, display: "flex", flexDirection: "column", gap: 12, position: "relative", overflow: "hidden" }}>
++              {it.owned && (
++                <div style={{ position: "absolute", top: 12, right: 12 }} className="badge" >
++                  <Check size={11} style={{ marginRight: 4 }} /> Owned
++                </div>
++              )}
++              <div style={{ fontSize: 34, lineHeight: 1 }}>{it.icon}</div>
++              <div>
++                <div style={{ fontWeight: 800, fontSize: 15.5 }}>{it.name}</div>
++                <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.5, marginTop: 4 }}>{it.desc}</div>
++              </div>
++              <div style={{ flex: 1 }} />
++              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
++                <span className="badge" style={{ background: "var(--accent-soft)", color: "var(--accent)", fontWeight: 800, fontSize: 12.5 }}>
++                  <Zap size={11} style={{ display: "inline", marginRight: 4 }} />{it.cost} XP
++                </span>
++                {it.owned ? (
++                  <button className="btn" disabled style={{ flex: 1, opacity: 0.6 }}><Lock size={14} /> Owned</button>
++                ) : (
++                  <button
++                    className="btn btn-primary"
++                    style={{ flex: 1, fontWeight: 800 }}
++                    disabled={busy === it.key || (data?.xpAvailable ?? 0) < it.cost}
++                    onClick={() => buy(it)}
++                  >
++                    {busy === it.key ? "Buying..." : (data?.xpAvailable ?? 0) < it.cost ? "Not enough XP" : "Buy"}
++                  </button>
++                )}
++              </div>
++              {it.repeatable && !it.owned && (
++                <div style={{ fontSize: 11, color: "var(--muted)" }}>Can be bought multiple times</div>
++              )}
++            </div>
++          ))}
++        </div>
++      )}
++    </div>
++  );
++}
+diff --git a/app/(app)/timer/page.tsx b/app/(app)/timer/page.tsx
+index e387f6a..cefd0de 100644
+--- a/app/(app)/timer/page.tsx
++++ b/app/(app)/timer/page.tsx
+@@ -109,6 +109,29 @@ export default function TimersPage() {
+     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
+   }, []);
+ 
++  // Keyboard shortcuts: Space start/pause · R reset · L lap
++  useEffect(() => {
++    const onKey = (e: KeyboardEvent) => {
++      const t = e.target as HTMLElement;
++      if (t && (t.tagName === "INPUT" || t.tagName === "TEXTAREA" || t.tagName === "SELECT" || t.isContentEditable)) return;
++      if (e.metaKey || e.ctrlKey || e.altKey) return;
++      if (e.code === "Space") {
++        e.preventDefault();
++        soundEngine.click();
++        if (p.status === "running") pause();
++        else start();
++      } else if (e.key === "r" || e.key === "R") {
++        soundEngine.whoosh();
++        reset();
++      } else if ((e.key === "l" || e.key === "L") && mode === "stopwatch" && p.status === "running") {
++        soundEngine.stopwatchLap();
++      }
++    };
++    window.addEventListener("keydown", onKey);
++    return () => window.removeEventListener("keydown", onKey);
++    // eslint-disable-next-line react-hooks/exhaustive-deps
++  }, [p.status, mode]);
++
+   useEffect(() => {
+     if (!hydrated || (!dsaData && !webData)) return;
+     const want = isDsa ? currentDsaTitle : isWeb ? currentWebTitle : "";
+diff --git a/app/api/admin/settings/route.ts b/app/api/admin/settings/route.ts
+new file mode 100644
+index 0000000..0c51c92
+--- /dev/null
++++ b/app/api/admin/settings/route.ts
+@@ -0,0 +1,23 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getDb } from "@/lib/db";
++import { getAdminUser } from "@/lib/auth";
++
++export const dynamic = "force-dynamic";
++
++export async function GET() {
++  const admin = await getAdminUser();
++  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  const db = await getDb();
++  const m = (await db.get("SELECT value FROM _meta WHERE key = 'smart_plan'")) as any;
++  return NextResponse.json({ smartPlan: !m || m.value !== "0" });
++}
++
++export async function POST(req: NextRequest) {
++  const admin = await getAdminUser();
++  if (!admin) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  const { smartPlan } = await req.json().catch(() => ({}));
++  if (typeof smartPlan !== "boolean") return NextResponse.json({ error: "smartPlan boolean required" }, { status: 400 });
++  const db = await getDb();
++  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('smart_plan', ?)", smartPlan ? "1" : "0");
++  return NextResponse.json({ ok: true, smartPlan });
++}
+diff --git a/app/api/dashboard/route.ts b/app/api/dashboard/route.ts
+index 5abda2d..01ce2f1 100644
+--- a/app/api/dashboard/route.ts
++++ b/app/api/dashboard/route.ts
+@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
+   const week = mondayKey(nowLocal);
+ 
+   await ensureSettings(db, user.id); // cached after first call per instance
+-  const [sessions, frozenRows, revD, revW, goals, recent, subjects, setRow, fRow] = await Promise.all([
++  const [sessions, frozenRows, revD, revW, goals, recent, subjects, setRow, fRow, spentRow] = await Promise.all([
+     db.all(
+       `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
+        FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
+@@ -54,6 +54,7 @@ export async function GET(req: NextRequest) {
+     ),
+     db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
+     db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK),
++    db.get("SELECT COALESCE(SUM(cost),0) as c FROM xp_purchases WHERE user_id = ?", user.id),
+   ]);
+ 
+   // Lazy weekly freeze grant (same logic as /api/streak).
+@@ -64,7 +65,7 @@ export async function GET(req: NextRequest) {
+   }
+ 
+   const __payload = {
+-    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin),
++    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0)),
+     goals,
+     sessions: recent,
+     subjects,
+diff --git a/app/api/shop/route.ts b/app/api/shop/route.ts
+new file mode 100644
+index 0000000..bcb6fbc
+--- /dev/null
++++ b/app/api/shop/route.ts
+@@ -0,0 +1,81 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getDb, ensureSettings } from "@/lib/db";
++import { getSessionUser } from "@/lib/auth";
++import { bustUser } from "@/lib/api-cache";
++import { computeStats } from "@/lib/stats";
++
++export const dynamic = "force-dynamic";
++
++const SHOP_ITEMS = [
++  { key: "freeze1", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked).", icon: "❄️", cost: 100, repeatable: true },
++  { key: "theme_aurora", name: "Aurora Theme", desc: "Northern-lights premium color scheme for the whole app.", icon: "🌌", cost: 250, repeatable: false },
++  { key: "theme_sunset", name: "Sunset Theme", desc: "Warm golden-dusk premium color scheme.", icon: "🌇", cost: 250, repeatable: false },
++];
++
++async function wallet(db: any, userId: number) {
++  const [sessions, frozenRows, revD, revW] = await Promise.all([
++    db.all(
++      `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
++       FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
++      userId
++    ),
++    db.all("SELECT day FROM freeze_days WHERE user_id = ?", userId),
++    db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", userId),
++    db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", userId),
++  ]);
++  const spentRow = (await db.get("SELECT COALESCE(SUM(cost),0) as c FROM xp_purchases WHERE user_id = ?", userId)) as any;
++  const stats = computeStats(sessions as any[], frozenRows as any[], revD, revW, 0, Number(spentRow?.c || 0));
++  return { earned: stats.xp, spent: Number(spentRow?.c || 0), available: stats.xp - Number(spentRow?.c || 0) };
++}
++
++export async function GET() {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  const db = await getDb();
++  const w = await wallet(db, user.id);
++  const owned = (await db.all("SELECT item FROM xp_purchases WHERE user_id = ?", user.id)) as any[];
++  const ownedSet = new Set(owned.map((o: any) => o.item));
++  return NextResponse.json({
++    xp: w.earned,
++    spent: w.spent,
++    xpAvailable: w.available,
++    items: SHOP_ITEMS.map((i) => ({ ...i, owned: !i.repeatable && ownedSet.has(i.key) })),
++  });
++}
++
++export async function POST(req: NextRequest) {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  bustUser(user.id);
++  const { item } = await req.json().catch(() => ({}));
++  const def = SHOP_ITEMS.find((i) => i.key === item);
++  if (!def) return NextResponse.json({ error: "Unknown item" }, { status: 400 });
++
++  const db = await getDb();
++  await ensureSettings(db, user.id);
++
++  const owned = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = ?", user.id, def.key)) as any;
++  if (owned && !def.repeatable) {
++    return NextResponse.json({ error: "You already own this" }, { status: 400 });
++  }
++
++  if (def.key === "freeze1") {
++    const s = (await db.get("SELECT freeze_stock FROM settings WHERE user_id = ?", user.id)) as any;
++    if (Number(s?.freeze_stock ?? 0) >= 3) {
++      return NextResponse.json({ error: "Freeze stock is full (3/3)" }, { status: 400 });
++    }
++  }
++
++  const w = await wallet(db, user.id);
++  if (w.available < def.cost) {
++    return NextResponse.json({ error: `Not enough XP — you need ${def.cost - w.available} more` }, { status: 400 });
++  }
++
++  await db.run("INSERT INTO xp_purchases (user_id, item, cost, created_at) VALUES (?,?,?,?)", user.id, def.key, def.cost, new Date().toISOString());
++  if (def.key === "freeze1") {
++    await db.run("UPDATE settings SET freeze_stock = freeze_stock + 1 WHERE user_id = ?", user.id);
++  }
++
++  const after = await wallet(db, user.id);
++  return NextResponse.json({ ok: true, xpAvailable: after.available, item: def.key });
++}
+diff --git a/app/api/smart-plan/route.ts b/app/api/smart-plan/route.ts
+new file mode 100644
+index 0000000..a242bdc
+--- /dev/null
++++ b/app/api/smart-plan/route.ts
+@@ -0,0 +1,136 @@
++import { NextResponse } from "next/server";
++import { getDb } from "@/lib/db";
++import { getSessionUser } from "@/lib/auth";
++import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
++import { DSA_TOPICS } from "@/lib/dsa";
++import { WEBDEV_TOPICS } from "@/lib/webdev";
++
++export const dynamic = "force-dynamic";
++
++const DAY = 86400000;
++
++function pad(n: number) { return String(n).padStart(2, "0"); }
++function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
++
++export async function GET() {
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++
++  const __ck = `u${user.id}:smartplan`;
++  const __hit = cacheGet(__ck);
++  if (__hit) return NextResponse.json(__hit);
++
++  const db = await getDb();
++
++  // Admin toggle (default ON)
++  const meta = (await db.get("SELECT value FROM _meta WHERE key = 'smart_plan'")) as any;
++  if (meta && meta.value === "0") {
++    const out = { enabled: false, plan: [] };
++    cacheSet(__ck, out);
++    return NextResponse.json(out);
++  }
++
++  const nowLocal = new Date(Date.now());
++  const nowMs = nowLocal.getTime();
++
++  const plan: Array<{ icon: string; title: string; sub: string; href: string }> = [];
++
++  // 1) Revision queue (DSA + WebDev): done 3+ days ago AND (never revised or revised 7+ days ago)
++  const [dsaRows, webRows] = await Promise.all([
++    db.all("SELECT topic_key, status, updated_at, revised_at FROM dsa_progress WHERE user_id = ?", user.id),
++    db.all("SELECT topic_key, status, updated_at, revised_at FROM web_progress WHERE user_id = ?", user.id),
++  ]);
++  const dueOf = (rows: any[], topics: any[], label: string) => {
++    const map = new Map<string, any>();
++    for (const r of rows as any[]) map.set(r.topic_key, r);
++    const due: string[] = [];
++    for (const t of topics) {
++      const r = map.get(t.key);
++      if (!r || r.status !== "done") continue;
++      const doneAt = r.updated_at ? new Date(r.updated_at).getTime() : nowMs;
++      const revAt = r.revised_at ? new Date(r.revised_at).getTime() : 0;
++      const daysAgo = Math.floor((nowMs - doneAt) / DAY);
++      const revDays = revAt ? Math.floor((nowMs - revAt) / DAY) : -1;
++      if (daysAgo >= 3 && (revDays === -1 || revDays >= 7)) due.push(t.title);
++    }
++    if (due.length) {
++      plan.push({
++        icon: "🔁",
++        title: `Revise ${due.length} due ${label} topic${due.length > 1 ? "s" : ""}`,
++        sub: due.slice(0, 2).join(" · ") + (due.length > 2 ? ` +${due.length - 2} more` : ""),
++        href: "/revision",
++      });
++    }
++  };
++  dueOf(dsaRows, DSA_TOPICS, "DSA");
++  dueOf(webRows, WEBDEV_TOPICS, "WebDev");
++
++  // 2) Today's planner blocks
++  const monday = new Date(nowLocal);
++  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
++  const weekKey = dateKey(monday);
++  const todayDow = (nowLocal.getDay() + 6) % 7; // 0 = Monday
++  const blocks = (await db.all(
++    `SELECT b.*, s.name as subject_name FROM planner_blocks b LEFT JOIN subjects s ON s.id = b.subject_id
++     WHERE b.user_id = ? AND b.day = ?`,
++    user.id, todayDow
++  )) as any[];
++  if (blocks.length) {
++    const done = blocks.filter((b: any) => b.done_week === weekKey).length;
++    const mins = blocks.reduce((a: number, b: any) => a + Number(b.minutes || 0), 0);
++    plan.push({
++      icon: "📅",
++      title: `Planner: ${done}/${blocks.length} blocks done`,
++      sub: `${Math.round(mins / 60 * 10) / 10}h planned today${done < blocks.length ? " — finish the rest" : " — all clear ✓"}`,
++      href: "/planner",
++    });
++  }
++
++  // 3) Weakest subject nudge (least minutes in the last 7 days among subjects with a target)
++  const weekAgo = new Date(nowLocal.getTime() - 7 * DAY).toISOString();
++  const subjRows = (await db.all(
++    `SELECT s.id, s.name, s.target_minutes, COALESCE(SUM(CASE WHEN se.started_at >= ? THEN se.duration_sec ELSE 0 END), 0) as week_sec
++     FROM subjects s LEFT JOIN sessions se ON se.subject_id = s.id
++     WHERE s.user_id = ? GROUP BY s.id`,
++    weekAgo, user.id
++  )) as any[];
++  if (subjRows.length) {
++    const withTarget = subjRows.filter((s: any) => Number(s.target_minutes) > 0);
++    const pool = withTarget.length ? withTarget : subjRows;
++    const weakest = pool.sort((a: any, b: any) => Number(a.week_sec) - Number(b.week_sec))[0];
++    const weekMin = Math.round(Number(weakest.week_sec) / 60);
++    const target = Math.round(Number(weakest.target_minutes));
++    plan.push({
++      icon: "🎯",
++      title: `Focus 25 min on ${weakest.name}`,
++      sub: weekMin === 0 ? "No time this week — get it started" : `${weekMin}/${target}min this week — behind target`,
++      href: "/timer",
++    });
++  }
++
++  // 4) Daily goal nudge
++  const todayK = dateKey(nowLocal);
++  const todaySec = (await db.get(
++    "SELECT COALESCE(SUM(duration_sec),0) as c FROM sessions WHERE user_id = ? AND started_at >= ?",
++    user.id, `${todayK}T00:00:00`
++  )) as any;
++  const todayMin = Math.round(Number(todaySec?.c || 0) / 60);
++  plan.push({
++    icon: todayMin >= 120 ? "✅" : "⏱️",
++    title: todayMin >= 120 ? "Daily goal already hit — legendary" : `${Math.max(0, 120 - todayMin)} min left to hit today's 2h goal`,
++    sub: `${todayMin} min studied today`,
++    href: "/timer",
++  });
++
++  const out = { enabled: true, plan };
++  cacheSet(__ck, out);
++  return NextResponse.json(out);
++}
++
++export async function POST() {
++  // mutations elsewhere bust this cache; POST kept for future edits
++  const user = await getSessionUser();
++  if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++  bustUser(user.id);
++  return NextResponse.json({ ok: true });
++}
+diff --git a/app/api/stats/route.ts b/app/api/stats/route.ts
+index 320931c..a9a4252 100644
+--- a/app/api/stats/route.ts
++++ b/app/api/stats/route.ts
+@@ -28,7 +28,8 @@ export async function GET(req: NextRequest) {
+     db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
+   ]);
+ 
+-  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin) };
++  const spentRow = (await db.get("SELECT COALESCE(SUM(cost),0) as c FROM xp_purchases WHERE user_id = ?", user.id)) as any;
++  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0)) };
+   cacheSet(__ck, __payload);
+   return NextResponse.json(__payload);
+ }
+diff --git a/app/globals.css b/app/globals.css
+index e00f657..e4c5539 100644
+--- a/app/globals.css
++++ b/app/globals.css
+@@ -570,6 +570,43 @@ select.select {
+ 
+ ::selection { background: var(--accent); color: #fff; }
+ 
++:root[data-theme="aurora"] {
++  --bg: #0b1020;
++  --bg-grad: radial-gradient(1100px 700px at 85% -10%, rgba(34, 211, 238, 0.16) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 20%, rgba(167, 139, 250, 0.15) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(244, 114, 182, 0.12) 0%, transparent 55%);
++  --surface: #121a30;
++  --surface-2: #182242;
++  --border: #26314f;
++  --text: #e6edff;
++  --muted: #8b9bc4;
++  --accent: #22d3ee;
++  --accent-2: #a78bfa;
++  --accent-soft: rgba(34, 211, 238, 0.13);
++  --accent-grad: linear-gradient(135deg, #22d3ee, #a78bfa 55%, #f472b6);
++  --glow: 0 4px 24px rgba(34, 211, 238, 0.28);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(34, 211, 238, 0.4);
++}
++:root[data-theme="sunset"] {
++  --bg: #17100c;
++  --bg-grad: radial-gradient(1100px 700px at 80% -10%, rgba(249, 115, 22, 0.18) 0%, transparent 55%),
++    radial-gradient(900px 600px at -10% 30%, rgba(239, 68, 68, 0.14) 0%, transparent 50%),
++    radial-gradient(700px 500px at 50% 110%, rgba(168, 85, 247, 0.12) 0%, transparent 55%);
++  --surface: #221610;
++  --surface-2: #2c1c13;
++  --border: #3d281a;
++  --text: #fdeee2;
++  --muted: #b3907c;
++  --accent: #f97316;
++  --accent-2: #ef4444;
++  --accent-soft: rgba(249, 115, 22, 0.13);
++  --accent-grad: linear-gradient(135deg, #f97316, #ef4444 55%, #a855f7);
++  --glow: 0 4px 24px rgba(249, 115, 22, 0.28);
++  --shadow: 0 1px 3px rgba(0, 0, 0, 0.3), 0 8px 24px rgba(0, 0, 0, 0.25);
++  --ring: rgba(249, 115, 22, 0.4);
++}
++
+ /* ================= Landing / public pages ================= */
+ .land { min-height: 100vh; display: flex; flex-direction: column; position: relative; z-index: 1; }
+ .land-nav { position: sticky; top: 0; z-index: 50; display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 14px 28px; background: color-mix(in srgb, var(--surface) 82%, transparent); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border-bottom: 1px solid var(--border); }
+diff --git a/components/AppShell.tsx b/components/AppShell.tsx
+index f66cb75..7e1e1da 100644
+--- a/components/AppShell.tsx
++++ b/components/AppShell.tsx
+@@ -2,7 +2,7 @@
+ 
+ import React, { useEffect, useState } from "react";
+ import Link from "next/link";
+-import { Volume2, VolumeX } from "lucide-react";
++import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
+ import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
+ import { usePathname } from "next/navigation";
+ import { useToast } from "./Providers";
+@@ -24,6 +24,7 @@ const NAV = [
+   { href: "/planner", label: "Planner", icon: CalendarDays },
+   { href: "/habits", label: "Habits", icon: Sprout },
+   { href: "/achievements", label: "Achievements", icon: Trophy },
++  { href: "/shop", label: "XP Shop", icon: ShoppingBag },
+   { href: "/progress", label: "Progress", icon: TrendingUp },
+   { href: "/sessions", label: "Sessions", icon: ListChecks },
+   { href: "/settings", label: "Settings", icon: Settings },
+diff --git a/components/Heatmap.tsx b/components/Heatmap.tsx
+index e35fd11..71dd9e0 100644
+--- a/components/Heatmap.tsx
++++ b/components/Heatmap.tsx
+@@ -2,8 +2,8 @@
+ 
+ import React, { useMemo } from "react";
+ 
+-export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number }) {
+-  const { cols, max } = useMemo(() => {
++export default function Heatmap({ data, weeks = 20, compact = false }: { data: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number; compact?: boolean }) {
++  const { cols, max, months } = useMemo(() => {
+     const byDate: Record<string, number> = {};
+     const frozen = new Set<string>();
+     let max = 0;
+@@ -24,7 +24,17 @@ export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: stri
+       }
+       cols.push(col);
+     }
+-    return { cols, max };
++    // month labels: where the month of a column's Monday changes
++    const months: Array<{ i: number; label: string }> = [];
++    let lastM = -1;
++    cols.forEach((col, i) => {
++      const first = col[0];
++      if (first) {
++        const m = Number(first.date.slice(5, 7)) - 1;
++        if (m !== lastM) { months.push({ i, label: new Date(first.date).toLocaleString("en", { month: "short" }) }); lastM = m; }
++      }
++    });
++    return { cols, max, months };
+   }, [data, weeks]);
+ 
+   const level = (v: number) => {
+@@ -41,20 +51,33 @@ export default function Heatmap({ data, weeks = 20 }: { data: Array<{ date: stri
+     { background: "var(--accent)", border: "1px solid transparent", boxShadow: "0 0 6px var(--accent)" },
+   ];
+ 
++  const gap = compact ? 2 : 4;
++  const cell = compact ? { width: 9, height: 9 } : undefined;
+   return (
+-    <div style={{ display: "flex", gap: 4, overflowX: "auto", paddingBottom: 6 }}>
+-      {cols.map((col, i) => (
+-        <div key={i} style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+-          {col.map((c) => (
+-            <div
+-              key={c.date}
+-              className="heat-cell"
+-              title={`${c.date} — ${c.v >= 60 ? `${Math.floor(c.v / 60)}h ${c.v % 60}m` : `${c.v}m`}`}
+-              style={c.future ? { opacity: 0.25 } : c.f && c.v <= 0 ? { background: "rgba(125, 211, 252, 0.5)", border: "1px solid rgba(125,211,252,.9)" } : styles[level(c.v)]}
+-            />
+-          ))}
+-        </div>
+-      ))}
++    <div>
++      <div style={{ display: "flex", gap, overflowX: "auto", paddingBottom: 2 }}>
++        {cols.map((col, i) => {
++          const m = months.find((x: any) => x.i === i);
++          return (
++            <div key={i} style={{ display: "flex", flexDirection: "column", gap }}>
++              <div style={{ height: 14, fontSize: 9, color: "var(--muted)", fontWeight: 700, whiteSpace: "nowrap" }}>
++                {m ? m.label : ""}
++              </div>
++              {col.map((c) => (
++                <div
++                  key={c.date}
++                  className="heat-cell"
++                  title={`${c.date} — ${c.v >= 60 ? `${Math.floor(c.v / 60)}h ${c.v % 60}m` : `${c.v}m`}`}
++                  style={{
++                    ...(cell || {}),
++                    ...(c.future ? { opacity: 0.25 } : c.f && c.v <= 0 ? { background: "rgba(125, 211, 252, 0.5)", border: "1px solid rgba(125,211,252,.9)" } : styles[level(c.v)]),
++                  }}
++                />
++              ))}
++            </div>
++          );
++        })}
++      </div>
+     </div>
+   );
+ }
+diff --git a/components/Providers.tsx b/components/Providers.tsx
+index 95e44d6..241823e 100644
+--- a/components/Providers.tsx
++++ b/components/Providers.tsx
+@@ -12,6 +12,8 @@ export const THEMES = [
+   { id: "ember", name: "Ember Neon", swatch: "linear-gradient(135deg,#ef4444,#fbbf24)" },
+   { id: "glass-light", name: "Frost Light", swatch: "linear-gradient(135deg,#c7d2fe,#f9a8d4,#a5f3fc)" },
+   { id: "glass-dark", name: "Frost Dark", swatch: "linear-gradient(135deg,#4c1d95,#9d174d,#0e7490)" },
++  { id: "aurora", name: "Aurora", swatch: "linear-gradient(135deg,#22d3ee,#a78bfa,#f472b6)", shop: 250 },
++  { id: "sunset", name: "Sunset", swatch: "linear-gradient(135deg,#f97316,#ef4444,#a855f7)", shop: 250 },
+ ] as const;
+ 
+ type ThemeCtx = { theme: string; setTheme: (t: string) => void };
+diff --git a/lib/db.ts b/lib/db.ts
+index c1b6718..60a3718 100644
+--- a/lib/db.ts
++++ b/lib/db.ts
+@@ -165,6 +165,14 @@ const SCHEMA = [
+   `CREATE INDEX IF NOT EXISTS idx_habit_logs_user_day ON habit_logs(user_id, habit_id, day)`,
+   `CREATE INDEX IF NOT EXISTS idx_decks_user ON decks(user_id)`,
+   `CREATE INDEX IF NOT EXISTS idx_cards_deck ON cards(deck_id)`,
++  `CREATE TABLE IF NOT EXISTS xp_purchases (
++    id INTEGER PRIMARY KEY AUTOINCREMENT,
++    user_id INTEGER NOT NULL,
++    item TEXT NOT NULL,
++    cost INTEGER NOT NULL,
++    created_at TEXT NOT NULL
++  )`,
++  `CREATE INDEX IF NOT EXISTS idx_xp_purchases_user ON xp_purchases(user_id)`,
+   `CREATE TABLE IF NOT EXISTS _meta (
+     key TEXT PRIMARY KEY,
+     value TEXT NOT NULL
+diff --git a/lib/stats.ts b/lib/stats.ts
+index 6c2cfc8..533b6c3 100644
+--- a/lib/stats.ts
++++ b/lib/stats.ts
+@@ -9,7 +9,8 @@ export function computeStats(
+   frozenRows: any[],
+   revD: any,
+   revW: any,
+-  offsetMin: number
++  offsetMin: number,
++  spentXp: number = 0
+ ) {
+   const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
+   const nowLocal = new Date(Date.now() + offsetMin * 60000);
+@@ -124,6 +125,7 @@ export function computeStats(
+     level,
+     xpInto: xp - xpCur,
+     xpNeed: xpNext - xpCur,
++    xpAvailable: Math.max(0, xp - spentXp),
+     revised: revisedTotal,
+     totalHours: Math.round((totalSec / 3600) * 10) / 10,
+     totalSessions: sessions.length,

@@ -165,6 +165,14 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_habit_logs_user_day ON habit_logs(user_id, habit_id, day)`,
   `CREATE INDEX IF NOT EXISTS idx_decks_user ON decks(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_cards_deck ON cards(deck_id)`,
+  `CREATE TABLE IF NOT EXISTS xp_purchases (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    item TEXT NOT NULL,
+    cost INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_xp_purchases_user ON xp_purchases(user_id)`,
   `CREATE TABLE IF NOT EXISTS _meta (
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
