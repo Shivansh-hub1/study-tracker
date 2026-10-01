@@ -179,6 +179,7 @@ export default function TimersPage() {
         }, { queueOffline: true });
         toast(r?._queued ? `No internet — ${fmtClock(seconds)} saved, will sync` : `Logged ${fmtClock(seconds)} of focus`, "success");
         if (!r?._queued && (shopData?.items || []).some((i: any) => i.key === "confetti" && i.owned)) burstConfetti();
+        if (!r?._queued) { try { window.dispatchEvent(new Event("ff:session-saved")); } catch {} }
       } catch {}
     },
     [p.subjectId, p.phase, p.topic, selLecture?.title, toast, shopData]

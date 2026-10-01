@@ -239,7 +239,7 @@ export default function ProgressPage() {
       <div className="card">
         <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap {yearView ? "— full year" : "— last 20 weeks"}</h2>
         <Heatmap data={stats.heat} weeks={yearView ? 53 : 20} compact />
-        {!yearView && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>🔒 The 53-week full-year view is a Shop unlock (300 XP).</p>}
+        {!yearView && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10 }}>🔒 The 53-week full-year view is a Shop unlock (350 XP).</p>}
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
           Less
           {[0.15, 0.35, 0.55, 0.8, 1].map((o) => (

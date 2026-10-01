@@ -9,6 +9,7 @@ import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
 import { useFetch } from "@/lib/client";
 import AchievementPopup from "./AchievementPopup";
+import Pet from "./Pet";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
@@ -31,7 +32,7 @@ const NAV = [
   { href: "/settings", label: "Settings", icon: Settings },
 ];
 
-type Me = { id: number; name: string; email: string; role?: string };
+type Me = { id: number; name: string; email: string; role?: string; pfp?: string | null };
 
 function OfflineBadge() {
   const { online, pending } = useOfflineStatus();
@@ -150,7 +151,10 @@ export default function AppShell({ user, children }: { user: Me; children: React
               display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, boxShadow: "var(--glow)",
             }}
           >
-            {avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+            {user.pfp ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={user.pfp} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+            ) : avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
@@ -176,6 +180,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
         </div>
         {children}
         <AchievementPopup />
+        <Pet />
       </div>
     </div>
   );

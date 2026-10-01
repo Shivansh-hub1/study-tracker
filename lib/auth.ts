@@ -7,7 +7,7 @@ const SECRET = new TextEncoder().encode(
 );
 export const COOKIE = "st_token";
 
-export type AuthUser = { id: number; name: string; email: string; role: string };
+export type AuthUser = { id: number; name: string; email: string; role: string; pfp?: string | null };
 
 export async function signToken(userId: number) {
   return new SignJWT({ uid: userId })
@@ -33,7 +33,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   if (!uid) return null;
   const db = await getDb();
   const user = (await db.get(
-    "SELECT id, name, email, role, last_active_at FROM users WHERE id = ?",
+    "SELECT id, name, email, role, last_active_at, pfp FROM users WHERE id = ?",
     uid
   )) as (AuthUser & { last_active_at: string | null }) | undefined;
   if (!user) return null;
@@ -42,7 +42,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   if (stale) {
     db.run("UPDATE users SET last_active_at = ? WHERE id = ?", new Date().toISOString(), uid).catch(() => {});
   }
-  return { id: user.id, name: user.name, email: user.email, role: user.role };
+  return { id: user.id, name: user.name, email: user.email, role: user.role, pfp: user.pfp ?? null };
 }
 
 /** Returns the user only if they have the admin role, else null. */

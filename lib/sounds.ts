@@ -17,7 +17,8 @@ export type SoundType =
   | "click"
   | "hover"
   | "trash"
-  | "whoosh";
+  | "whoosh"
+  | "pet-boop";
 
 interface SoundConfig {
   frequencies: number[];        // frequencies in Hz
@@ -29,6 +30,14 @@ interface SoundConfig {
 }
 
 const SOUNDS: Record<SoundType, SoundConfig> = {
+  "pet-boop": {
+    frequencies: [420, 660], // friendly two-tone boop
+    durations: [90, 150],
+    type: "triangle",
+    volume: 0.35,
+    delay: 85,
+    envelope: { attack: 0.01, decay: 0.08, sustain: 0.3, release: 0.2 },
+  },
   "pomodoro-start": {
     frequencies: [523.25, 659.25, 783.99], // C5, E5, G5 - major chord
     durations: [120, 120, 200],
@@ -245,6 +254,7 @@ class SoundEngine {
   trash() { this.play("trash"); }
   whoosh() { this.play("whoosh"); }
   hover() { this.play("hover"); }
+  petBoop() { this.play("pet-boop"); }
 }
 
 export const soundEngine = new SoundEngine();

@@ -206,11 +206,17 @@ const MIGRATIONS = [
 
 async function migrateIfNeeded(db: DB) {
   const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
-  if (m?.value === "1") return;
-  for (const sql of MIGRATIONS) {
-    try { await db.run(sql); } catch { /* column already exists */ }
+  if (m?.value !== "2") {
+    if (m?.value !== "1") {
+      for (const sql of MIGRATIONS) {
+        try { await db.run(sql); } catch { /* column already exists */ }
+      }
+      await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
+    }
+    // v2: profile pictures
+    try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch { /* column already exists */ }
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','2')");
   }
-  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
 }
 
 async function init(): Promise<DB> {

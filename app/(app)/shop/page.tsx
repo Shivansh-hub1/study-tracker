@@ -65,7 +65,7 @@ export default function ShopPage() {
         </div>
       ) : (
         <>
-        {["Utility", "Unlocks", "Themes", "Profile", "Cosmetics"].map((cat) => {
+        {["Utility", "Unlocks", "Themes", "Profile", "Pets", "Cosmetics"].map((cat) => {
           const catItems = items.filter((it: any) => (it.cat || "Cosmetics") === cat);
           if (!catItems.length) return null;
           return (
