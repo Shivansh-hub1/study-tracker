@@ -96,6 +96,12 @@ export default function AppShell({ user, children }: { user: Me; children: React
   useEffect(() => setOpen(false), [pathname]);
   useEffect(() => {
     try {
+      if (ownedItem("bg_anim")) document.documentElement.setAttribute("data-bg-anim", "1");
+      else document.documentElement.removeAttribute("data-bg-anim");
+    } catch {}
+  }, [shopData]);
+  useEffect(() => {
+    try {
       setFlair({ avatar: localStorage.getItem("ff_avatar") || "", title: localStorage.getItem("ff_title") || "" });
     } catch {}
   }, [pathname]);
@@ -145,16 +151,18 @@ export default function AppShell({ user, children }: { user: Me; children: React
         )}
         <div className="sspacer" />
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 12px" }}>
+          <div className={ownedItem("pfp_ring") ? "pfp-ring" : ""} style={{ flexShrink: 0, padding: 2.5, borderRadius: "50%" }}>
           <div
             style={{
               width: 34, height: 34, borderRadius: "50%", background: "var(--accent-grad)", color: "#fff",
-              display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, flexShrink: 0, boxShadow: "var(--glow)",
+              display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, boxShadow: "var(--glow)",
             }}
           >
             {user.pfp ? (
               // eslint-disable-next-line @next/next/no-img-element
               <img src={user.pfp} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
             ) : avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+          </div>
           </div>
           <div style={{ minWidth: 0, flex: 1 }}>
             <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>

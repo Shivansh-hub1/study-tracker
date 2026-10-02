@@ -13,6 +13,10 @@ const CLICK_LINES: Record<string, string[]> = {
   pet_turtle: ["slow is fine", "steady wins", "one step at a time"],
   pet_octopus: ["8 arms, 8 subjects", "flexible day", "ink-redible"],
   pet_alien: ["beep boop", "cosmic focus", "take me to your subjects"],
+  pet_ghost: ["boo!", "spooky focus", "scary productive"],
+  pet_unicorn: ["sparkle time!", "magic is consistency", "believe ✨"],
+  pet_phoenix: ["rise again!", "burn bright", "every day is a comeback"],
+  pet_wizard: ["you shall pass!", "casting deep work", "+100 focus"],
 };
 const SAVE_LINES = ["GG! 🎉", "nice session!", "+XP, nice", "streak material", "logged and proud"];
 

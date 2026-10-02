@@ -1,7 +1,7 @@
 // Service Worker for FocusFlow PWA
 // Provides offline support, caching, and background sync
 
-const CACHE_NAME = "focusflow-v1";
+const CACHE_NAME = "focusflow-v2";
 const STATIC_ASSETS = [
   "/",
   "/dsa",
@@ -14,8 +14,6 @@ const STATIC_ASSETS = [
   "/about",
   "/privacy",
   "/terms",
-  "/signup",
-  "/login",
   "/manifest.webmanifest",
   "/opengraph-image",
 ];
@@ -67,6 +65,11 @@ self.addEventListener("fetch", (event) => {
   // Skip API/auth routes - let them go to network
   if (url.pathname.startsWith("/api/")) return;
 
+  // Auth-gated pages must ALWAYS hit the network so the server can redirect:
+  // logged-in users are redirected away from /login, logged-out users to it.
+  // Serving these from cache caused an endless re-login loop in the installed PWA.
+  if (url.pathname === "/login" || url.pathname === "/signup" || url.pathname === "/dashboard") return;
+
   // Determine cache strategy
   const isStaticAsset =
     url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2|woff|ttf|eot|webp|avif)$/) ||
@@ -103,7 +106,9 @@ async function staleWhileRevalidate(request) {
   const cached = await caches.match(request);
 
   const fetchPromise = fetch(request).then((response) => {
-    if (response.ok) {
+    // Never cache redirected responses — a /dashboard -> /login redirect must
+    // not poison the cache with a login page stored under the dashboard URL.
+    if (response.ok && !response.redirected) {
       const cache = caches.open(CACHE_NAME).then((c) => c.put(request, response.clone()));
     }
     return response;

@@ -22,6 +22,10 @@ export const THEMES = [
   { id: "vapor", name: "Vaporwave", swatch: "linear-gradient(135deg,#f472b6,#a78bfa,#22d3ee)", shop: 300 },
   { id: "coffee", name: "Coffee", swatch: "linear-gradient(135deg,#d4a373,#a47148,#6f4518)", shop: 250 },
   { id: "royal", name: "Royal Gold", swatch: "linear-gradient(135deg,#f59e0b,#fbbf24,#a16207)", shop: 400 },
+  { id: "glass", name: "Glassmorphism", swatch: "linear-gradient(135deg,rgba(255,255,255,0.9),#a5b4fc,#f9a8d4)", shop: 500 },
+  { id: "matyou", name: "Material You", swatch: "linear-gradient(135deg,#6750a4,#d0bcff,#7d5260)", shop: 500 },
+  { id: "obsidian", name: "Obsidian OLED", swatch: "linear-gradient(135deg,#000000,#1e293b,#3b82f6)", shop: 600 },
+  { id: "holo", name: "Holographic", swatch: "linear-gradient(135deg,#22d3ee,#a78bfa,#ec4899,#f59e0b)", shop: 750 },
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };

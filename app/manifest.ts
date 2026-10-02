@@ -6,7 +6,9 @@ export default function manifest(): MetadataRoute.Manifest {
     name: `${SITE_NAME} — Study Tracker`,
     short_name: SITE_NAME,
     description: SITE_DESCRIPTION,
-    start_url: "/",
+    // Open the installed PWA straight into the app; middleware sends
+    // logged-out users to /login automatically.
+    start_url: "/dashboard",
     scope: "/",
     display: "standalone",
     orientation: "portrait-primary",
