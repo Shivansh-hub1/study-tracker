@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
   const db = await getDb();
 
   // All 4 reads in parallel: 1 round trip instead of 4 sequential.
-  const [sessions, frozenRows, revD, revW] = await Promise.all([
+  const [sessions, frozenRows, revD, revW, transferRows] = await Promise.all([
     db.all(
       `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
        FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
@@ -26,10 +26,11 @@ export async function GET(req: NextRequest) {
     db.all("SELECT day FROM freeze_days WHERE user_id = ?", user.id),
     db.get("SELECT COUNT(*) as c FROM dsa_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
     db.get("SELECT COUNT(*) as c FROM web_progress WHERE user_id = ? AND revised_at IS NOT NULL", user.id),
+    db.all("SELECT from_day, to_day, minutes FROM time_transfers WHERE user_id = ?", user.id),
   ]);
 
   const spentRow = (await db.get("SELECT COALESCE(SUM(cost),0) as c FROM xp_purchases WHERE user_id = ?", user.id)) as any;
-  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0)) };
+  const __payload = { stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0), transferRows as any[]) };
   cacheSet(__ck, __payload);
   return NextResponse.json(__payload);
 }

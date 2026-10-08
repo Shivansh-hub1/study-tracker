@@ -14,6 +14,7 @@ import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
 import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
 import Heatmap from "@/components/Heatmap";
+import TimeTransfer from "@/components/TimeTransfer";
 import { drawShareCard, shareText } from "@/components/ShareCard";
 import { useToast } from "@/components/Providers";
 
@@ -196,6 +197,9 @@ export default function DashboardPage() {
           <button className="btn btn-primary" onClick={() => setShareOpen(true)}><Share2 size={15} /> Share</button>
         </div>
       )}
+
+      {/* Time transfer: appears when a day has 6h+ of study time */}
+      <TimeTransfer transferable={stats?.transferable || []} daily={stats?.daily || []} onDone={reloadStats} />
 
       {/* Stats row */}
       {smartPlan?.enabled && smartPlan?.plan?.length > 0 && (

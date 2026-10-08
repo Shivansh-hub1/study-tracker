@@ -10,7 +10,8 @@ export function computeStats(
   revD: any,
   revW: any,
   offsetMin: number,
-  spentXp: number = 0
+  spentXp: number = 0,
+  transfers: any[] = []
 ) {
   const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
@@ -58,12 +59,27 @@ export function computeStats(
     if (local >= monthStart) monthMin += min;
   }
 
-  // streak (consecutive days with any session, today not required to be finished)
+  // time transfers: move minutes between days (does not change totals or XP)
+  const parseDay = (k: string) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+  for (const t of transfers || []) {
+    const mv = Number(t.minutes) || 0;
+    if (days[t.from_day]) days[t.from_day].minutes -= mv;
+    if (days[t.to_day]) days[t.to_day].minutes += mv;
+    if (t.from_day === todayK) todayMin -= mv;
+    if (t.to_day === todayK) todayMin += mv;
+    const fd = parseDay(t.from_day), td = parseDay(t.to_day);
+    if (fd >= weekStart) weekMin -= mv;
+    if (td >= weekStart) weekMin += mv;
+    if (fd >= monthStart) monthMin -= mv;
+    if (td >= monthStart) monthMin += mv;
+  }
+
+  // streak (consecutive days with study time or freeze; today not required to be finished)
   let streak = 0;
   for (let i = 0; i < 365; i++) {
     const d = new Date(nowLocal); d.setDate(d.getDate() - i);
     const k = dateKey(d);
-    const has = (days[k] && days[k].sessions > 0) || frozen.has(k);
+    const has = (days[k] && days[k].minutes > 0) || frozen.has(k);
     if (has) streak++;
     else if (i === 0) continue; // today may not be logged yet
     else break;
@@ -71,6 +87,7 @@ export function computeStats(
 
   // weekly series: last 12 weeks (Mon-Sun)
   const weekly: Array<{ week: string; minutes: number; sessions: number }> = [];
+  const weekWindows: Array<{ start: Date; end: Date; idx: number }> = [];
   for (let w = 11; w >= 0; w--) {
     const start = new Date(weekStart); start.setDate(start.getDate() - w * 7);
     const end = new Date(start); end.setDate(end.getDate() + 7);
@@ -79,7 +96,15 @@ export function computeStats(
       const local = toLocal(se.started_at);
       if (local >= start && local < end) { m += se.duration_sec / 60; c++; }
     }
+    weekWindows.push({ start, end, idx: weekly.length });
     weekly.push({ week: `${start.getMonth() + 1}/${start.getDate()}`, minutes: Math.round(m), sessions: c });
+  }
+  for (const t of transfers || []) {
+    const fd = parseDay(t.from_day), td = parseDay(t.to_day);
+    for (const w of weekWindows) {
+      if (fd >= w.start && fd < w.end) weekly[w.idx].minutes -= Number(t.minutes) || 0;
+      if (td >= w.start && td < w.end) weekly[w.idx].minutes += Number(t.minutes) || 0;
+    }
   }
 
   // daily series last 30 days (chronological)
@@ -97,6 +122,7 @@ export function computeStats(
 
   // monthly series: last 6 months
   const monthly: Array<{ month: string; minutes: number; sessions: number }> = [];
+  const monthWindows: Array<{ start: Date; end: Date; idx: number }> = [];
   for (let m = 5; m >= 0; m--) {
     const d = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m, 1);
     const end = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m + 1, 1);
@@ -105,7 +131,15 @@ export function computeStats(
       const local = toLocal(se.started_at);
       if (local >= d && local < end) { mm += se.duration_sec / 60; c++; }
     }
+    monthWindows.push({ start: d, end, idx: monthly.length });
     monthly.push({ month: d.toLocaleString("en", { month: "short" }), minutes: Math.round(mm), sessions: c });
+  }
+  for (const t of transfers || []) {
+    const fd = parseDay(t.from_day), td = parseDay(t.to_day);
+    for (const w of monthWindows) {
+      if (fd >= w.start && fd < w.end) monthly[w.idx].minutes -= Number(t.minutes) || 0;
+      if (td >= w.start && td < w.end) monthly[w.idx].minutes += Number(t.minutes) || 0;
+    }
   }
 
   // XP + level: 1 XP per focus minute, +5 per revised topic
@@ -114,6 +148,13 @@ export function computeStats(
   const level = Math.floor(Math.sqrt(xp / 50)) + 1;
   const xpCur = 50 * (level - 1) * (level - 1);
   const xpNext = 50 * level * level;
+
+  // transferable days: >6h net study time, no transfer made from that day yet
+  const transferredFrom = new Set((transfers || []).map((t: any) => t.from_day));
+  const TRANSFER_THRESHOLD = 360; // minutes (6 hours)
+  const transferable = daily
+    .filter((d) => d.minutes > TRANSFER_THRESHOLD && !transferredFrom.has(d.date))
+    .map((d) => ({ date: d.date, minutes: d.minutes, half: Math.floor(d.minutes / 2) }));
 
   return {
     todayMin: Math.round(todayMin),
@@ -137,5 +178,7 @@ export function computeStats(
     bySubject: Object.values(bySubject).map((s) => ({ ...s, minutes: Math.round(s.minutes) })),
     bySubjectAll: Object.values(bySubjectAll).map((s) => ({ ...s, minutes: Math.round(s.minutes) })),
     byType: Object.entries(byType).map(([type, sec]) => ({ type, minutes: Math.round(sec / 60) })),
+    transfers: (transfers || []).map((t: any) => ({ from_day: t.from_day, to_day: t.to_day, minutes: t.minutes })),
+    transferable,
   };
 }

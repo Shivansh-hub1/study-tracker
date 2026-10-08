@@ -30,7 +30,7 @@ export async function GET(req: NextRequest) {
   const week = mondayKey(nowLocal);
 
   await ensureSettings(db, user.id); // cached after first call per instance
-  const [sessions, frozenRows, revD, revW, goals, recent, subjects, setRow, fRow, spentRow] = await Promise.all([
+  const [sessions, frozenRows, revD, revW, goals, recent, subjects, setRow, fRow, spentRow, transferRows] = await Promise.all([
     db.all(
       `SELECT se.subject_id, se.type, se.started_at, se.duration_sec, s.name as subject_name, s.color as subject_color
        FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id WHERE se.user_id = ? ORDER BY se.started_at ASC`,
@@ -55,6 +55,7 @@ export async function GET(req: NextRequest) {
     db.get("SELECT freeze_stock, freeze_week FROM settings WHERE user_id = ?", user.id),
     db.get("SELECT day FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK),
     db.get("SELECT COALESCE(SUM(cost),0) as c FROM xp_purchases WHERE user_id = ?", user.id),
+    db.all("SELECT from_day, to_day, minutes FROM time_transfers WHERE user_id = ?", user.id),
   ]);
 
   // Lazy weekly freeze grant (same logic as /api/streak).
@@ -65,7 +66,7 @@ export async function GET(req: NextRequest) {
   }
 
   const __payload = {
-    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0)),
+    stats: computeStats(sessions as any[], frozenRows as any[], revD, revW, offsetMin, Number(spentRow?.c || 0), transferRows as any[]),
     goals,
     sessions: recent,
     subjects,

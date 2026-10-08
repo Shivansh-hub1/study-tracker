@@ -177,6 +177,14 @@ const SCHEMA = [
     key TEXT PRIMARY KEY,
     value TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS time_transfers (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    user_id INTEGER NOT NULL,
+    from_day TEXT NOT NULL,
+    to_day TEXT NOT NULL,
+    minutes INTEGER NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
 ];
 
 type Stmt = { sql: string; args: any[] };
@@ -216,6 +224,18 @@ async function migrateIfNeeded(db: DB) {
     // v2: profile pictures
     try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch { /* column already exists */ }
     await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','2')");
+  }
+  // v3: time transfers (move half of a 6h+ day to an earlier day)
+  if (m?.value !== "3") {
+    await db.run(`CREATE TABLE IF NOT EXISTS time_transfers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      from_day TEXT NOT NULL,
+      to_day TEXT NOT NULL,
+      minutes INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    )`);
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','3')");
   }
 }
 
@@ -307,6 +327,18 @@ async function initTurso(): Promise<DB> {
   if (snap.v !== "2") {
     try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch { /* column already exists */ }
     await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','2')");
+  }
+  // v3: time transfers (must ALSO run here — initTurso returns before migrateIfNeeded)
+  if (snap.v !== "3") {
+    await db.run(`CREATE TABLE IF NOT EXISTS time_transfers (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      from_day TEXT NOT NULL,
+      to_day TEXT NOT NULL,
+      minutes INTEGER NOT NULL,
+      created_at TEXT NOT NULL
+    )`);
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','3')");
   }
   if (!snap.owner) await createOwner(db);
   return db;
