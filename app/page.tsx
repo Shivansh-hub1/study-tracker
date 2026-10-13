@@ -3,6 +3,8 @@ import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check } from "lucide-react";
 import { SITE_DESCRIPTION, SITE_NAME, siteBaseUrl } from "@/lib/seo";
 import { getDb, featureOn } from "@/lib/db";
+import { getSessionUser } from "@/lib/auth";
+import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
@@ -121,6 +123,8 @@ function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
 }
 
 export default async function Home() {
+  // Already signed in? Go straight to the app — never show the landing/login again.
+  if (await getSessionUser()) redirect("/dashboard");
   const { habits, planner } = await flagPair();
   const { features, faqs, sub } = contentFor(habits, planner);
   const jsonLd = jsonLdFor(features, faqs);

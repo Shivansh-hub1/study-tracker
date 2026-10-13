@@ -948,6 +948,172 @@ select.select {
 :root[data-theme="holo"] .btn-primary,
 :root[data-theme="holo"] .btn-primary:hover { color: #170F2E; }
 
+
+/* ============ Glassmorphism v3 — deeper frosted system ============ */
+/* living backdrop: bigger orbs that slowly shift hue */
+:root[data-theme="glass"] .glass-blobs .b1 { width: 640px; height: 640px; animation: blobDrift 24s ease-in-out infinite alternate, glassHue 48s linear infinite; }
+:root[data-theme="glass"] .glass-blobs .b2 { width: 720px; height: 720px; top: 10%; animation: blobDrift 29s ease-in-out infinite alternate-reverse, glassHue 62s linear infinite; }
+:root[data-theme="glass"] .glass-blobs .b3 { width: 660px; height: 660px; animation: blobDrift 33s ease-in-out infinite alternate, glassHue 55s linear infinite; }
+@keyframes glassHue { from { filter: blur(100px) hue-rotate(0deg); } to { filter: blur(100px) hue-rotate(360deg); } }
+
+/* frosted panels with light-catching top edge */
+:root[data-theme="glass"] .card,
+:root[data-theme="glass"] .sidebar,
+:root[data-theme="glass"] .menu,
+:root[data-theme="glass"] .timer-tabs,
+:root[data-theme="glass"] .empty .ico {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  box-shadow: 0 8px 32px rgba(31, 41, 85, 0.12), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+:root[data-theme="glass"] .card:hover {
+  box-shadow: 0 16px 44px rgba(31, 41, 85, 0.18), inset 0 1px 0 rgba(255, 255, 255, 0.6);
+}
+:root[data-theme="glass"] .topbar h1 { text-shadow: 0 1px 0 rgba(255, 255, 255, 0.5); }
+
+/* glass buttons */
+:root[data-theme="glass"] .btn {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(14px) saturate(1.5);
+  -webkit-backdrop-filter: blur(14px) saturate(1.5);
+  box-shadow: 0 4px 14px rgba(31, 41, 85, 0.10), inset 0 1px 0 rgba(255, 255, 255, 0.55);
+}
+:root[data-theme="glass"] .btn:hover { background: rgba(255, 255, 255, 0.78); }
+:root[data-theme="glass"] .btn-ghost { background: transparent; border-color: transparent; box-shadow: none; backdrop-filter: none; -webkit-backdrop-filter: none; }
+:root[data-theme="glass"] .btn-primary {
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.92), rgba(124, 58, 237, 0.92));
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  color: #fff;
+  backdrop-filter: blur(14px) saturate(1.6);
+  -webkit-backdrop-filter: blur(14px) saturate(1.6);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.38), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+}
+:root[data-theme="glass"] .iconbtn {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(12px) saturate(1.5);
+  -webkit-backdrop-filter: blur(12px) saturate(1.5);
+}
+
+/* glass inputs */
+:root[data-theme="glass"] .input,
+:root[data-theme="glass"] .select {
+  background: rgba(255, 255, 255, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+:root[data-theme="glass"] .input:focus,
+:root[data-theme="glass"] .select:focus {
+  border-color: #4F46E5;
+  box-shadow: 0 0 0 3px rgba(79, 70, 229, 0.15);
+}
+
+/* frosted modal: blurred scene behind */
+:root[data-theme="glass"] .modal-overlay {
+  background: rgba(30, 41, 59, 0.35);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+:root[data-theme="glass"] .modal {
+  background: rgba(255, 255, 255, 0.72);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+/* glass nav pills + chips */
+:root[data-theme="glass"] .snav.active {
+  background: rgba(99, 102, 241, 0.14);
+  border-color: rgba(99, 102, 241, 0.3);
+}
+:root[data-theme="glass"] .chip,
+:root[data-theme="glass"] .badge {
+  background: rgba(255, 255, 255, 0.55);
+  border: 1px solid rgba(255, 255, 255, 0.65);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+:root[data-theme="glass"] .chip.on { background: rgba(99, 102, 241, 0.16); border-color: rgba(79, 70, 229, 0.45); }
+
+/* glass scrollbar */
+:root[data-theme="glass"] ::-webkit-scrollbar { width: 10px; }
+:root[data-theme="glass"] ::-webkit-scrollbar-track { background: rgba(255, 255, 255, 0.25); }
+:root[data-theme="glass"] ::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.35);
+  border-radius: 999px;
+  border: 2px solid rgba(255, 255, 255, 0.55);
+}
+
+
+/* ============ Material You v3 — authentic M3 tonal system ============ */
+/* flat filled button (M3 style) with primary-tinted elevation */
+:root[data-theme="matyou"] .btn-primary {
+  background: #6750A4;
+  border: none;
+  color: #fff;
+  box-shadow: 0 1px 3px rgba(103, 80, 164, 0.35), 0 2px 6px rgba(103, 80, 164, 0.22);
+}
+:root[data-theme="matyou"] .btn-primary:hover { color: #fff; }
+/* tonal secondary buttons */
+:root[data-theme="matyou"] .btn {
+  background: #ECE6F0;
+  border: 1px solid #CAC4D0;
+  color: #1C1B1F;
+  box-shadow: none;
+}
+:root[data-theme="matyou"] .btn:hover { background: #E5DEEB; border-color: #CAC4D0; color: #1C1B1F; }
+:root[data-theme="matyou"] .btn-ghost { background: transparent; border-color: transparent; color: #49454F; box-shadow: none; }
+
+/* elevated cards on surface-container-low with tonal shadow */
+:root[data-theme="matyou"] .card {
+  background: #F7F2FA;
+  border: 1px solid #E7E0EC;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(103, 80, 164, 0.10), 0 2px 8px rgba(103, 80, 164, 0.06);
+}
+:root[data-theme="matyou"] .card:hover {
+  box-shadow: 0 2px 6px rgba(103, 80, 164, 0.14), 0 6px 18px rgba(103, 80, 164, 0.10);
+}
+
+/* navigation rail: secondary-container active pill */
+:root[data-theme="matyou"] .sidebar { background: #F3EDF7; border-right: 1px solid #E7E0EC; }
+:root[data-theme="matyou"] .snav { color: #49454F; border-radius: 999px; }
+:root[data-theme="matyou"] .snav:hover { background: #ECE6F0; color: #1C1B1F; }
+:root[data-theme="matyou"] .snav.active {
+  background: #E8DEF8;
+  color: #1D192B;
+  border-color: transparent;
+  box-shadow: none;
+  font-weight: 700;
+}
+
+/* segmented timer tabs */
+:root[data-theme="matyou"] .timer-tabs { background: #ECE6F0; border: 1px solid #E7E0EC; border-radius: 999px; }
+:root[data-theme="matyou"] .timer-tab { border-radius: 999px; color: #49454F; }
+:root[data-theme="matyou"] .timer-tab.active { background: #6750A4; color: #fff; box-shadow: 0 1px 4px rgba(103, 80, 164, 0.4); }
+
+/* outlined text fields */
+:root[data-theme="matyou"] .input,
+:root[data-theme="matyou"] .select {
+  background: #FEF7FF;
+  border: 1px solid #79747E;
+}
+:root[data-theme="matyou"] .input:focus,
+:root[data-theme="matyou"] .select:focus {
+  border-color: #6750A4;
+  box-shadow: 0 0 0 1px #6750A4;
+}
+
+/* M3 chips + badges */
+:root[data-theme="matyou"] .chip { background: #F3EDF7; border: 1px solid #CAC4D0; color: #1C1B1F; }
+:root[data-theme="matyou"] .chip.on { background: #E8DEF8; border-color: #CAC4D0; color: #1D192B; box-shadow: none; }
+:root[data-theme="matyou"] .badge { background: #E8DEF8; color: #1D192B; border: none; }
+
+/* topbar + modal on M3 surfaces */
+:root[data-theme="matyou"] .topbar { background: transparent; }
+:root[data-theme="matyou"] .modal { background: #F3EDF7; border: none; box-shadow: 0 6px 24px rgba(0, 0, 0, 0.14); }
+:root[data-theme="matyou"] .menu { border-radius: 16px; }
+
 .pfp-ring { position: relative; border-radius: 50%; }
 .pfp-ring::before { content: ""; position: absolute; inset: 0; border-radius: 50%; background: conic-gradient(#f472b6, #f59e0b, #34d399, #22d3ee, #a78bfa, #f472b6); animation: pfp-ring-spin 3.5s linear infinite; }
 .pfp-ring > * { position: relative; }

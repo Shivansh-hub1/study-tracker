@@ -14,6 +14,21 @@ const CANONICAL_HOST = (process.env.VERCEL_PROJECT_PRODUCTION_URL || "yourstudyt
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
+  // Auth pages: if already signed in, go straight to the app
+  if (AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
+    const token = req.cookies.get("st_token")?.value;
+    let valid = false;
+    if (token) {
+      try { await jwtVerify(token, SECRET); valid = true; } catch { valid = false; }
+    }
+    if (valid) {
+      const url = req.nextUrl.clone();
+      url.pathname = "/dashboard";
+      return NextResponse.redirect(url);
+    }
+    return NextResponse.next();
+  }
+
   // Always land on ONE domain: every *.vercel.app preview/deployment URL
   // redirects to the production host, so the login cookie is never split
   // across different domains (this was causing repeated logins).
@@ -28,6 +43,8 @@ export async function middleware(req: NextRequest) {
 
   if (
       pathname === "/" ||
+      pathname === "/sw.js" ||
+      pathname === "/offline" ||
       pathname.startsWith("/_next") ||
       pathname.startsWith("/favicon") ||
       pathname.startsWith("/robots.txt") ||
@@ -62,12 +79,6 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(url);
   }
 
-  // Logged-in users shouldn't see auth pages (login/signup only)
-  if (AUTH_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))) {
-    const url = req.nextUrl.clone();
-    url.pathname = "/dashboard";
-    return NextResponse.redirect(url);
-  }
   return NextResponse.next();
 }
 
