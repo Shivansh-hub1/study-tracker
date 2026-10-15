@@ -1,6 +1,11 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
+
+// Overlays load lazily — not needed for first paint
+const AchievementPopup = dynamic(() => import("./AchievementPopup"), { ssr: false });
+const Pet = dynamic(() => import("./Pet"), { ssr: false });
 import Link from "next/link";
 import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
 import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
@@ -8,8 +13,6 @@ import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
 import { useFetch } from "@/lib/client";
-import AchievementPopup from "./AchievementPopup";
-import Pet from "./Pet";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,

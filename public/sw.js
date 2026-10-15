@@ -1,7 +1,7 @@
 // Service Worker for FocusFlow PWA
 // Provides offline support, caching, and background sync
 
-const CACHE_NAME = "focusflow-v2";
+const CACHE_NAME = "focusflow-v3";
 const STATIC_ASSETS = [
   "/",
   "/dsa",
@@ -14,18 +14,12 @@ const STATIC_ASSETS = [
   "/about",
   "/privacy",
   "/terms",
+  "/offline",
   "/manifest.webmanifest",
   "/opengraph-image",
 ];
 
-const CACHE_STRATEGIES = {
-  // Static assets - cache first
-  static: ["GET"],
-  // API - network first, fallback to cache
-  api: ["GET"],
-  // Pages - stale while revalidate
-  pages: ["GET"],
-};
+const AUTH_PAGES = ["/login", "/signup", "/dashboard"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
@@ -41,13 +35,20 @@ self.addEventListener("install", (event) => {
 
 self.addEventListener("activate", (event) => {
   event.waitUntil(
-    caches.keys().then((cacheNames) => {
-      return Promise.all(
-        cacheNames
-          .filter((name) => name !== CACHE_NAME)
-          .map((name) => caches.delete(name))
-      );
-    })
+    (async () => {
+      // Navigation preload: the network request starts WHILE the worker boots —
+      // removes the SW-startup delay from every page open.
+      if (self.registration.navigationPreload) {
+        try { await self.registration.navigationPreload.enable(); } catch { /* not supported */ }
+      }
+      await caches.keys().then((cacheNames) => {
+        return Promise.all(
+          cacheNames
+            .filter((name) => name !== CACHE_NAME)
+            .map((name) => caches.delete(name))
+        );
+      });
+    })()
   );
   self.clients.claim();
 });
@@ -62,13 +63,21 @@ self.addEventListener("fetch", (event) => {
   // Skip cross-origin requests
   if (url.origin !== location.origin) return;
 
-  // Skip API/auth routes - let them go to network
+  // Skip API routes - let them go to network
   if (url.pathname.startsWith("/api/")) return;
 
   // Auth-gated pages must ALWAYS hit the network so the server can redirect:
   // logged-in users are redirected away from /login, logged-out users to it.
   // Serving these from cache caused an endless re-login loop in the installed PWA.
-  if (url.pathname === "/login" || url.pathname === "/signup" || url.pathname === "/dashboard") return;
+  // (Offline they fall back to the /offline page instead of a browser error.)
+  if (AUTH_PAGES.some((p) => url.pathname === p)) {
+    event.respondWith(
+      fetch(request).catch(() =>
+        caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
+      )
+    );
+    return;
+  }
 
   // Determine cache strategy
   const isStaticAsset =
@@ -82,7 +91,7 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(request));
   } else if (isPage) {
     // Stale while revalidate for pages
-    event.respondWith(staleWhileRevalidate(request));
+    event.respondWith(staleWhileRevalidate(request, event));
   }
 });
 
@@ -102,17 +111,21 @@ async function cacheFirst(request) {
   }
 }
 
-async function staleWhileRevalidate(request) {
+async function staleWhileRevalidate(request, event) {
   const cached = await caches.match(request);
 
-  const fetchPromise = fetch(request).then((response) => {
+  const networkFetch = event.preloadResponse || fetch(request);
+  const fetchPromise = networkFetch.then((response) => {
     // Never cache redirected responses — a /dashboard -> /login redirect must
     // not poison the cache with a login page stored under the dashboard URL.
-    if (response.ok && !response.redirected) {
+    if (response && response.ok && !response.redirected) {
       const cache = caches.open(CACHE_NAME).then((c) => c.put(request, response.clone()));
     }
     return response;
-  }).catch(() => cached);
+  }).catch(() =>
+    // Offline: serve whatever we have, else the offline page
+    cached || caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
+  );
 
   return cached || fetchPromise;
 }

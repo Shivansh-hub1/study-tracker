@@ -2,20 +2,22 @@
 
 import { playSound } from "@/lib/sounds";
 import React, { useEffect, useMemo, useRef, useState } from "react";
+import dynamic from "next/dynamic";
+
+// Heavy chunks load lazily: charts (~100 KB recharts), heatmap, share card
+const TrendChart = dynamic(() => import("@/components/DashboardCharts").then((m) => m.TrendChart), { ssr: false, loading: () => <div style={{ height: 240 }} /> });
+const SubjectPie = dynamic(() => import("@/components/DashboardCharts").then((m) => m.SubjectPie), { ssr: false, loading: () => <div style={{ height: 180 }} /> });
+const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false, loading: () => <div style={{ height: 140 }} /> });
 import Link from "next/link";
 import {
   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
   BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2,
 } from "lucide-react";
-import {
-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
-} from "recharts";
+
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
 import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
-import Heatmap from "@/components/Heatmap";
 import TimeTransfer from "@/components/TimeTransfer";
-import { drawShareCard, shareText } from "@/components/ShareCard";
 import { useToast } from "@/components/Providers";
 
 const KIND_LABELS: Record<string, string> = {
@@ -107,7 +109,10 @@ export default function DashboardPage() {
 
   useEffect(() => {
     if (shareOpen && shareRef.current && stats) {
-      drawShareCard(shareRef.current, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) });
+      const cv = shareRef.current;
+      import("@/components/ShareCard").then(({ drawShareCard }) =>
+        drawShareCard(cv, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) })
+      );
     }
   }, [shareOpen, stats]);
 
@@ -122,6 +127,7 @@ export default function DashboardPage() {
   const copyShare = async () => {
     if (!stats) return;
     try {
+      const { shareText } = await import("@/components/ShareCard");
       await navigator.clipboard.writeText(shareText({ streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0 }));
       toast("Copied — paste it anywhere!", "success");
     } catch {
@@ -267,25 +273,7 @@ export default function DashboardPage() {
             <Link href="/progress" className="btn btn-sm btn-ghost">Full analytics</Link>
           </div>
           {stats && stats.daily.some((d: any) => d.minutes > 0) ? (
-            <ResponsiveContainer width="100%" height={240}>
-              <AreaChart data={stats.daily} margin={{ left: -20, right: 8, top: 6 }}>
-                <defs>
-                  <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.5} />
-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={(d) => d.slice(5)} tickLine={false} axisLine={false} minTickGap={24} />
-                <YAxis tick={{ fontSize: 10, fill: "var(--muted)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 60)}h`} />
-                <Tooltip
-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12.5 }}
-                  labelStyle={{ fontWeight: 700 }}
-                  formatter={(v: any) => [fmtMinutes(Number(v)), "Focused"]}
-                />
-                <Area type="monotone" dataKey="minutes" stroke="var(--accent)" strokeWidth={2.5} fill="url(#dashGrad)" />
-              </AreaChart>
-            </ResponsiveContainer>
+            <TrendChart daily={stats.daily} />
           ) : (
             <EmptyState icon={<TrendingUp size={26} />} title="No study data yet" hint="Start a timer to see your 30-day trend come alive." action={<Link className="btn btn-primary" href="/timer"><Play size={15} /> Start focusing</Link>} />
           )}
@@ -295,23 +283,7 @@ export default function DashboardPage() {
         <div className="card">
           <h2 style={{ fontSize: 15, marginBottom: 4 }}>Subjects — last 30 days</h2>
           {pie.length > 0 ? (
-            <>
-              <ResponsiveContainer width="100%" height={180}>
-                <PieChart>
-                  <Pie data={pie} dataKey="value" innerRadius={50} outerRadius={75} paddingAngle={3} strokeWidth={0}>
-                    {pie.map((p: any) => <Cell key={p.name} fill={p.color} />)}
-                  </Pie>
-                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12.5 }} formatter={(v: any) => [fmtMinutes(Number(v))]} />
-                </PieChart>
-              </ResponsiveContainer>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
-                {pie.slice(0, 6).map((p: any) => (
-                  <span key={p.name} style={{ fontSize: 12, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 5 }}>
-                    <Dot color={p.color} /> {p.name}
-                  </span>
-                ))}
-              </div>
-            </>
+            <SubjectPie pie={pie} />
           ) : (
             <EmptyState icon={<BookOpen size={26} />} title="Nothing tracked yet" hint="Log your first session to unlock subject insights." action={<Link className="btn btn-primary" href="/timer"><TimerIcon size={15} /> Open timers</Link>} />
           )}
