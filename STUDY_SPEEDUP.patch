@@ -1,0 +1,353 @@
+diff --git a/app/(app)/dashboard/page.tsx b/app/(app)/dashboard/page.tsx
+index 1914527..12b00ef 100644
+--- a/app/(app)/dashboard/page.tsx
++++ b/app/(app)/dashboard/page.tsx
+@@ -2,20 +2,22 @@
+ 
+ import { playSound } from "@/lib/sounds";
+ import React, { useEffect, useMemo, useRef, useState } from "react";
++import dynamic from "next/dynamic";
++
++// Heavy chunks load lazily: charts (~100 KB recharts), heatmap, share card
++const TrendChart = dynamic(() => import("@/components/DashboardCharts").then((m) => m.TrendChart), { ssr: false, loading: () => <div style={{ height: 240 }} /> });
++const SubjectPie = dynamic(() => import("@/components/DashboardCharts").then((m) => m.SubjectPie), { ssr: false, loading: () => <div style={{ height: 180 }} /> });
++const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false, loading: () => <div style={{ height: 140 }} /> });
+ import Link from "next/link";
+ import {
+   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
+   BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2,
+ } from "lucide-react";
+-import {
+-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
+-} from "recharts";
++
+ import { useFetch, api } from "@/lib/client";
+ import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
+ import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
+-import Heatmap from "@/components/Heatmap";
+ import TimeTransfer from "@/components/TimeTransfer";
+-import { drawShareCard, shareText } from "@/components/ShareCard";
+ import { useToast } from "@/components/Providers";
+ 
+ const KIND_LABELS: Record<string, string> = {
+@@ -107,7 +109,10 @@ export default function DashboardPage() {
+ 
+   useEffect(() => {
+     if (shareOpen && shareRef.current && stats) {
+-      drawShareCard(shareRef.current, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) });
++      const cv = shareRef.current;
++      import("@/components/ShareCard").then(({ drawShareCard }) =>
++        drawShareCard(cv, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) })
++      );
+     }
+   }, [shareOpen, stats]);
+ 
+@@ -122,6 +127,7 @@ export default function DashboardPage() {
+   const copyShare = async () => {
+     if (!stats) return;
+     try {
++      const { shareText } = await import("@/components/ShareCard");
+       await navigator.clipboard.writeText(shareText({ streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0 }));
+       toast("Copied — paste it anywhere!", "success");
+     } catch {
+@@ -267,25 +273,7 @@ export default function DashboardPage() {
+             <Link href="/progress" className="btn btn-sm btn-ghost">Full analytics</Link>
+           </div>
+           {stats && stats.daily.some((d: any) => d.minutes > 0) ? (
+-            <ResponsiveContainer width="100%" height={240}>
+-              <AreaChart data={stats.daily} margin={{ left: -20, right: 8, top: 6 }}>
+-                <defs>
+-                  <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
+-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.5} />
+-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+-                  </linearGradient>
+-                </defs>
+-                <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={(d) => d.slice(5)} tickLine={false} axisLine={false} minTickGap={24} />
+-                <YAxis tick={{ fontSize: 10, fill: "var(--muted)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 60)}h`} />
+-                <Tooltip
+-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12.5 }}
+-                  labelStyle={{ fontWeight: 700 }}
+-                  formatter={(v: any) => [fmtMinutes(Number(v)), "Focused"]}
+-                />
+-                <Area type="monotone" dataKey="minutes" stroke="var(--accent)" strokeWidth={2.5} fill="url(#dashGrad)" />
+-              </AreaChart>
+-            </ResponsiveContainer>
++            <TrendChart daily={stats.daily} />
+           ) : (
+             <EmptyState icon={<TrendingUp size={26} />} title="No study data yet" hint="Start a timer to see your 30-day trend come alive." action={<Link className="btn btn-primary" href="/timer"><Play size={15} /> Start focusing</Link>} />
+           )}
+@@ -295,23 +283,7 @@ export default function DashboardPage() {
+         <div className="card">
+           <h2 style={{ fontSize: 15, marginBottom: 4 }}>Subjects — last 30 days</h2>
+           {pie.length > 0 ? (
+-            <>
+-              <ResponsiveContainer width="100%" height={180}>
+-                <PieChart>
+-                  <Pie data={pie} dataKey="value" innerRadius={50} outerRadius={75} paddingAngle={3} strokeWidth={0}>
+-                    {pie.map((p: any) => <Cell key={p.name} fill={p.color} />)}
+-                  </Pie>
+-                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12.5 }} formatter={(v: any) => [fmtMinutes(Number(v))]} />
+-                </PieChart>
+-              </ResponsiveContainer>
+-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+-                {pie.slice(0, 6).map((p: any) => (
+-                  <span key={p.name} style={{ fontSize: 12, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+-                    <Dot color={p.color} /> {p.name}
+-                  </span>
+-                ))}
+-              </div>
+-            </>
++            <SubjectPie pie={pie} />
+           ) : (
+             <EmptyState icon={<BookOpen size={26} />} title="Nothing tracked yet" hint="Log your first session to unlock subject insights." action={<Link className="btn btn-primary" href="/timer"><TimerIcon size={15} /> Open timers</Link>} />
+           )}
+diff --git a/app/offline/page.tsx b/app/offline/page.tsx
+new file mode 100644
+index 0000000..a4c4639
+--- /dev/null
++++ b/app/offline/page.tsx
+@@ -0,0 +1,26 @@
++import type { Metadata } from "next";
++import Link from "next/link";
++
++export const metadata: Metadata = {
++  title: "You're offline",
++  robots: { index: false, follow: false },
++};
++
++export default function OfflinePage() {
++  return (
++    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "var(--bg, #0e1424)", fontFamily: "Inter, system-ui, sans-serif" }}>
++      <div className="card" style={{ padding: 34, maxWidth: 430, textAlign: "center", margin: "0 auto" }}>
++        <div style={{ fontSize: 44, marginBottom: 8 }}>📴</div>
++        <h1 style={{ fontSize: 22, letterSpacing: -0.5, marginBottom: 6 }}>You&apos;re offline</h1>
++        <p style={{ color: "var(--muted, #9aa3b5)", fontSize: 14.5, marginBottom: 22 }}>
++          FocusFlow needs internet to load your data. Your sessions are saved locally and will sync
++          when you&apos;re back online.
++        </p>
++        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
++          <a className="btn btn-primary" href="/dashboard" style={{ textDecoration: "none" }}>Try Again</a>
++          <Link className="btn" href="/about" style={{ textDecoration: "none" }}>About FocusFlow</Link>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/components/AppShell.tsx b/components/AppShell.tsx
+index 3551904..8285e4d 100644
+--- a/components/AppShell.tsx
++++ b/components/AppShell.tsx
+@@ -1,6 +1,11 @@
+ "use client";
+ 
+ import React, { useEffect, useState } from "react";
++import dynamic from "next/dynamic";
++
++// Overlays load lazily — not needed for first paint
++const AchievementPopup = dynamic(() => import("./AchievementPopup"), { ssr: false });
++const Pet = dynamic(() => import("./Pet"), { ssr: false });
+ import Link from "next/link";
+ import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
+ import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
+@@ -8,8 +13,6 @@ import { usePathname } from "next/navigation";
+ import { useToast } from "./Providers";
+ import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
+ import { useFetch } from "@/lib/client";
+-import AchievementPopup from "./AchievementPopup";
+-import Pet from "./Pet";
+ import {
+   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
+   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
+diff --git a/components/DashboardCharts.tsx b/components/DashboardCharts.tsx
+new file mode 100644
+index 0000000..1271f03
+--- /dev/null
++++ b/components/DashboardCharts.tsx
+@@ -0,0 +1,58 @@
++"use client";
++
++// Recharts lives ONLY in this file — the dashboard lazy-loads it so the
++// initial page paint never waits for ~100 KB of chart code.
++import {
++  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell,
++} from "recharts";
++import { fmtMinutes } from "@/lib/utils";
++import { Dot } from "@/components/ui";
++
++const TOOLTIP_STYLE = {
++  background: "var(--surface)",
++  border: "1px solid var(--border)",
++  borderRadius: 10,
++  fontSize: 12.5,
++};
++
++export function TrendChart({ daily }: { daily: Array<{ date: string; minutes: number }> }) {
++  return (
++    <ResponsiveContainer width="100%" height={240}>
++      <AreaChart data={daily} margin={{ left: -20, right: 8, top: 6 }}>
++        <defs>
++          <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
++            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.5} />
++            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
++          </linearGradient>
++        </defs>
++        <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
++        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={(d) => d.slice(5)} tickLine={false} axisLine={false} minTickGap={24} />
++        <YAxis tick={{ fontSize: 10, fill: "var(--muted)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 60)}h`} />
++        <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ fontWeight: 700 }} formatter={(v: any) => [fmtMinutes(Number(v)), "Focused"]} />
++        <Area type="monotone" dataKey="minutes" stroke="var(--accent)" strokeWidth={2.5} fill="url(#dashGrad)" />
++      </AreaChart>
++    </ResponsiveContainer>
++  );
++}
++
++export function SubjectPie({ pie }: { pie: Array<{ name: string; value: number; color: string }> }) {
++  return (
++    <>
++      <ResponsiveContainer width="100%" height={180}>
++        <PieChart>
++          <Pie data={pie} dataKey="value" innerRadius={50} outerRadius={75} paddingAngle={3} strokeWidth={0}>
++            {pie.map((p) => <Cell key={p.name} fill={p.color} />)}
++          </Pie>
++          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: any) => [fmtMinutes(Number(v))]} />
++        </PieChart>
++      </ResponsiveContainer>
++      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
++        {pie.slice(0, 6).map((p) => (
++          <span key={p.name} style={{ fontSize: 12, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 5 }}>
++            <Dot color={p.color} /> {p.name}
++          </span>
++        ))}
++      </div>
++    </>
++  );
++}
+diff --git a/public/sw.js b/public/sw.js
+index fcd61a2..1cab43d 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,7 +1,7 @@
+ // Service Worker for FocusFlow PWA
+ // Provides offline support, caching, and background sync
+ 
+-const CACHE_NAME = "focusflow-v2";
++const CACHE_NAME = "focusflow-v3";
+ const STATIC_ASSETS = [
+   "/",
+   "/dsa",
+@@ -14,18 +14,12 @@ const STATIC_ASSETS = [
+   "/about",
+   "/privacy",
+   "/terms",
++  "/offline",
+   "/manifest.webmanifest",
+   "/opengraph-image",
+ ];
+ 
+-const CACHE_STRATEGIES = {
+-  // Static assets - cache first
+-  static: ["GET"],
+-  // API - network first, fallback to cache
+-  api: ["GET"],
+-  // Pages - stale while revalidate
+-  pages: ["GET"],
+-};
++const AUTH_PAGES = ["/login", "/signup", "/dashboard"];
+ 
+ self.addEventListener("install", (event) => {
+   event.waitUntil(
+@@ -41,13 +35,20 @@ self.addEventListener("install", (event) => {
+ 
+ self.addEventListener("activate", (event) => {
+   event.waitUntil(
+-    caches.keys().then((cacheNames) => {
+-      return Promise.all(
+-        cacheNames
+-          .filter((name) => name !== CACHE_NAME)
+-          .map((name) => caches.delete(name))
+-      );
+-    })
++    (async () => {
++      // Navigation preload: the network request starts WHILE the worker boots —
++      // removes the SW-startup delay from every page open.
++      if (self.registration.navigationPreload) {
++        try { await self.registration.navigationPreload.enable(); } catch { /* not supported */ }
++      }
++      await caches.keys().then((cacheNames) => {
++        return Promise.all(
++          cacheNames
++            .filter((name) => name !== CACHE_NAME)
++            .map((name) => caches.delete(name))
++        );
++      });
++    })()
+   );
+   self.clients.claim();
+ });
+@@ -62,13 +63,21 @@ self.addEventListener("fetch", (event) => {
+   // Skip cross-origin requests
+   if (url.origin !== location.origin) return;
+ 
+-  // Skip API/auth routes - let them go to network
++  // Skip API routes - let them go to network
+   if (url.pathname.startsWith("/api/")) return;
+ 
+   // Auth-gated pages must ALWAYS hit the network so the server can redirect:
+   // logged-in users are redirected away from /login, logged-out users to it.
+   // Serving these from cache caused an endless re-login loop in the installed PWA.
+-  if (url.pathname === "/login" || url.pathname === "/signup" || url.pathname === "/dashboard") return;
++  // (Offline they fall back to the /offline page instead of a browser error.)
++  if (AUTH_PAGES.some((p) => url.pathname === p)) {
++    event.respondWith(
++      fetch(request).catch(() =>
++        caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
++      )
++    );
++    return;
++  }
+ 
+   // Determine cache strategy
+   const isStaticAsset =
+@@ -82,7 +91,7 @@ self.addEventListener("fetch", (event) => {
+     event.respondWith(cacheFirst(request));
+   } else if (isPage) {
+     // Stale while revalidate for pages
+-    event.respondWith(staleWhileRevalidate(request));
++    event.respondWith(staleWhileRevalidate(request, event));
+   }
+ });
+ 
+@@ -102,17 +111,21 @@ async function cacheFirst(request) {
+   }
+ }
+ 
+-async function staleWhileRevalidate(request) {
++async function staleWhileRevalidate(request, event) {
+   const cached = await caches.match(request);
+ 
+-  const fetchPromise = fetch(request).then((response) => {
++  const networkFetch = event.preloadResponse || fetch(request);
++  const fetchPromise = networkFetch.then((response) => {
+     // Never cache redirected responses — a /dashboard -> /login redirect must
+     // not poison the cache with a login page stored under the dashboard URL.
+-    if (response.ok && !response.redirected) {
++    if (response && response.ok && !response.redirected) {
+       const cache = caches.open(CACHE_NAME).then((c) => c.put(request, response.clone()));
+     }
+     return response;
+-  }).catch(() => cached);
++  }).catch(() =>
++    // Offline: serve whatever we have, else the offline page
++    cached || caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
++  );
+ 
+   return cached || fetchPromise;
+ }
+@@ -197,4 +210,4 @@ self.addEventListener("notificationclick", (event) => {
+       })
+     );
+   }
+-});
+\ No newline at end of file
++});

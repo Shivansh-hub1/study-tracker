@@ -1,0 +1,866 @@
+diff --git a/README.md b/README.md
+index 712e7f4..378c10a 100644
+--- a/README.md
++++ b/README.md
+@@ -95,6 +95,25 @@ locally it keeps using the SQLite file, nothing else changes:
+ | `ST_SECRET` | any long random string (JWT signing) |
+ 
+ Steps: push to GitHub → [vercel.com/new](https://vercel.com/new) → import repo → add the 3 env vars → Deploy.
++
++### 📧 Email (optional — welcome + daily 7pm IST streak emails)
++
++Without the vars below, email sending is a silent no-op: signups, streaks and everything else work normally.
++
++| Variable | Where to get it |
++|---|---|
++| `SMTP_HOST` | Gmail: `smtp.gmail.com` · Resend: `smtp.resend.com` |
++| `SMTP_USER` | Gmail: your address · Resend: `resend` |
++| `SMTP_PASS` | Gmail: **app password** (not your normal one) · Resend: API key |
++| `SMTP_PORT` | optional, default `465` (use `587` for starttls) |
++| `MAIL_FROM` | optional, default `FocusFlow <SMTP_USER>` |
++| `CRON_SECRET` | any random string — protects the daily-email cron endpoint |
++| `NEXT_PUBLIC_SITE_URL` | optional, e.g. `https://yourstudytracker.vercel.app` — used for email buttons |
++
++- **Gmail app password**: [myaccount.google.com → Security → 2-Step Verification → App passwords](https://myaccount.google.com/apppasswords) → generate one for "Mail".
++- **Resend** (3000 free emails/month): [resend.com](https://resend.com) → API Keys → use `smtp.resend.com`, user `resend`, key as password.
++- Daily cron is registered in `vercel.json` (13:30 UTC = 19:00 IST). Vercel sends the `CRON_SECRET` as a Bearer header automatically.
++- Admins can change any user's email from **Admin → Edit** (it's their login email).
+ The owner + demo seed runs automatically on first request after deploy.
+ 
+ ## 🗂 Tech & structure
+diff --git a/app/(app)/admin/page.tsx b/app/(app)/admin/page.tsx
+index 8e65035..5b63b55 100644
+--- a/app/(app)/admin/page.tsx
++++ b/app/(app)/admin/page.tsx
+@@ -45,6 +45,7 @@ export default function AdminPage() {
+ 
+   const [editUser, setEditUser] = useState<any | null>(null);
+   const [eName, setEName] = useState("");
++  const [eEmail, setEEmail] = useState("");
+   const [eRole, setERole] = useState("user");
+   const [ePass, setEPass] = useState("");
+   const [eErr, setEErr] = useState<string | null>(null);
+@@ -66,6 +67,7 @@ export default function AdminPage() {
+ 
+   const openEdit = (u: any) => {
+     setEName(u.name);
++    setEEmail(u.email || "");
+     setERole(u.role);
+     setEPass("");
+     setEErr(null);
+@@ -76,12 +78,12 @@ export default function AdminPage() {
+     setBusy(true);
+     setEErr(null);
+     const prev = users;
+-    const optimistic = users.map((x: any) => (x.id === editUser.id ? { ...x, name: eName || x.name, role: eRole } : x));
++    const optimistic = users.map((x: any) => (x.id === editUser.id ? { ...x, name: eName || x.name, email: eEmail || x.email, role: eRole } : x));
+     setData({ users: optimistic } as any);
+     try {
+       const { user } = await api(`/api/admin/users/${editUser.id}`, {
+         method: "PATCH",
+-        body: JSON.stringify({ name: eName, role: eRole, password: ePass || undefined }),
++        body: JSON.stringify({ name: eName, email: eEmail || undefined, role: eRole, password: ePass || undefined }),
+       });
+       setData({ users: prev.map((x: any) => (x.id === editUser.id ? { ...x, ...user } : x)) } as any);
+       toast("User updated", "success");
+@@ -293,6 +295,8 @@ export default function AdminPage() {
+         <div className="field">
+           <label className="label">Name</label>
+           <input className="input" value={eName} onChange={(e) => setEName(e.target.value)} />
++          <label style={{ fontSize: 13, fontWeight: 700, marginBottom: 5, display: "block" }}>Email (login + notifications)</label>
++          <input className="input" type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} placeholder="user@email.com" />
+         </div>
+         <div className="field">
+           <label className="label">Role</label>
+diff --git a/app/(app)/dashboard/page.tsx b/app/(app)/dashboard/page.tsx
+index 1914527..12b00ef 100644
+--- a/app/(app)/dashboard/page.tsx
++++ b/app/(app)/dashboard/page.tsx
+@@ -2,20 +2,22 @@
+ 
+ import { playSound } from "@/lib/sounds";
+ import React, { useEffect, useMemo, useRef, useState } from "react";
++import dynamic from "next/dynamic";
++
++// Heavy chunks load lazily: charts (~100 KB recharts), heatmap, share card
++const TrendChart = dynamic(() => import("@/components/DashboardCharts").then((m) => m.TrendChart), { ssr: false, loading: () => <div style={{ height: 240 }} /> });
++const SubjectPie = dynamic(() => import("@/components/DashboardCharts").then((m) => m.SubjectPie), { ssr: false, loading: () => <div style={{ height: 180 }} /> });
++const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false, loading: () => <div style={{ height: 140 }} /> });
+ import Link from "next/link";
+ import {
+   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
+   BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2,
+ } from "lucide-react";
+-import {
+-  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell, BarChart, Bar,
+-} from "recharts";
++
+ import { useFetch, api } from "@/lib/client";
+ import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
+ import { Spinner, EmptyState, Modal, ProgressRing, Stat, CardSkeleton, Dot } from "@/components/ui";
+-import Heatmap from "@/components/Heatmap";
+ import TimeTransfer from "@/components/TimeTransfer";
+-import { drawShareCard, shareText } from "@/components/ShareCard";
+ import { useToast } from "@/components/Providers";
+ 
+ const KIND_LABELS: Record<string, string> = {
+@@ -107,7 +109,10 @@ export default function DashboardPage() {
+ 
+   useEffect(() => {
+     if (shareOpen && shareRef.current && stats) {
+-      drawShareCard(shareRef.current, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) });
++      const cv = shareRef.current;
++      import("@/components/ShareCard").then(({ drawShareCard }) =>
++        drawShareCard(cv, { streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0, daily: (stats.daily || []).slice(-7).map((d: any) => d.minutes) })
++      );
+     }
+   }, [shareOpen, stats]);
+ 
+@@ -122,6 +127,7 @@ export default function DashboardPage() {
+   const copyShare = async () => {
+     if (!stats) return;
+     try {
++      const { shareText } = await import("@/components/ShareCard");
+       await navigator.clipboard.writeText(shareText({ streak: stats.streak ?? 0, monthMin: stats.monthMin ?? 0, level: stats.level ?? 1, xp: stats.xp ?? 0, totalHours: stats.totalHours ?? 0 }));
+       toast("Copied — paste it anywhere!", "success");
+     } catch {
+@@ -267,25 +273,7 @@ export default function DashboardPage() {
+             <Link href="/progress" className="btn btn-sm btn-ghost">Full analytics</Link>
+           </div>
+           {stats && stats.daily.some((d: any) => d.minutes > 0) ? (
+-            <ResponsiveContainer width="100%" height={240}>
+-              <AreaChart data={stats.daily} margin={{ left: -20, right: 8, top: 6 }}>
+-                <defs>
+-                  <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
+-                    <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.5} />
+-                    <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
+-                  </linearGradient>
+-                </defs>
+-                <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
+-                <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={(d) => d.slice(5)} tickLine={false} axisLine={false} minTickGap={24} />
+-                <YAxis tick={{ fontSize: 10, fill: "var(--muted)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 60)}h`} />
+-                <Tooltip
+-                  contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12.5 }}
+-                  labelStyle={{ fontWeight: 700 }}
+-                  formatter={(v: any) => [fmtMinutes(Number(v)), "Focused"]}
+-                />
+-                <Area type="monotone" dataKey="minutes" stroke="var(--accent)" strokeWidth={2.5} fill="url(#dashGrad)" />
+-              </AreaChart>
+-            </ResponsiveContainer>
++            <TrendChart daily={stats.daily} />
+           ) : (
+             <EmptyState icon={<TrendingUp size={26} />} title="No study data yet" hint="Start a timer to see your 30-day trend come alive." action={<Link className="btn btn-primary" href="/timer"><Play size={15} /> Start focusing</Link>} />
+           )}
+@@ -295,23 +283,7 @@ export default function DashboardPage() {
+         <div className="card">
+           <h2 style={{ fontSize: 15, marginBottom: 4 }}>Subjects — last 30 days</h2>
+           {pie.length > 0 ? (
+-            <>
+-              <ResponsiveContainer width="100%" height={180}>
+-                <PieChart>
+-                  <Pie data={pie} dataKey="value" innerRadius={50} outerRadius={75} paddingAngle={3} strokeWidth={0}>
+-                    {pie.map((p: any) => <Cell key={p.name} fill={p.color} />)}
+-                  </Pie>
+-                  <Tooltip contentStyle={{ background: "var(--surface)", border: "1px solid var(--border)", borderRadius: 10, fontSize: 12.5 }} formatter={(v: any) => [fmtMinutes(Number(v))]} />
+-                </PieChart>
+-              </ResponsiveContainer>
+-              <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
+-                {pie.slice(0, 6).map((p: any) => (
+-                  <span key={p.name} style={{ fontSize: 12, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 5 }}>
+-                    <Dot color={p.color} /> {p.name}
+-                  </span>
+-                ))}
+-              </div>
+-            </>
++            <SubjectPie pie={pie} />
+           ) : (
+             <EmptyState icon={<BookOpen size={26} />} title="Nothing tracked yet" hint="Log your first session to unlock subject insights." action={<Link className="btn btn-primary" href="/timer"><TimerIcon size={15} /> Open timers</Link>} />
+           )}
+diff --git a/app/api/admin/users/[id]/route.ts b/app/api/admin/users/[id]/route.ts
+index 01a0cbf..3fa6c33 100644
+--- a/app/api/admin/users/[id]/route.ts
++++ b/app/api/admin/users/[id]/route.ts
+@@ -38,10 +38,19 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
+   const target = (await db.get("SELECT id, role FROM users WHERE id = ?", id)) as any;
+   if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
+ 
+-  const { name, role, password } = await req.json().catch(() => ({}));
++  const { name, role, password, email } = await req.json().catch(() => ({}));
+   if (role && role !== "admin" && role !== "user") {
+     return NextResponse.json({ error: "Role must be 'user' or 'admin'" }, { status: 400 });
+   }
++  if (email !== undefined) {
++    const em = String(email).toLowerCase().trim();
++    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
++      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
++    }
++    const dupe = await db.get("SELECT id FROM users WHERE email = ? AND id != ?", em, id);
++    if (dupe) return NextResponse.json({ error: "Another account already uses this email" }, { status: 409 });
++    await db.run("UPDATE users SET email = ? WHERE id = ?", em, id);
++  }
+   // Never let an admin lock themselves out
+   if (id === admin.id && role === "user") {
+     return NextResponse.json({ error: "You can't remove your own admin role" }, { status: 400 });
+diff --git a/app/api/auth/signup/route.ts b/app/api/auth/signup/route.ts
+index fbd90da..42eaf84 100644
+--- a/app/api/auth/signup/route.ts
++++ b/app/api/auth/signup/route.ts
+@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
+ import bcrypt from "bcryptjs";
+ import { getDb, ensureSettings } from "@/lib/db";
+ import { signToken, setAuthCookie } from "@/lib/auth";
++import { sendWelcome } from "@/lib/mailer";
+ 
+ export const dynamic = "force-dynamic";
+ 
+@@ -24,5 +25,11 @@ export async function POST(req: NextRequest) {
+   );
+   await ensureSettings(db, info.lastInsertRowid);
+   setAuthCookie(await signToken(info.lastInsertRowid));
++  // welcome email (no-op when SMTP not configured; never blocks signup on failure)
++  try {
++    await sendWelcome(String(email).toLowerCase().trim(), String(name).trim());
++  } catch (e) {
++    console.error("welcome email failed", e);
++  }
+   return NextResponse.json({ ok: true });
+ }
+diff --git a/app/api/cron/daily-email/route.ts b/app/api/cron/daily-email/route.ts
+new file mode 100644
+index 0000000..f54c722
+--- /dev/null
++++ b/app/api/cron/daily-email/route.ts
+@@ -0,0 +1,108 @@
++import { NextRequest, NextResponse } from "next/server";
++import { getDb } from "@/lib/db";
++import { sendDaily } from "@/lib/mailer";
++
++export const dynamic = "force-dynamic";
++
++/*
++ * Daily email — runs 19:00 IST (13:30 UTC) via Vercel cron.
++ * For every recently-active user:
++ *   - studied today  → progress email (streak safe)
++ *   - streak > 0, nothing today → "streak breaks tonight" warning
++ *   - no streak & nothing today → skipped (no spam)
++ * Protect with CRON_SECRET env — Vercel sends it automatically.
++ */
++
++const IST_OFFSET_MIN = 330; // app audience is IST; per-user tz is a future refinement
++
++function pad(n: number) { return String(n).padStart(2, "0"); }
++function istDateKey(d: Date): string {
++  const ist = new Date(d.getTime() + IST_OFFSET_MIN * 60000);
++  return `${ist.getUTCFullYear()}-${pad(ist.getUTCMonth() + 1)}-${pad(ist.getUTCDate())}`;
++}
++function istMidnightUtc(now: Date): Date {
++  const ist = new Date(now.getTime() + IST_OFFSET_MIN * 60000);
++  const dayStartIst = Date.UTC(ist.getUTCFullYear(), ist.getUTCMonth(), ist.getUTCDate());
++  return new Date(dayStartIst - IST_OFFSET_MIN * 60000);
++}
++
++export async function GET(req: NextRequest) {
++  if (process.env.CRON_SECRET) {
++    const auth = req.headers.get("authorization");
++    if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
++      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
++    }
++  }
++
++  const db = await getDb();
++  const now = new Date();
++  const todayK = istDateKey(now);
++  const todayStartUtc = istMidnightUtc(now).toISOString();
++  const cutoff90 = new Date(now.getTime() - 90 * 86400000).toISOString();
++  const activeCutoff = new Date(now.getTime() - 14 * 86400000).toISOString();
++
++  // recently active users only (logged in within 14 days)
++  const users = (await db.all(
++    `SELECT id, name, email FROM users
++     WHERE last_active_at IS NOT NULL AND last_active_at >= ?
++     ORDER BY id`,
++    activeCutoff
++  )) as Array<{ id: number; name: string; email: string }>;
++
++  let sent = 0;
++  let skipped = 0;
++  const errors: string[] = [];
++
++  for (const u of users) {
++    try {
++      const [todayRow, sessRows, frozenRows, setRow] = await Promise.all([
++        db.get("SELECT COALESCE(SUM(duration_sec),0) as t FROM sessions WHERE user_id = ? AND started_at >= ?", u.id, todayStartUtc),
++        db.all("SELECT started_at, duration_sec FROM sessions WHERE user_id = ? AND started_at >= ?", u.id, cutoff90),
++        db.all("SELECT day FROM freeze_days WHERE user_id = ?", u.id),
++        db.get("SELECT freeze_stock FROM settings WHERE user_id = ?", u.id),
++      ]);
++
++      const studiedMin = Math.round((Number((todayRow as any)?.t) || 0) / 60);
++      const frozen = new Set((frozenRows as any[]).map((r) => r.day));
++
++      // per-day minutes map (IST) for streak walk
++      const days = new Map<string, number>();
++      for (const s of sessRows as any[]) {
++        const k = istDateKey(new Date(s.started_at));
++        days.set(k, (days.get(k) || 0) + s.duration_sec / 60);
++      }
++
++      // streak: consecutive days ending today/yesterday (today optional, like the app)
++      let streak = 0;
++      for (let i = 0; i < 90; i++) {
++        const d = new Date(now.getTime() - i * 86400000);
++        const k = istDateKey(d);
++        const has = (days.get(k) || 0) > 0 || frozen.has(k);
++        if (has) streak++;
++        else if (i === 0) continue;
++        else break;
++      }
++
++      if (studiedMin === 0 && streak === 0) {
++        skipped++; // inactive, nothing to say
++        continue;
++      }
++
++      const ok = await sendDaily({
++        to: u.email,
++        name: u.name,
++        studiedMin,
++        streak,
++        atRisk: studiedMin === 0,
++        frozenToday: frozen.has(todayK),
++        freezeStock: Number((setRow as any)?.freeze_stock ?? 0),
++      });
++      if (ok) sent++;
++      else skipped++;
++    } catch (e: any) {
++      errors.push(`user ${u.id}: ${e?.message || "failed"}`);
++    }
++  }
++
++  return NextResponse.json({ ok: true, users: users.length, sent, skipped, errors: errors.slice(0, 5) });
++}
+diff --git a/app/offline/page.tsx b/app/offline/page.tsx
+new file mode 100644
+index 0000000..a4c4639
+--- /dev/null
++++ b/app/offline/page.tsx
+@@ -0,0 +1,26 @@
++import type { Metadata } from "next";
++import Link from "next/link";
++
++export const metadata: Metadata = {
++  title: "You're offline",
++  robots: { index: false, follow: false },
++};
++
++export default function OfflinePage() {
++  return (
++    <main style={{ minHeight: "100vh", display: "grid", placeItems: "center", padding: 24, background: "var(--bg, #0e1424)", fontFamily: "Inter, system-ui, sans-serif" }}>
++      <div className="card" style={{ padding: 34, maxWidth: 430, textAlign: "center", margin: "0 auto" }}>
++        <div style={{ fontSize: 44, marginBottom: 8 }}>📴</div>
++        <h1 style={{ fontSize: 22, letterSpacing: -0.5, marginBottom: 6 }}>You&apos;re offline</h1>
++        <p style={{ color: "var(--muted, #9aa3b5)", fontSize: 14.5, marginBottom: 22 }}>
++          FocusFlow needs internet to load your data. Your sessions are saved locally and will sync
++          when you&apos;re back online.
++        </p>
++        <div style={{ display: "flex", gap: 10, justifyContent: "center", flexWrap: "wrap" }}>
++          <a className="btn btn-primary" href="/dashboard" style={{ textDecoration: "none" }}>Try Again</a>
++          <Link className="btn" href="/about" style={{ textDecoration: "none" }}>About FocusFlow</Link>
++        </div>
++      </div>
++    </main>
++  );
++}
+diff --git a/components/AppShell.tsx b/components/AppShell.tsx
+index 3551904..8285e4d 100644
+--- a/components/AppShell.tsx
++++ b/components/AppShell.tsx
+@@ -1,6 +1,11 @@
+ "use client";
+ 
+ import React, { useEffect, useState } from "react";
++import dynamic from "next/dynamic";
++
++// Overlays load lazily — not needed for first paint
++const AchievementPopup = dynamic(() => import("./AchievementPopup"), { ssr: false });
++const Pet = dynamic(() => import("./Pet"), { ssr: false });
+ import Link from "next/link";
+ import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
+ import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
+@@ -8,8 +13,6 @@ import { usePathname } from "next/navigation";
+ import { useToast } from "./Providers";
+ import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
+ import { useFetch } from "@/lib/client";
+-import AchievementPopup from "./AchievementPopup";
+-import Pet from "./Pet";
+ import {
+   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
+   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
+diff --git a/components/DashboardCharts.tsx b/components/DashboardCharts.tsx
+new file mode 100644
+index 0000000..1271f03
+--- /dev/null
++++ b/components/DashboardCharts.tsx
+@@ -0,0 +1,58 @@
++"use client";
++
++// Recharts lives ONLY in this file — the dashboard lazy-loads it so the
++// initial page paint never waits for ~100 KB of chart code.
++import {
++  ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, PieChart, Pie, Cell,
++} from "recharts";
++import { fmtMinutes } from "@/lib/utils";
++import { Dot } from "@/components/ui";
++
++const TOOLTIP_STYLE = {
++  background: "var(--surface)",
++  border: "1px solid var(--border)",
++  borderRadius: 10,
++  fontSize: 12.5,
++};
++
++export function TrendChart({ daily }: { daily: Array<{ date: string; minutes: number }> }) {
++  return (
++    <ResponsiveContainer width="100%" height={240}>
++      <AreaChart data={daily} margin={{ left: -20, right: 8, top: 6 }}>
++        <defs>
++          <linearGradient id="dashGrad" x1="0" y1="0" x2="0" y2="1">
++            <stop offset="0%" stopColor="var(--accent)" stopOpacity={0.5} />
++            <stop offset="100%" stopColor="var(--accent)" stopOpacity={0.02} />
++          </linearGradient>
++        </defs>
++        <CartesianGrid stroke="var(--chart-grid)" strokeDasharray="3 3" vertical={false} />
++        <XAxis dataKey="date" tick={{ fontSize: 10, fill: "var(--muted)" }} tickFormatter={(d) => d.slice(5)} tickLine={false} axisLine={false} minTickGap={24} />
++        <YAxis tick={{ fontSize: 10, fill: "var(--muted)" }} tickLine={false} axisLine={false} tickFormatter={(v) => `${Math.round(v / 60)}h`} />
++        <Tooltip contentStyle={TOOLTIP_STYLE} labelStyle={{ fontWeight: 700 }} formatter={(v: any) => [fmtMinutes(Number(v)), "Focused"]} />
++        <Area type="monotone" dataKey="minutes" stroke="var(--accent)" strokeWidth={2.5} fill="url(#dashGrad)" />
++      </AreaChart>
++    </ResponsiveContainer>
++  );
++}
++
++export function SubjectPie({ pie }: { pie: Array<{ name: string; value: number; color: string }> }) {
++  return (
++    <>
++      <ResponsiveContainer width="100%" height={180}>
++        <PieChart>
++          <Pie data={pie} dataKey="value" innerRadius={50} outerRadius={75} paddingAngle={3} strokeWidth={0}>
++            {pie.map((p) => <Cell key={p.name} fill={p.color} />)}
++          </Pie>
++          <Tooltip contentStyle={TOOLTIP_STYLE} formatter={(v: any) => [fmtMinutes(Number(v))]} />
++        </PieChart>
++      </ResponsiveContainer>
++      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, justifyContent: "center" }}>
++        {pie.slice(0, 6).map((p) => (
++          <span key={p.name} style={{ fontSize: 12, color: "var(--muted)", display: "inline-flex", alignItems: "center", gap: 5 }}>
++            <Dot color={p.color} /> {p.name}
++          </span>
++        ))}
++      </div>
++    </>
++  );
++}
+diff --git a/lib/mailer.ts b/lib/mailer.ts
+new file mode 100644
+index 0000000..bcf491b
+--- /dev/null
++++ b/lib/mailer.ts
+@@ -0,0 +1,171 @@
++import nodemailer from "nodemailer";
++
++/*
++ * FocusFlow mailer — SMTP-based, provider-agnostic.
++ * Works with Gmail (app password), Resend SMTP, Brevo, or any SMTP provider.
++ * If SMTP env vars are missing, sending is a no-op (app works without email).
++ *
++ * Env vars:
++ *   SMTP_HOST   e.g. smtp.gmail.com  (required)
++ *   SMTP_USER   e.g. your@gmail.com  (required)
++ *   SMTP_PASS   app password / SMTP key (required)
++ *   SMTP_PORT   default 465 (587 = starttls)
++ *   MAIL_FROM   default "FocusFlow <SMTP_USER>"
++ */
++
++const FROM = process.env.MAIL_FROM || `FocusFlow <${process.env.SMTP_USER || "no-reply@focusflow.app"}>`;
++
++function transport() {
++  const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
++  if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
++  const port = Number(process.env.SMTP_PORT) || 465;
++  return nodemailer.createTransport({
++    host: SMTP_HOST,
++    port,
++    secure: port === 465,
++    auth: { user: SMTP_USER, pass: SMTP_PASS },
++  });
++}
++
++export function mailConfigured(): boolean {
++  return !!transport();
++}
++
++async function send(to: string, subject: string, html: string): Promise<boolean> {
++  const t = transport();
++  if (!t) {
++    console.log(`[mailer] not configured — would send "${subject}" to ${to}`);
++    return false;
++  }
++  await t.sendMail({ from: FROM, to, subject, html });
++  return true;
++}
++
++function siteUrl(): string {
++  return process.env.NEXT_PUBLIC_SITE_URL || "https://yourstudytracker.vercel.app";
++}
++
++function fmtMinutes(min: number): string {
++  const h = Math.floor(min / 60);
++  const m = Math.round(min % 60);
++  if (h && m) return `${h}h ${m}m`;
++  if (h) return `${h}h`;
++  return `${m}m`;
++}
++
++/* ---------- shared HTML layout ---------- */
++function layout(opts: {
++  preheader: string;
++  heading: string;
++  body: string;
++  ctaText?: string;
++  ctaUrl?: string;
++}): string {
++  return `<!DOCTYPE html>
++<html><body style="margin:0;padding:0;background:#f1f5f9;font-family:Arial,Helvetica,sans-serif;">
++<div style="display:none;max-height:0;overflow:hidden;">${opts.preheader}</div>
++<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:24px 12px;">
++<tr><td align="center">
++<table role="presentation" width="560" cellpadding="0" cellspacing="0" style="max-width:560px;width:100%;">
++  <tr><td style="padding:0 8px 16px;text-align:center;">
++    <span style="display:inline-block;background:#6366f1;color:#fff;font-weight:bold;font-size:15px;border-radius:9px;padding:7px 13px;">⏱ FocusFlow</span>
++  </td></tr>
++  <tr><td style="background:#ffffff;border-radius:16px;padding:32px 30px;border:1px solid #e2e8f0;">
++    <h1 style="margin:0 0 14px;font-size:22px;color:#0f172a;letter-spacing:-0.4px;">${opts.heading}</h1>
++    ${opts.body}
++    ${opts.ctaText && opts.ctaUrl ? `<div style="margin-top:26px;text-align:center;">
++      <a href="${opts.ctaUrl}" style="display:inline-block;background:#6366f1;color:#ffffff;text-decoration:none;font-weight:bold;font-size:15px;border-radius:11px;padding:13px 28px;">${opts.ctaText}</a>
++    </div>` : ""}
++  </td></tr>
++  <tr><td style="padding:18px 8px;text-align:center;color:#94a3b8;font-size:12px;line-height:1.6;">
++    Sent by FocusFlow · <a href="${siteUrl()}" style="color:#94a3b8;">your study tracker</a><br/>
++    Don't want daily emails? Just reply "stop".
++  </td></tr>
++</table>
++</td></tr></table>
++</body></html>`;
++}
++
++/* ---------- welcome email ---------- */
++export async function sendWelcome(to: string, name: string): Promise<boolean> {
++  const first = name.split(" ")[0] || "there";
++  const html = layout({
++    preheader: "Your FocusFlow account is ready — here's how to start.",
++    heading: `Welcome to FocusFlow, ${first}! 🎉`,
++    body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
++      Your study tracker is ready. Here's how to get the best out of it in 2 minutes:
++    </p>
++    <ul style="margin:0 0 8px;padding-left:22px;color:#334155;font-size:15px;line-height:1.9;">
++      <li><b>Add your subjects</b> — so every session counts towards them</li>
++      <li><b>Start your first timer</b> — pomodoro, quick or stopwatch, your pick</li>
++      <li><b>Build a streak</b> — study a little daily; freeze days cover emergencies</li>
++    </ul>
++    <p style="margin:14px 0 0;color:#334155;font-size:15px;line-height:1.65;">
++      You'll also get a short daily email with your progress — and a warning if your streak is about to break.
++    </p>`,
++    ctaText: "Start your first session →",
++    ctaUrl: `${siteUrl()}/timer`,
++  });
++  return send(to, "Welcome to FocusFlow 🎉", html);
++}
++
++/* ---------- daily email ---------- */
++export async function sendDaily(opts: {
++  to: string;
++  name: string;
++  studiedMin: number;
++  streak: number;
++  atRisk: boolean;
++  frozenToday: boolean;
++  freezeStock: number;
++}): Promise<boolean> {
++  const first = opts.name.split(" ")[0] || "there";
++  const url = `${siteUrl()}/timer`;
++
++  if (opts.studiedMin > 0) {
++    const html = layout({
++      preheader: `You studied ${fmtMinutes(opts.studiedMin)} today — ${opts.streak}-day streak safe.`,
++      heading: `Nice work today, ${first} 🔥`,
++      body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
++        <tr>
++          <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;width:50%;">
++            <div style="font-size:24px;font-weight:bold;color:#0f172a;">${fmtMinutes(opts.studiedMin)}</div>
++            <div style="font-size:12.5px;color:#64748b;">studied today</div>
++          </td>
++          <td style="width:12px;"></td>
++          <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;width:50%;">
++            <div style="font-size:24px;font-weight:bold;color:#0f172a;">${opts.streak} day${opts.streak === 1 ? "" : "s"}</div>
++            <div style="font-size:12.5px;color:#64748b;">current streak 🔥</div>
++          </td>
++        </tr>
++      </table>
++      <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
++        Your streak is safe for today. One more short session — or a good rest — both are wins.
++      </p>`,
++      ctaText: "Keep it going →",
++      ctaUrl: url,
++    });
++    return send(opts.to, `✅ ${fmtMinutes(opts.studiedMin)} studied — ${opts.streak}-day streak safe`, html);
++  }
++
++  // at-risk: streak > 0 but nothing studied today
++  const freezeLine =
++    opts.freezeStock > 0
++      ? `<p style="margin:14px 0 0;color:#334155;font-size:14px;line-height:1.6;">❄️ Rest day? You have <b>${opts.freezeStock} streak freeze${opts.freezeStock === 1 ? "" : "s"}</b> in stock — use one from your dashboard before midnight.</p>`
++      : "";
++  const html = layout({
++    preheader: `Your ${opts.streak}-day streak breaks at midnight — one session saves it.`,
++    heading: `⚠️ ${first}, your ${opts.streak}-day streak breaks tonight`,
++    body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
++      You haven't logged any study time today. Your <b>${opts.streak}-day streak</b> resets at midnight —
++      but it's not too late.
++    </p>
++    <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
++      One <b>15-minute session</b> is all it takes to keep the chain alive. 🧱
++    </p>
++    ${freezeLine}`,
++    ctaText: "Start a 15-min session →",
++    ctaUrl: url,
++  });
++  return send(opts.to, `⚠️ Your ${opts.streak}-day streak breaks tonight`, html);
++}
+diff --git a/middleware.ts b/middleware.ts
+index ee86c78..4043450 100644
+--- a/middleware.ts
++++ b/middleware.ts
+@@ -55,6 +55,7 @@ export async function middleware(req: NextRequest) {
+       pathname.startsWith("/apple-icon") ||
+       pathname.startsWith("/icon") ||
+       pathname.startsWith("/api/auth") ||
++      pathname.startsWith("/api/cron") ||
+       PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
+     ) {
+     return NextResponse.next();
+diff --git a/package-lock.json b/package-lock.json
+index 6a8c851..1648e99 100644
+--- a/package-lock.json
++++ b/package-lock.json
+@@ -15,6 +15,7 @@
+         "jose": "5.9.6",
+         "lucide-react": "0.454.0",
+         "next": "14.2.35",
++        "nodemailer": "^10.1.1",
+         "react": "18.3.1",
+         "react-dom": "18.3.1",
+         "recharts": "2.15.4"
+@@ -23,6 +24,7 @@
+         "@types/bcryptjs": "2.4.6",
+         "@types/better-sqlite3": "7.6.12",
+         "@types/node": "20.16.11",
++        "@types/nodemailer": "^8.0.2",
+         "@types/react": "18.3.11",
+         "@types/react-dom": "18.3.1",
+         "typescript": "5.6.3"
+@@ -442,6 +444,16 @@
+         "undici-types": "~6.19.2"
+       }
+     },
++    "node_modules/@types/nodemailer": {
++      "version": "8.0.2",
++      "resolved": "https://registry.npmjs.org/@types/nodemailer/-/nodemailer-8.0.2.tgz",
++      "integrity": "sha512-c7M5ox8p0nEOfbJ2E9Qcmt8/QCu/VzsiAhzBiZbvky2PhKZDHpKB3sQHBM5MEZNkCfBOaS6S9//AGPRTNB7IaA==",
++      "dev": true,
++      "license": "MIT",
++      "dependencies": {
++        "@types/node": "*"
++      }
++    },
+     "node_modules/@types/prop-types": {
+       "version": "15.7.15",
+       "resolved": "https://registry.npmjs.org/@types/prop-types/-/prop-types-15.7.15.tgz",
+@@ -1173,6 +1185,15 @@
+         "url": "https://opencollective.com/node-fetch"
+       }
+     },
++    "node_modules/nodemailer": {
++      "version": "10.1.1",
++      "resolved": "https://registry.npmjs.org/nodemailer/-/nodemailer-10.1.1.tgz",
++      "integrity": "sha512-pbqZRoeYUO+1E8TJ/11WeY4D2EVujj1hsYjz3qff/vUFDtGnmi7p3iqzTFslYOfQ6PnjVcWxx/CIUSHCSrO/QA==",
++      "license": "MIT-0",
++      "engines": {
++        "node": ">=20.0.0"
++      }
++    },
+     "node_modules/object-assign": {
+       "version": "4.1.1",
+       "resolved": "https://registry.npmjs.org/object-assign/-/object-assign-4.1.1.tgz",
+diff --git a/package.json b/package.json
+index bd6d58b..90b0332 100644
+--- a/package.json
++++ b/package.json
+@@ -15,6 +15,7 @@
+     "jose": "5.9.6",
+     "lucide-react": "0.454.0",
+     "next": "14.2.35",
++    "nodemailer": "^10.1.1",
+     "react": "18.3.1",
+     "react-dom": "18.3.1",
+     "recharts": "2.15.4"
+@@ -23,6 +24,7 @@
+     "@types/bcryptjs": "2.4.6",
+     "@types/better-sqlite3": "7.6.12",
+     "@types/node": "20.16.11",
++    "@types/nodemailer": "^8.0.2",
+     "@types/react": "18.3.11",
+     "@types/react-dom": "18.3.1",
+     "typescript": "5.6.3"
+diff --git a/public/sw.js b/public/sw.js
+index fcd61a2..1cab43d 100644
+--- a/public/sw.js
++++ b/public/sw.js
+@@ -1,7 +1,7 @@
+ // Service Worker for FocusFlow PWA
+ // Provides offline support, caching, and background sync
+ 
+-const CACHE_NAME = "focusflow-v2";
++const CACHE_NAME = "focusflow-v3";
+ const STATIC_ASSETS = [
+   "/",
+   "/dsa",
+@@ -14,18 +14,12 @@ const STATIC_ASSETS = [
+   "/about",
+   "/privacy",
+   "/terms",
++  "/offline",
+   "/manifest.webmanifest",
+   "/opengraph-image",
+ ];
+ 
+-const CACHE_STRATEGIES = {
+-  // Static assets - cache first
+-  static: ["GET"],
+-  // API - network first, fallback to cache
+-  api: ["GET"],
+-  // Pages - stale while revalidate
+-  pages: ["GET"],
+-};
++const AUTH_PAGES = ["/login", "/signup", "/dashboard"];
+ 
+ self.addEventListener("install", (event) => {
+   event.waitUntil(
+@@ -41,13 +35,20 @@ self.addEventListener("install", (event) => {
+ 
+ self.addEventListener("activate", (event) => {
+   event.waitUntil(
+-    caches.keys().then((cacheNames) => {
+-      return Promise.all(
+-        cacheNames
+-          .filter((name) => name !== CACHE_NAME)
+-          .map((name) => caches.delete(name))
+-      );
+-    })
++    (async () => {
++      // Navigation preload: the network request starts WHILE the worker boots —
++      // removes the SW-startup delay from every page open.
++      if (self.registration.navigationPreload) {
++        try { await self.registration.navigationPreload.enable(); } catch { /* not supported */ }
++      }
++      await caches.keys().then((cacheNames) => {
++        return Promise.all(
++          cacheNames
++            .filter((name) => name !== CACHE_NAME)
++            .map((name) => caches.delete(name))
++        );
++      });
++    })()
+   );
+   self.clients.claim();
+ });
+@@ -62,13 +63,21 @@ self.addEventListener("fetch", (event) => {
+   // Skip cross-origin requests
+   if (url.origin !== location.origin) return;
+ 
+-  // Skip API/auth routes - let them go to network
++  // Skip API routes - let them go to network
+   if (url.pathname.startsWith("/api/")) return;
+ 
+   // Auth-gated pages must ALWAYS hit the network so the server can redirect:
+   // logged-in users are redirected away from /login, logged-out users to it.
+   // Serving these from cache caused an endless re-login loop in the installed PWA.
+-  if (url.pathname === "/login" || url.pathname === "/signup" || url.pathname === "/dashboard") return;
++  // (Offline they fall back to the /offline page instead of a browser error.)
++  if (AUTH_PAGES.some((p) => url.pathname === p)) {
++    event.respondWith(
++      fetch(request).catch(() =>
++        caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
++      )
++    );
++    return;
++  }
+ 
+   // Determine cache strategy
+   const isStaticAsset =
+@@ -82,7 +91,7 @@ self.addEventListener("fetch", (event) => {
+     event.respondWith(cacheFirst(request));
+   } else if (isPage) {
+     // Stale while revalidate for pages
+-    event.respondWith(staleWhileRevalidate(request));
++    event.respondWith(staleWhileRevalidate(request, event));
+   }
+ });
+ 
+@@ -102,17 +111,21 @@ async function cacheFirst(request) {
+   }
+ }
+ 
+-async function staleWhileRevalidate(request) {
++async function staleWhileRevalidate(request, event) {
+   const cached = await caches.match(request);
+ 
+-  const fetchPromise = fetch(request).then((response) => {
++  const networkFetch = event.preloadResponse || fetch(request);
++  const fetchPromise = networkFetch.then((response) => {
+     // Never cache redirected responses — a /dashboard -> /login redirect must
+     // not poison the cache with a login page stored under the dashboard URL.
+-    if (response.ok && !response.redirected) {
++    if (response && response.ok && !response.redirected) {
+       const cache = caches.open(CACHE_NAME).then((c) => c.put(request, response.clone()));
+     }
+     return response;
+-  }).catch(() => cached);
++  }).catch(() =>
++    // Offline: serve whatever we have, else the offline page
++    cached || caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
++  );
+ 
+   return cached || fetchPromise;
+ }
+@@ -197,4 +210,4 @@ self.addEventListener("notificationclick", (event) => {
+       })
+     );
+   }
+-});
+\ No newline at end of file
++});
+diff --git a/vercel.json b/vercel.json
+new file mode 100644
+index 0000000..da73da3
+--- /dev/null
++++ b/vercel.json
+@@ -0,0 +1,8 @@
++{
++  "crons": [
++    {
++      "path": "/api/cron/daily-email",
++      "schedule": "30 13 * * *"
++    }
++  ]
++}
