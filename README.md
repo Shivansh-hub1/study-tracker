@@ -95,6 +95,25 @@ locally it keeps using the SQLite file, nothing else changes:
 | `ST_SECRET` | any long random string (JWT signing) |
 
 Steps: push to GitHub → [vercel.com/new](https://vercel.com/new) → import repo → add the 3 env vars → Deploy.
+
+### 📧 Email (optional — welcome + daily 7pm IST streak emails)
+
+Without the vars below, email sending is a silent no-op: signups, streaks and everything else work normally.
+
+| Variable | Where to get it |
+|---|---|
+| `SMTP_HOST` | Gmail: `smtp.gmail.com` · Resend: `smtp.resend.com` |
+| `SMTP_USER` | Gmail: your address · Resend: `resend` |
+| `SMTP_PASS` | Gmail: **app password** (not your normal one) · Resend: API key |
+| `SMTP_PORT` | optional, default `465` (use `587` for starttls) |
+| `MAIL_FROM` | optional, default `FocusFlow <SMTP_USER>` |
+| `CRON_SECRET` | any random string — protects the daily-email cron endpoint |
+| `NEXT_PUBLIC_SITE_URL` | optional, e.g. `https://yourstudytracker.vercel.app` — used for email buttons |
+
+- **Gmail app password**: [myaccount.google.com → Security → 2-Step Verification → App passwords](https://myaccount.google.com/apppasswords) → generate one for "Mail".
+- **Resend** (3000 free emails/month): [resend.com](https://resend.com) → API Keys → use `smtp.resend.com`, user `resend`, key as password.
+- Daily cron is registered in `vercel.json` (13:30 UTC = 19:00 IST). Vercel sends the `CRON_SECRET` as a Bearer header automatically.
+- Admins can change any user's email from **Admin → Edit** (it's their login email).
 The owner + demo seed runs automatically on first request after deploy.
 
 ## 🗂 Tech & structure

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, ensureSettings } from "@/lib/db";
 import { signToken, setAuthCookie } from "@/lib/auth";
+import { sendWelcome } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
 
@@ -24,5 +25,11 @@ export async function POST(req: NextRequest) {
   );
   await ensureSettings(db, info.lastInsertRowid);
   setAuthCookie(await signToken(info.lastInsertRowid));
+  // welcome email (no-op when SMTP not configured; never blocks signup on failure)
+  try {
+    await sendWelcome(String(email).toLowerCase().trim(), String(name).trim());
+  } catch (e) {
+    console.error("welcome email failed", e);
+  }
   return NextResponse.json({ ok: true });
 }

@@ -45,6 +45,7 @@ export default function AdminPage() {
 
   const [editUser, setEditUser] = useState<any | null>(null);
   const [eName, setEName] = useState("");
+  const [eEmail, setEEmail] = useState("");
   const [eRole, setERole] = useState("user");
   const [ePass, setEPass] = useState("");
   const [eErr, setEErr] = useState<string | null>(null);
@@ -66,6 +67,7 @@ export default function AdminPage() {
 
   const openEdit = (u: any) => {
     setEName(u.name);
+    setEEmail(u.email || "");
     setERole(u.role);
     setEPass("");
     setEErr(null);
@@ -76,12 +78,12 @@ export default function AdminPage() {
     setBusy(true);
     setEErr(null);
     const prev = users;
-    const optimistic = users.map((x: any) => (x.id === editUser.id ? { ...x, name: eName || x.name, role: eRole } : x));
+    const optimistic = users.map((x: any) => (x.id === editUser.id ? { ...x, name: eName || x.name, email: eEmail || x.email, role: eRole } : x));
     setData({ users: optimistic } as any);
     try {
       const { user } = await api(`/api/admin/users/${editUser.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name: eName, role: eRole, password: ePass || undefined }),
+        body: JSON.stringify({ name: eName, email: eEmail || undefined, role: eRole, password: ePass || undefined }),
       });
       setData({ users: prev.map((x: any) => (x.id === editUser.id ? { ...x, ...user } : x)) } as any);
       toast("User updated", "success");
@@ -293,6 +295,8 @@ export default function AdminPage() {
         <div className="field">
           <label className="label">Name</label>
           <input className="input" value={eName} onChange={(e) => setEName(e.target.value)} />
+          <label style={{ fontSize: 13, fontWeight: 700, marginBottom: 5, display: "block" }}>Email (login + notifications)</label>
+          <input className="input" type="email" value={eEmail} onChange={(e) => setEEmail(e.target.value)} placeholder="user@email.com" />
         </div>
         <div className="field">
           <label className="label">Role</label>

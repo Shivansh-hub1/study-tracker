@@ -38,9 +38,18 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const target = (await db.get("SELECT id, role FROM users WHERE id = ?", id)) as any;
   if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { name, role, password } = await req.json().catch(() => ({}));
+  const { name, role, password, email } = await req.json().catch(() => ({}));
   if (role && role !== "admin" && role !== "user") {
     return NextResponse.json({ error: "Role must be 'user' or 'admin'" }, { status: 400 });
+  }
+  if (email !== undefined) {
+    const em = String(email).toLowerCase().trim();
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(em)) {
+      return NextResponse.json({ error: "Invalid email address" }, { status: 400 });
+    }
+    const dupe = await db.get("SELECT id FROM users WHERE email = ? AND id != ?", em, id);
+    if (dupe) return NextResponse.json({ error: "Another account already uses this email" }, { status: 409 });
+    await db.run("UPDATE users SET email = ? WHERE id = ?", em, id);
   }
   // Never let an admin lock themselves out
   if (id === admin.id && role === "user") {
