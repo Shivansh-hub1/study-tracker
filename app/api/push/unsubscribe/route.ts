@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { deleteSubscription } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
 
@@ -11,6 +10,7 @@ export async function POST(req: NextRequest) {
   const { endpoint } = await req.json().catch(() => ({}));
   if (!endpoint) return NextResponse.json({ error: "endpoint required" }, { status: 400 });
   const db = await getDb();
-  await deleteSubscription(db, String(endpoint));
+  // only your own subscription — never someone else's endpoint
+  await db.run("DELETE FROM push_subscriptions WHERE endpoint = ? AND user_id = ?", String(endpoint), me.id);
   return NextResponse.json({ ok: true });
 }

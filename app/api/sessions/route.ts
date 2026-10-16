@@ -13,11 +13,13 @@ export async function GET(req: NextRequest) {
   const limit = Math.min(500, Number(url.searchParams.get("limit")) || 100);
   const subjectId = url.searchParams.get("subject_id");
 
-  const __ck = `u${user.id}:sessions:${limit}:${subjectId || 0}`;
-  const __hit = cacheGet(__ck);
-  if (__hit) return NextResponse.json(__hit);
   const from = url.searchParams.get("from");
   const to = url.searchParams.get("to");
+  // cache key MUST include every filter — otherwise a filtered response
+  // gets served to the next unfiltered request (and vice versa)
+  const __ck = `u${user.id}:sessions:${limit}:${subjectId || 0}:${from || 0}:${to || 0}`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
 
   let sql = `SELECT se.*, s.name as subject_name, s.color as subject_color
              FROM sessions se LEFT JOIN subjects s ON s.id = se.subject_id
@@ -42,6 +44,7 @@ export async function POST(req: NextRequest) {
   const { subject_id, type, started_at, ended_at, duration_sec, notes, topic } = body;
   const dur = Math.max(1, Math.round(Number(duration_sec) || 0));
   if (!dur) return NextResponse.json({ error: "duration_sec must be positive" }, { status: 400 });
+  if (dur > 86400) return NextResponse.json({ error: "duration_sec too long — max 24h per session" }, { status: 400 });
   const started = started_at ? new Date(started_at) : new Date(Date.now() - dur * 1000);
   const ended = ended_at ? new Date(ended_at) : new Date(started.getTime() + dur * 1000);
   if (isNaN(started.getTime()) || isNaN(ended.getTime())) {

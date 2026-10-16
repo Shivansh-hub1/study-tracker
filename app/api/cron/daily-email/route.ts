@@ -40,7 +40,9 @@ export async function GET(req: NextRequest) {
   let sent = 0;
   let skipped = 0;
   const errors: string[] = [];
+  const atRisk: Array<{ id: number; streak: number }> = [];
 
+  // one pass: fetch each user's stats once, reuse for email + push decision
   for (const { id } of users) {
     try {
       const ctx = await getUserEmailContext(db, id);
@@ -50,6 +52,8 @@ export async function GET(req: NextRequest) {
         skipped++; // inactive, nothing to say
         continue;
       }
+
+      if (ctx.studiedMin === 0 && ctx.streak > 0) atRisk.push({ id, streak: ctx.streak });
 
       const ok = await sendDaily({
         to: ctx.email,
@@ -68,14 +72,12 @@ export async function GET(req: NextRequest) {
   }
 
   // Web push: only the at-risk users (email already covers the recap).
-  // Skips users with no subscription / push not configured / emails disabled.
+  // Skips users with no subscription / push not configured.
   let pushed = 0;
-  for (const { id } of users) {
+  for (const r of atRisk) {
     try {
-      const ctx = await getUserEmailContext(db, id);
-      if (!ctx || ctx.studiedMin > 0 || ctx.streak === 0) continue;
-      pushed += await sendPushToUser(db, id, {
-        title: `⚠️ ${ctx.streak}-day streak breaks tonight`,
+      pushed += await sendPushToUser(db, r.id, {
+        title: `⚠️ ${r.streak}-day streak breaks tonight`,
         body: "One 15-minute session saves it — tap to start one.",
         url: "/timer",
       });
