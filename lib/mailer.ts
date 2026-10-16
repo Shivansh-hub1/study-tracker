@@ -31,13 +31,23 @@ export function mailConfigured(): boolean {
   return !!transport();
 }
 
-async function send(to: string, subject: string, html: string): Promise<boolean> {
+async function send(to: string, subject: string, html: string, text: string): Promise<boolean> {
   const t = transport();
   if (!t) {
     console.log(`[mailer] not configured — would send "${subject}" to ${to}`);
     return false;
   }
-  await t.sendMail({ from: FROM, to, subject, html });
+  await t.sendMail({
+    from: FROM,
+    to,
+    subject,
+    html,
+    text, // plain-text alternative — HTML-only mail scores worse in spam filters
+    headers: {
+      // an unsubscribe path improves Gmail/Outlook bulk classification
+      "List-Unsubscribe": `<mailto:${process.env.SMTP_USER || "no-reply@focusflow.app"}>`,
+    },
+  });
   return true;
 }
 
@@ -106,7 +116,20 @@ export async function sendWelcome(to: string, name: string): Promise<boolean> {
     ctaText: "Start your first session →",
     ctaUrl: `${siteUrl()}/timer`,
   });
-  return send(to, "Welcome to FocusFlow 🎉", html);
+  const text = `Welcome to FocusFlow, ${first}!
+
+Your study tracker is ready. Quick start:
+1. Add your subjects — so every session counts towards them
+2. Start your first timer — pomodoro, quick or stopwatch, your pick
+3. Build a streak — study a little daily; freeze days cover emergencies
+
+You'll get a short daily email with your progress — and a warning if your streak is about to break.
+
+Start your first session: ${siteUrl()}/timer
+
+— FocusFlow · ${siteUrl()}
+Don't want daily emails? Just reply "stop".`;
+  return send(to, "Welcome to FocusFlow 🎉", html, text);
 }
 
 /* ---------- daily email ---------- */
@@ -145,7 +168,15 @@ export async function sendDaily(opts: {
       ctaText: "Keep it going →",
       ctaUrl: url,
     });
-    return send(opts.to, `✅ ${fmtMinutes(opts.studiedMin)} studied — ${opts.streak}-day streak safe`, html);
+    const text = `Nice work today, ${first}!
+
+You studied ${fmtMinutes(opts.studiedMin)} today — your ${opts.streak}-day streak is safe.
+
+Keep it going: ${url}
+
+— FocusFlow · ${siteUrl()}
+Don't want daily emails? Just reply "stop".`;
+    return send(opts.to, `✅ ${fmtMinutes(opts.studiedMin)} studied — ${opts.streak}-day streak safe`, html, text);
   }
 
   // at-risk: streak > 0 but nothing studied today
@@ -167,5 +198,12 @@ export async function sendDaily(opts: {
     ctaText: "Start a 15-min session →",
     ctaUrl: url,
   });
-  return send(opts.to, `⚠️ Your ${opts.streak}-day streak breaks tonight`, html);
+  const text = `${first}, your ${opts.streak}-day streak breaks tonight.
+
+You haven't logged any study time today. One 15-minute session is all it takes to keep the chain alive:
+${url}
+${opts.freezeStock > 0 ? `Rest day? You have ${opts.freezeStock} streak freeze${opts.freezeStock === 1 ? "" : "s"} in stock — use one from your dashboard before midnight.` : ""}
+— FocusFlow · ${siteUrl()}
+Don't want daily emails? Just reply "stop".`;
+  return send(opts.to, `⚠️ Your ${opts.streak}-day streak breaks tonight`, html, text);
 }
