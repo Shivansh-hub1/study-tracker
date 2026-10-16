@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut, Smile, Lock } from "lucide-react";
+import { Download, Database, User, Save, Palette, Check, FileJson, FileSpreadsheet, LogOut, Smile, Lock, Bell } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useFetch, api, bustCache } from "@/lib/client";
@@ -27,6 +27,73 @@ export default function SettingsPage() {
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
   const [acctBusy, setAcctBusy] = useState(false);
+
+  const [pushStatus, setPushStatus] = useState<"checking" | "unsupported" | "denied" | "off" | "on" | "unconfigured">("checking");
+  const [pushBusy, setPushBusy] = useState(false);
+
+  useEffect(() => {
+    (async () => {
+      if (typeof window === "undefined" || !("serviceWorker" in navigator) || !("PushManager" in window)) {
+        setPushStatus("unsupported"); return;
+      }
+      if (typeof Notification === "undefined") { setPushStatus("unsupported"); return; }
+      if (Notification.permission === "denied") { setPushStatus("denied"); return; }
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+        if (sub && Notification.permission === "granted") { setPushStatus("on"); return; }
+        const res = await fetch("/api/push/key");
+        setPushStatus(res.ok ? "off" : "unconfigured");
+      } catch { setPushStatus("unsupported"); }
+    })();
+  }, []);
+
+  const urlBase64ToUint8Array = (b64: string) => {
+    const padding = "=".repeat((4 - (b64.length % 4)) % 4);
+    const base64 = (b64 + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw = window.atob(base64);
+    return Uint8Array.from(raw.split("").map((c) => c.charCodeAt(0)));
+  };
+
+  const enablePush = async () => {
+    setPushBusy(true);
+    try {
+      const perm = await Notification.requestPermission();
+      if (perm !== "granted") { setPushStatus("denied"); toast("Notification permission was blocked", "error"); return; }
+      const keyRes = await fetch("/api/push/key");
+      if (!keyRes.ok) { setPushStatus("unconfigured"); toast("Push is not configured on the server", "error"); return; }
+      const { key } = await keyRes.json();
+      const reg = await navigator.serviceWorker.ready;
+      let sub = await reg.pushManager.getSubscription();
+      if (!sub) {
+        sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: urlBase64ToUint8Array(key) });
+      }
+      await api("/api/push/subscribe", { method: "POST", body: JSON.stringify({ subscription: sub.toJSON() }) });
+      setPushStatus("on");
+      playSound("success");
+      toast("Streak reminders enabled 🔔", "success");
+    } catch (e: any) {
+      toast(e?.message || "Could not enable notifications", "error");
+    }
+    setPushBusy(false);
+  };
+
+  const disablePush = async () => {
+    setPushBusy(true);
+    try {
+      const reg = await navigator.serviceWorker.ready;
+      const sub = await reg.pushManager.getSubscription();
+      if (sub) {
+        await api("/api/push/unsubscribe", { method: "POST", body: JSON.stringify({ endpoint: sub.endpoint }) });
+        await sub.unsubscribe();
+      }
+      setPushStatus("off");
+      toast("Notifications off", "success");
+    } catch (e: any) {
+      toast(e?.message || "Something went wrong", "error");
+    }
+    setPushBusy(false);
+  };
   useEffect(() => {
     try {
       setAvatar(localStorage.getItem("ff_avatar") || "");
@@ -271,6 +338,30 @@ export default function SettingsPage() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+      </div>
+
+      {/* Notifications */}
+      <div className="card">
+        <h2 style={{ fontSize: 15, marginBottom: 6, display: "flex", alignItems: "center", gap: 8 }}><Bell size={16} /> Streak reminders</h2>
+        <p style={{ fontSize: 13, color: "var(--muted)", margin: "0 0 12px" }}>
+          A push notification at 7pm when your streak is about to break. Works best on Android Chrome / installed PWA (iOS needs the app added to Home Screen).
+        </p>
+        {pushStatus === "checking" ? (
+          <button className="btn" disabled>Checking…</button>
+        ) : pushStatus === "unsupported" ? (
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>This browser doesn&apos;t support web push — the daily email still has you covered.</p>
+        ) : pushStatus === "denied" ? (
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Notifications are blocked for this site — allow them in your browser&apos;s site settings, then come back.</p>
+        ) : pushStatus === "unconfigured" ? (
+          <p style={{ fontSize: 13, color: "var(--muted)", margin: 0 }}>Push isn&apos;t configured on the server yet (VAPID keys missing).</p>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <button className={pushStatus === "on" ? "btn" : "btn btn-primary"} disabled={pushBusy} onClick={pushStatus === "on" ? disablePush : enablePush}>
+              {pushBusy ? "…" : pushStatus === "on" ? "Turn off" : "Enable notifications"}
+            </button>
+            {pushStatus === "on" && <span className="badge">🔔 On</span>}
           </div>
         )}
       </div>

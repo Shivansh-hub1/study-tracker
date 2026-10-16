@@ -107,7 +107,10 @@ Without the vars below, email sending is a silent no-op: signups, streaks and ev
 | `SMTP_PASS` | Gmail: **app password** (not your normal one) · Resend: API key |
 | `SMTP_PORT` | optional, default `465` (use `587` for starttls) |
 | `MAIL_FROM` | optional, default `FocusFlow <SMTP_USER>` |
-| `CRON_SECRET` | any random string — protects the daily-email cron endpoint |
+| `CRON_SECRET` | any random string — protects the daily + weekly cron endpoints |
+| `VAPID_PUBLIC_KEY` | web push — generate once with `npx web-push generate-vapid-keys` |
+| `VAPID_PRIVATE_KEY` | web push — the private half of the same pair |
+| `VAPID_SUBJECT` | optional, e.g. `mailto:you@gmail.com` |
 | `NEXT_PUBLIC_SITE_URL` | optional, e.g. `https://yourstudytracker.vercel.app` — used for email buttons |
 
 - **Gmail app password**: [myaccount.google.com → Security → 2-Step Verification → App passwords](https://myaccount.google.com/apppasswords) → generate one for "Mail".
@@ -116,6 +119,9 @@ Without the vars below, email sending is a silent no-op: signups, streaks and ev
 - Admins can change any user's email from **Admin → Edit** (it's their login email).
 - **Admin → ✏️ Edit** also has a per-user **"Send automated emails"** toggle (stops welcome + daily emails for that user).
 - **Admin → ✉️ envelope icon** sends any email to any user: streak warning, progress recap (both use live data), welcome, feedback request, comeback, or a custom subject + message — with a preview before sending.
+- **Password reset**: "Forgot password?" on the login page emails a 60-minute single-use reset link (needs SMTP).
+- **Web push**: Settings → Streak reminders — 7pm notification when a streak is about to break (needs VAPID keys).
+- **Weekly digest**: Sunday 20:00 IST cron — last-7-days stats (total, vs previous week, best day, top subject).
 The owner + demo seed runs automatically on first request after deploy.
 
 ## 🗂 Tech & structure

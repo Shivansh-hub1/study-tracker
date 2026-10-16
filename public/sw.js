@@ -1,7 +1,7 @@
 // Service Worker for FocusFlow PWA
 // Provides offline support, caching, and background sync
 
-const CACHE_NAME = "focusflow-v3";
+const CACHE_NAME = "focusflow-v4";
 const STATIC_ASSETS = [
   "/",
   "/dsa",
@@ -19,7 +19,7 @@ const STATIC_ASSETS = [
   "/opengraph-image",
 ];
 
-const AUTH_PAGES = ["/login", "/signup", "/dashboard"];
+const AUTH_PAGES = ["/login", "/signup", "/forgot", "/reset", "/dashboard"];
 
 self.addEventListener("install", (event) => {
   event.waitUntil(

@@ -185,6 +185,23 @@ const SCHEMA = [
     minutes INTEGER NOT NULL,
     created_at TEXT NOT NULL
   )`,
+  `CREATE TABLE IF NOT EXISTS password_resets (
+    token_hash TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    email TEXT NOT NULL,
+    expires_at TEXT NOT NULL,
+    used INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id)`,
+  `CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint TEXT PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    created_at TEXT NOT NULL
+  )`,
+  `CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)`,
 ];
 
 type Stmt = { sql: string; args: any[] };
@@ -241,6 +258,27 @@ async function migrateIfNeeded(db: DB) {
   if (m?.value !== "4") {
     try { await db.run("ALTER TABLE users ADD COLUMN emails_opt_out INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
     await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','4')");
+  }
+  // v5: password resets + web push subscriptions
+  if (m?.value !== "5") {
+    await db.run(`CREATE TABLE IF NOT EXISTS password_resets (
+      token_hash TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      email TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )`);
+    await db.run("CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id)");
+    await db.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      endpoint TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`);
+    await db.run("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)");
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','5')");
   }
 }
 
@@ -344,6 +382,32 @@ async function initTurso(): Promise<DB> {
       created_at TEXT NOT NULL
     )`);
     await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','3')");
+  }
+  // v4: per-user email opt-out (must ALSO run here — initTurso returns before migrateIfNeeded)
+  if (snap.v !== "4") {
+    try { await db.run("ALTER TABLE users ADD COLUMN emails_opt_out INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','4')");
+  }
+  // v5: password resets + web push subscriptions (must ALSO run here — initTurso returns before migrateIfNeeded)
+  if (snap.v !== "5") {
+    await db.run(`CREATE TABLE IF NOT EXISTS password_resets (
+      token_hash TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      email TEXT NOT NULL,
+      expires_at TEXT NOT NULL,
+      used INTEGER NOT NULL DEFAULT 0,
+      created_at TEXT NOT NULL
+    )`);
+    await db.run("CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id)");
+    await db.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (
+      endpoint TEXT PRIMARY KEY,
+      user_id INTEGER NOT NULL,
+      p256dh TEXT NOT NULL,
+      auth TEXT NOT NULL,
+      created_at TEXT NOT NULL
+    )`);
+    await db.run("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)");
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','5')");
   }
   if (!snap.owner) await createOwner(db);
   return db;

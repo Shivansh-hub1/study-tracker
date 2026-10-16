@@ -68,6 +68,9 @@ export default function LoginPage() {
           >
             <Sparkles size={16} /> Try the demo account
           </button>
+          <p style={{ textAlign: "center", fontSize: 13.5, marginTop: 10 }}>
+            <Link href="/forgot" style={{ color: "var(--muted)", fontWeight: 600 }}>Forgot password?</Link>
+          </p>
           <hr className="divider" />
           <p style={{ textAlign: "center", fontSize: 13.5, color: "var(--muted)" }}>
             New here?{" "}

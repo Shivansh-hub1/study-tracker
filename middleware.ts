@@ -6,7 +6,7 @@ const SECRET = new TextEncoder().encode(
   process.env.ST_SECRET || "study-tracker-dev-secret-change-me-in-production"
 );
 
-const PUBLIC_PATHS = ["/login", "/signup", "/about", "/privacy", "/terms", "/blog"];
+const PUBLIC_PATHS = ["/login", "/signup", "/forgot", "/reset", "/about", "/privacy", "/terms", "/blog"];
 const AUTH_PATHS = ["/login", "/signup"];
 
 const CANONICAL_HOST = (process.env.VERCEL_PROJECT_PRODUCTION_URL || "yourstudytracker.vercel.app").toLowerCase();

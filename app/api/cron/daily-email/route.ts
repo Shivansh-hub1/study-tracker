@@ -2,8 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getUserEmailContext } from "@/lib/email-ctx";
 import { sendDaily } from "@/lib/mailer";
+import { sendPushToUser } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
+export const maxDuration = 60;
 
 /*
  * Daily email — runs 19:00 IST (13:30 UTC) via Vercel cron.
@@ -65,5 +67,20 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, users: users.length, sent, skipped, errors: errors.slice(0, 5) });
+  // Web push: only the at-risk users (email already covers the recap).
+  // Skips users with no subscription / push not configured / emails disabled.
+  let pushed = 0;
+  for (const { id } of users) {
+    try {
+      const ctx = await getUserEmailContext(db, id);
+      if (!ctx || ctx.studiedMin > 0 || ctx.streak === 0) continue;
+      pushed += await sendPushToUser(db, id, {
+        title: `⚠️ ${ctx.streak}-day streak breaks tonight`,
+        body: "One 15-minute session saves it — tap to start one.",
+        url: "/timer",
+      });
+    } catch { /* push must never fail the cron */ }
+  }
+
+  return NextResponse.json({ ok: true, users: users.length, sent, skipped, pushed, errors: errors.slice(0, 5) });
 }

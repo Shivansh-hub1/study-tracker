@@ -72,7 +72,7 @@ function esc(s: string): string {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-export type EmailTemplateId = "welcome" | "streak" | "progress" | "feedback" | "comeback" | "custom";
+export type EmailTemplateId = "welcome" | "streak" | "progress" | "feedback" | "comeback" | "custom" | "digest";
 export const EMAIL_TEMPLATE_IDS: EmailTemplateId[] = ["welcome", "streak", "progress", "feedback", "comeback", "custom"];
 
 /* ---------- shared HTML layout ---------- */
@@ -118,6 +118,13 @@ export function renderTemplate(
     freezeStock?: number;
     customSubject?: string;
     customBody?: string;
+    weekMin?: number;
+    prevWeekMin?: number;
+    sessions?: number;
+    bestDay?: string;
+    bestDayMin?: number;
+    topSubject?: string;
+    topSubjectMin?: number;
   }
 ): { subject: string; html: string; text: string } {
   const first = ctx.name.split(" ")[0] || "there";
@@ -279,6 +286,74 @@ Don't want daily emails? Just reply "stop".`;
     return { subject: "Your study streak misses you 🌱", html, text };
   }
 
+  if (kind === "digest") {
+    const weekMin = ctx.weekMin || 0;
+    const prevMin = ctx.prevWeekMin || 0;
+    const diff = weekMin - prevMin;
+    const diffTxt = prevMin === 0
+      ? "first tracked week"
+      : `${diff >= 0 ? "▲" : "▼"} ${fmtMinutes(Math.abs(diff))} vs last week`;
+    const diffColor = diff >= 0 ? "#059669" : "#dc2626";
+    if (weekMin === 0) {
+      const html = layout({
+        preheader: "No study time logged this week — next week starts now.",
+        heading: `A quiet week, ${first} 🌱`,
+        body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
+          No study time in the last 7 days. No guilt — but your streak engine is idle and your subjects are waiting.
+        </p>
+        <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
+          Start with <b>one 15-minute session today</b> and the momentum comes back.
+        </p>`,
+        ctaText: "Start a session →",
+        ctaUrl: url,
+      });
+      const text = `A quiet week, ${first} —
+
+No study time in the last 7 days. Start with one 15-minute session today and the momentum comes back:
+
+${url}
+
+— FocusFlow · ${siteUrl()}
+Don't want weekly emails? Just reply "stop".`;
+      return { subject: "📊 Your week: a fresh start", html, text };
+    }
+    const card = (val: string, lbl: string) => `<td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:14px 10px;text-align:center;width:25%;">
+      <div style="font-size:19px;font-weight:bold;color:#0f172a;">${val}</div>
+      <div style="font-size:11.5px;color:#64748b;">${lbl}</div>
+    </td>`;
+    const html = layout({
+      preheader: `${fmtMinutes(weekMin)} of focus in the last 7 days.`,
+      heading: `Your week: ${fmtMinutes(weekMin)} of focus 📊`,
+      body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 6px;">
+        <tr>
+          ${card(fmtMinutes(weekMin), "total focus")}
+          ${card(String(ctx.sessions ?? 0), "sessions")}
+          ${card(ctx.bestDay ? `${ctx.bestDay}<br/><span style="font-size:13px;font-weight:600;">${fmtMinutes(ctx.bestDayMin || 0)}</span>` : "—", "best day")}
+          ${card(ctx.topSubject ? `${ctx.topSubject}<br/><span style="font-size:13px;font-weight:600;">${fmtMinutes(ctx.topSubjectMin || 0)}</span>` : "—", "top subject")}
+        </tr>
+      </table>
+      <div style="text-align:center;font-size:13.5px;color:${prevMin === 0 ? "#64748b" : diffColor};font-weight:600;margin-bottom:14px;">${diffTxt}</div>
+      <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
+        ${ctx.streak ? `Your streak is at <b>${ctx.streak} day${ctx.streak === 1 ? "" : "s"}</b> 🔥 — keep it alive.` : "Start a streak this week — one session a day is all it takes."}
+      </p>`,
+      ctaText: "See your full progress →",
+      ctaUrl: `${siteUrl()}/progress`,
+    });
+    const text = `Your week, ${first}:
+
+Total focus: ${fmtMinutes(weekMin)} in ${ctx.sessions ?? 0} sessions
+Best day: ${ctx.bestDay ? `${ctx.bestDay} (${fmtMinutes(ctx.bestDayMin || 0)})` : "—"}
+Top subject: ${ctx.topSubject ? `${ctx.topSubject} (${fmtMinutes(ctx.topSubjectMin || 0)})` : "—"}
+${diffTxt}${ctx.streak ? `
+Streak: ${ctx.streak} days 🔥` : ""}
+
+${siteUrl()}/progress
+
+— FocusFlow · ${siteUrl()}
+Don't want weekly emails? Just reply "stop".`;
+    return { subject: `📊 Your week: ${fmtMinutes(weekMin)} of focus`, html, text };
+  }
+
   // custom (admin-composed)
   const subject = (ctx.customSubject || "A message from FocusFlow").trim();
   const bodyText = (ctx.customBody || "").trim();
@@ -324,4 +399,31 @@ export async function sendDaily(opts: {
     freezeStock: opts.freezeStock,
   });
   return send(opts.to, r.subject, r.html, r.text);
+}
+
+/* ---------- password reset ---------- */
+export async function sendPasswordReset(to: string, name: string, resetUrl: string): Promise<boolean> {
+  const first = name.split(" ")[0] || "there";
+  const html = layout({
+    preheader: "This link works for 60 minutes.",
+    heading: `Reset your password, ${first}?`,
+    body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
+      We got a request to reset your FocusFlow password. Click the button below —
+      the link is valid for <b>60 minutes</b> and works only once.
+    </p>
+    <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
+      If you didn't request this, you can safely ignore this email — your password stays unchanged.
+    </p>`,
+    ctaText: "Set a new password →",
+    ctaUrl: resetUrl,
+  });
+  const text = `Reset your FocusFlow password, ${first}
+
+Open this link (valid 60 minutes, works once):
+${resetUrl}
+
+If you didn't request this, ignore this email — your password stays unchanged.
+
+— FocusFlow · ${siteUrl()}`;
+  return send(to, "Reset your FocusFlow password", html, text);
 }
