@@ -9,7 +9,7 @@ export async function GET() {
   if (!admin) return NextResponse.json({ error: "Admins only" }, { status: 403 });
   const db = await getDb();
   const users = await db.all(
-    `SELECT u.id, u.name, u.email, u.role, u.created_at, u.last_active_at,
+    `SELECT u.id, u.name, u.email, u.role, u.emails_opt_out, u.created_at, u.last_active_at,
        (SELECT COUNT(*) FROM sessions s WHERE s.user_id = u.id) as session_count,
        (SELECT COALESCE(SUM(s.duration_sec),0) FROM sessions s WHERE s.user_id = u.id) as total_sec,
        (SELECT COUNT(*) FROM subjects sub WHERE sub.user_id = u.id) as subject_count

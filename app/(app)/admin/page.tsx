@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Users, Eye, Pencil, Trash2, ShieldCheck, Clock, Activity, UserCheck,
-  KeyRound, Search, BookOpen, Target, ListChecks,
+  KeyRound, Search, BookOpen, Target, ListChecks, Mail,
 } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, timeAgo, prettyDate, prettyDT } from "@/lib/utils";
@@ -48,7 +48,52 @@ export default function AdminPage() {
   const [eEmail, setEEmail] = useState("");
   const [eRole, setERole] = useState("user");
   const [ePass, setEPass] = useState("");
+  const [eOptOut, setEOptOut] = useState(false);
   const [eErr, setEErr] = useState<string | null>(null);
+
+  const [mailUser, setMailUser] = useState<any | null>(null);
+  const [mTpl, setMTpl] = useState("streak");
+  const [mSubject, setMSubject] = useState("");
+  const [mBody, setMBody] = useState("");
+  const [mPreview, setMPreview] = useState<any | null>(null);
+  const [mBusy, setMBusy] = useState(false);
+  const [mErr, setMErr] = useState<string | null>(null);
+
+  const TEMPLATES = [
+    { id: "streak", label: "Streak warning (live streak data)" },
+    { id: "progress", label: "Progress recap (today's minutes + streak)" },
+    { id: "welcome", label: "Welcome" },
+    { id: "feedback", label: "Feedback request" },
+    { id: "comeback", label: "Come back (inactive user)" },
+    { id: "custom", label: "Custom (write your own)" },
+  ];
+
+  const openMail = (u: any) => {
+    setMailUser(u); setMTpl("streak"); setMSubject(""); setMBody("");
+    setMPreview(null); setMErr(null);
+  };
+
+  const previewMail = async () => {
+    setMBusy(true); setMErr(null); setMPreview(null);
+    try {
+      const qs = new URLSearchParams({ template: mTpl });
+      if (mTpl === "custom") { qs.set("subject", mSubject); qs.set("body", mBody); }
+      setMPreview(await api(`/api/admin/users/${mailUser.id}/email?${qs}`));
+    } catch (e: any) { setMErr(e.message); }
+    setMBusy(false);
+  };
+
+  const sendMail = async () => {
+    setMBusy(true); setMErr(null);
+    try {
+      const payload = mTpl === "custom" ? { template: mTpl, subject: mSubject, body: mBody } : { template: mTpl };
+      const res = await api(`/api/admin/users/${mailUser.id}/email`, { method: "POST", body: JSON.stringify(payload) });
+      playSound("success");
+      toast(`Sent to ${res.to}: "${res.subject}"`, "success");
+      setMailUser(null);
+    } catch (e: any) { setMErr(e.message); playSound("error"); }
+    setMBusy(false);
+  };
   const [confirmDel, setConfirmDel] = useState<any | null>(null);
   const [busy, setBusy] = useState(false);
 
@@ -70,6 +115,7 @@ export default function AdminPage() {
     setEEmail(u.email || "");
     setERole(u.role);
     setEPass("");
+    setEOptOut(!!u.emails_opt_out);
     setEErr(null);
     setEditUser(u);
   };
@@ -78,12 +124,12 @@ export default function AdminPage() {
     setBusy(true);
     setEErr(null);
     const prev = users;
-    const optimistic = users.map((x: any) => (x.id === editUser.id ? { ...x, name: eName || x.name, email: eEmail || x.email, role: eRole } : x));
+    const optimistic = users.map((x: any) => (x.id === editUser.id ? { ...x, name: eName || x.name, email: eEmail || x.email, role: eRole, emails_opt_out: eOptOut ? 1 : 0 } : x));
     setData({ users: optimistic } as any);
     try {
       const { user } = await api(`/api/admin/users/${editUser.id}`, {
         method: "PATCH",
-        body: JSON.stringify({ name: eName, email: eEmail || undefined, role: eRole, password: ePass || undefined }),
+        body: JSON.stringify({ name: eName, email: eEmail || undefined, role: eRole, password: ePass || undefined, emailsOptOut: eOptOut }),
       });
       setData({ users: prev.map((x: any) => (x.id === editUser.id ? { ...x, ...user } : x)) } as any);
       toast("User updated", "success");
@@ -194,7 +240,9 @@ export default function AdminPage() {
                       </div>
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div>
-                        <div style={{ fontSize: 12, color: "var(--muted)" }}>{u.email}</div>
+                        <div style={{ fontSize: 12, color: "var(--muted)" }}>
+                          {u.email}{u.emails_opt_out ? <span title="Emails disabled" style={{ cursor: "help" }}> 🔕</span> : null}
+                        </div>
                       </div>
                     </div>
                   </td>
@@ -219,6 +267,7 @@ export default function AdminPage() {
                   <td>
                     <div style={{ display: "flex", gap: 6 }}>
                       <button className="iconbtn" style={{ width: 30, height: 30 }} title="View details" onClick={() => openView(u)}><Eye size={13} /></button>
+                      <button className="iconbtn" style={{ width: 30, height: 30 }} title={u.emails_opt_out ? "Send email (disabled for this user)" : "Send email"} onClick={() => openMail(u)}><Mail size={13} /></button>
                       <button className="iconbtn" style={{ width: 30, height: 30 }} title="Edit" onClick={() => openEdit(u)}><Pencil size={13} /></button>
                       <button className="iconbtn" style={{ width: 30, height: 30 }} title="Delete user" onClick={() => setConfirmDel(u)}><Trash2 size={13} /></button>
                     </div>
@@ -306,12 +355,65 @@ export default function AdminPage() {
           </select>
         </div>
         <div className="field">
+          <label style={{ display: "flex", alignItems: "center", gap: 8, fontSize: 13.5, fontWeight: 700, cursor: "pointer" }}>
+            <input type="checkbox" checked={!eOptOut} onChange={(e) => setEOptOut(!e.target.checked)} />
+            Send automated emails (welcome + daily streak)
+          </label>
+          {eOptOut && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 4 }}>Disabled — the daily cron, welcome emails and manual sends all skip this user.</div>}
+        </div>
+        <div className="field">
           <label className="label" style={{ display: "flex", alignItems: "center", gap: 6 }}><KeyRound size={13} /> Reset password (leave blank to keep current)</label>
           <input className="input" type="text" minLength={6} value={ePass} onChange={(e) => setEPass(e.target.value)} placeholder="New password, min 6 characters" />
         </div>
         <div className="modal-actions">
           <button className="btn" onClick={() => setEditUser(null)}>Cancel</button>
           <button className="btn btn-primary" onClick={saveEdit} disabled={busy || !eName.trim()}>Save changes</button>
+        </div>
+      </Modal>
+
+      {/* ---------- Send email modal ---------- */}
+      <Modal open={!!mailUser} onClose={() => setMailUser(null)} title={mailUser ? `Email ${mailUser.name}` : ""} wide>
+        {mailUser?.emails_opt_out ? (
+          <div className="card" style={{ padding: "12px 16px", marginBottom: 14, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
+            🔕 <b>Emails are disabled for this user.</b> Enable them via <b>Edit</b> to send.
+          </div>
+        ) : null}
+        <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>{mailUser?.email}</div>
+        <div className="field">
+          <label className="label">Template</label>
+          <select className="select" value={mTpl} onChange={(e) => { setMTpl(e.target.value); setMPreview(null); }}>
+            {TEMPLATES.map((t) => <option key={t.id} value={t.id}>{t.label}</option>)}
+          </select>
+        </div>
+        {mTpl === "custom" && (
+          <>
+            <div className="field">
+              <label className="label">Subject</label>
+              <input className="input" value={mSubject} onChange={(e) => setMSubject(e.target.value)} placeholder="e.g. New feature: weekly report" />
+            </div>
+            <div className="field">
+              <label className="label">Message (blank line = new paragraph)</label>
+              <textarea className="input" style={{ minHeight: 110, resize: "vertical" }} value={mBody} onChange={(e) => setMBody(e.target.value)} placeholder={"Hi!\n\nQuick update from FocusFlow…"} />
+            </div>
+          </>
+        )}
+        <FieldError msg={mErr} />
+        {mPreview && (
+          <div style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: 12.5, color: "var(--muted)", marginBottom: 6 }}>
+              Preview · subject: <b style={{ color: "var(--text)" }}>{mPreview.subject}</b>
+            </div>
+            <iframe title="email preview" srcDoc={mPreview.html} style={{ width: "100%", height: 380, border: "1px solid var(--border)", borderRadius: 10, background: "#f1f5f9" }} />
+          </div>
+        )}
+        <div className="modal-actions">
+          <button className="btn" onClick={() => setMailUser(null)}>Close</button>
+          <button className="btn" onClick={previewMail} disabled={mBusy || (mTpl === "custom" && (!mSubject.trim() || !mBody.trim()))}>
+            {mBusy ? "…" : "Preview"}
+          </button>
+          <button className="btn btn-primary" onClick={sendMail} disabled={mBusy || !!mailUser?.emails_opt_out || (mTpl === "custom" && (!mSubject.trim() || !mBody.trim()))}>
+            <Mail size={15} /> Send email
+          </button>
         </div>
       </Modal>
 

@@ -114,6 +114,8 @@ Without the vars below, email sending is a silent no-op: signups, streaks and ev
 - **Resend** (3000 free emails/month): [resend.com](https://resend.com) → API Keys → use `smtp.resend.com`, user `resend`, key as password.
 - Daily cron is registered in `vercel.json` (13:30 UTC = 19:00 IST). Vercel sends the `CRON_SECRET` as a Bearer header automatically.
 - Admins can change any user's email from **Admin → Edit** (it's their login email).
+- **Admin → ✏️ Edit** also has a per-user **"Send automated emails"** toggle (stops welcome + daily emails for that user).
+- **Admin → ✉️ envelope icon** sends any email to any user: streak warning, progress recap (both use live data), welcome, feedback request, comeback, or a custom subject + message — with a preview before sending.
 The owner + demo seed runs automatically on first request after deploy.
 
 ## 🗂 Tech & structure

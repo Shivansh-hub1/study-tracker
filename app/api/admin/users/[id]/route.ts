@@ -11,7 +11,7 @@ export async function GET(_req: NextRequest, { params }: { params: { id: string 
   const db = await getDb();
   const id = Number(params.id);
   const user = (await db.get(
-    "SELECT id, name, email, role, created_at, last_active_at FROM users WHERE id = ?",
+    "SELECT id, name, email, role, emails_opt_out, created_at, last_active_at FROM users WHERE id = ?",
     id
   )) as any;
   if (!user) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -38,9 +38,12 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const target = (await db.get("SELECT id, role FROM users WHERE id = ?", id)) as any;
   if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-  const { name, role, password, email } = await req.json().catch(() => ({}));
+  const { name, role, password, email, emailsOptOut } = await req.json().catch(() => ({}));
   if (role && role !== "admin" && role !== "user") {
     return NextResponse.json({ error: "Role must be 'user' or 'admin'" }, { status: 400 });
+  }
+  if (emailsOptOut !== undefined) {
+    await db.run("UPDATE users SET emails_opt_out = ? WHERE id = ?", emailsOptOut ? 1 : 0, id);
   }
   if (email !== undefined) {
     const em = String(email).toLowerCase().trim();
@@ -61,7 +64,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     if (String(password).length < 6) return NextResponse.json({ error: "Password must be at least 6 characters" }, { status: 400 });
     await db.run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(String(password), 10), id);
   }
-  const updated = await db.get("SELECT id, name, email, role, created_at, last_active_at FROM users WHERE id = ?", id);
+  const updated = await db.get("SELECT id, name, email, role, emails_opt_out, created_at, last_active_at FROM users WHERE id = ?", id);
   return NextResponse.json({ user: updated });
 }
 

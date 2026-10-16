@@ -237,6 +237,11 @@ async function migrateIfNeeded(db: DB) {
     )`);
     await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','3')");
   }
+  // v4: per-user email opt-out (admin controlled)
+  if (m?.value !== "4") {
+    try { await db.run("ALTER TABLE users ADD COLUMN emails_opt_out INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
+    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','4')");
+  }
 }
 
 async function init(): Promise<DB> {

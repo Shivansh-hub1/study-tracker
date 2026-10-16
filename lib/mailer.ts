@@ -51,6 +51,11 @@ async function send(to: string, subject: string, html: string, text: string): Pr
   return true;
 }
 
+/** Low-level send for admin-composed emails (subject/html/text pre-rendered). */
+export async function sendRaw(to: string, subject: string, html: string, text: string): Promise<boolean> {
+  return send(to, subject, html, text);
+}
+
 function siteUrl(): string {
   return process.env.NEXT_PUBLIC_SITE_URL || "https://yourstudytracker.vercel.app";
 }
@@ -62,6 +67,13 @@ function fmtMinutes(min: number): string {
   if (h) return `${h}h`;
   return `${m}m`;
 }
+
+function esc(s: string): string {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+export type EmailTemplateId = "welcome" | "streak" | "progress" | "feedback" | "comeback" | "custom";
+export const EMAIL_TEMPLATE_IDS: EmailTemplateId[] = ["welcome", "streak", "progress", "feedback", "comeback", "custom"];
 
 /* ---------- shared HTML layout ---------- */
 function layout(opts: {
@@ -96,13 +108,26 @@ function layout(opts: {
 </body></html>`;
 }
 
-/* ---------- welcome email ---------- */
-export async function sendWelcome(to: string, name: string): Promise<boolean> {
-  const first = name.split(" ")[0] || "there";
-  const html = layout({
-    preheader: "Your FocusFlow account is ready — here's how to start.",
-    heading: `Welcome to FocusFlow, ${first}! 🎉`,
-    body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
+/* ---------- template renderer (single source of truth) ---------- */
+export function renderTemplate(
+  kind: EmailTemplateId,
+  ctx: {
+    name: string;
+    studiedMin?: number;
+    streak?: number;
+    freezeStock?: number;
+    customSubject?: string;
+    customBody?: string;
+  }
+): { subject: string; html: string; text: string } {
+  const first = ctx.name.split(" ")[0] || "there";
+  const url = `${siteUrl()}/timer`;
+
+  if (kind === "welcome") {
+    const html = layout({
+      preheader: "Your FocusFlow account is ready — here's how to start.",
+      heading: `Welcome to FocusFlow, ${first}! 🎉`,
+      body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
       Your study tracker is ready. Here's how to get the best out of it in 2 minutes:
     </p>
     <ul style="margin:0 0 8px;padding-left:22px;color:#334155;font-size:15px;line-height:1.9;">
@@ -113,10 +138,10 @@ export async function sendWelcome(to: string, name: string): Promise<boolean> {
     <p style="margin:14px 0 0;color:#334155;font-size:15px;line-height:1.65;">
       You'll also get a short daily email with your progress — and a warning if your streak is about to break.
     </p>`,
-    ctaText: "Start your first session →",
-    ctaUrl: `${siteUrl()}/timer`,
-  });
-  const text = `Welcome to FocusFlow, ${first}!
+      ctaText: "Start your first session →",
+      ctaUrl: url,
+    });
+    const text = `Welcome to FocusFlow, ${first}!
 
 Your study tracker is ready. Quick start:
 1. Add your subjects — so every session counts towards them
@@ -125,39 +150,28 @@ Your study tracker is ready. Quick start:
 
 You'll get a short daily email with your progress — and a warning if your streak is about to break.
 
-Start your first session: ${siteUrl()}/timer
+Start your first session: ${url}
 
 — FocusFlow · ${siteUrl()}
 Don't want daily emails? Just reply "stop".`;
-  return send(to, "Welcome to FocusFlow 🎉", html, text);
-}
+    return { subject: "Welcome to FocusFlow 🎉", html, text };
+  }
 
-/* ---------- daily email ---------- */
-export async function sendDaily(opts: {
-  to: string;
-  name: string;
-  studiedMin: number;
-  streak: number;
-  atRisk: boolean;
-  frozenToday: boolean;
-  freezeStock: number;
-}): Promise<boolean> {
-  const first = opts.name.split(" ")[0] || "there";
-  const url = `${siteUrl()}/timer`;
-
-  if (opts.studiedMin > 0) {
+  if (kind === "progress") {
+    const studiedMin = ctx.studiedMin || 0;
+    const streak = ctx.streak || 0;
     const html = layout({
-      preheader: `You studied ${fmtMinutes(opts.studiedMin)} today — ${opts.streak}-day streak safe.`,
+      preheader: `You studied ${fmtMinutes(studiedMin)} today — ${streak}-day streak safe.`,
       heading: `Nice work today, ${first} 🔥`,
       body: `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 16px;">
         <tr>
           <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;width:50%;">
-            <div style="font-size:24px;font-weight:bold;color:#0f172a;">${fmtMinutes(opts.studiedMin)}</div>
+            <div style="font-size:24px;font-weight:bold;color:#0f172a;">${fmtMinutes(studiedMin)}</div>
             <div style="font-size:12.5px;color:#64748b;">studied today</div>
           </td>
           <td style="width:12px;"></td>
           <td style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:16px;text-align:center;width:50%;">
-            <div style="font-size:24px;font-weight:bold;color:#0f172a;">${opts.streak} day${opts.streak === 1 ? "" : "s"}</div>
+            <div style="font-size:24px;font-weight:bold;color:#0f172a;">${streak} day${streak === 1 ? "" : "s"}</div>
             <div style="font-size:12.5px;color:#64748b;">current streak 🔥</div>
           </td>
         </tr>
@@ -170,40 +184,144 @@ export async function sendDaily(opts: {
     });
     const text = `Nice work today, ${first}!
 
-You studied ${fmtMinutes(opts.studiedMin)} today — your ${opts.streak}-day streak is safe.
+You studied ${fmtMinutes(studiedMin)} today — your ${streak}-day streak is safe.
 
 Keep it going: ${url}
 
 — FocusFlow · ${siteUrl()}
 Don't want daily emails? Just reply "stop".`;
-    return send(opts.to, `✅ ${fmtMinutes(opts.studiedMin)} studied — ${opts.streak}-day streak safe`, html, text);
+    return { subject: `✅ ${fmtMinutes(studiedMin)} studied — ${streak}-day streak safe`, html, text };
   }
 
-  // at-risk: streak > 0 but nothing studied today
-  const freezeLine =
-    opts.freezeStock > 0
-      ? `<p style="margin:14px 0 0;color:#334155;font-size:14px;line-height:1.6;">❄️ Rest day? You have <b>${opts.freezeStock} streak freeze${opts.freezeStock === 1 ? "" : "s"}</b> in stock — use one from your dashboard before midnight.</p>`
-      : "";
-  const html = layout({
-    preheader: `Your ${opts.streak}-day streak breaks at midnight — one session saves it.`,
-    heading: `⚠️ ${first}, your ${opts.streak}-day streak breaks tonight`,
-    body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
-      You haven't logged any study time today. Your <b>${opts.streak}-day streak</b> resets at midnight —
+  if (kind === "streak") {
+    const streak = ctx.streak || 0;
+    const freezeStock = ctx.freezeStock || 0;
+    const freezeLine =
+      freezeStock > 0
+        ? `<p style="margin:14px 0 0;color:#334155;font-size:14px;line-height:1.6;">❄️ Rest day? You have <b>${freezeStock} streak freeze${freezeStock === 1 ? "" : "s"}</b> in stock — use one from your dashboard before midnight.</p>`
+        : "";
+    const html = layout({
+      preheader: `Your ${streak}-day streak breaks at midnight — one session saves it.`,
+      heading: `⚠️ ${first}, your ${streak}-day streak breaks tonight`,
+      body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
+      You haven't logged any study time today. Your <b>${streak}-day streak</b> resets at midnight —
       but it's not too late.
     </p>
     <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
       One <b>15-minute session</b> is all it takes to keep the chain alive. 🧱
     </p>
     ${freezeLine}`,
-    ctaText: "Start a 15-min session →",
-    ctaUrl: url,
-  });
-  const text = `${first}, your ${opts.streak}-day streak breaks tonight.
+      ctaText: "Start a 15-min session →",
+      ctaUrl: url,
+    });
+    const text = `${first}, your ${streak}-day streak breaks tonight.
 
 You haven't logged any study time today. One 15-minute session is all it takes to keep the chain alive:
 ${url}
-${opts.freezeStock > 0 ? `Rest day? You have ${opts.freezeStock} streak freeze${opts.freezeStock === 1 ? "" : "s"} in stock — use one from your dashboard before midnight.` : ""}
+${freezeStock > 0 ? `Rest day? You have ${freezeStock} streak freeze${freezeStock === 1 ? "" : "s"} in stock — use one from your dashboard before midnight.` : ""}
 — FocusFlow · ${siteUrl()}
 Don't want daily emails? Just reply "stop".`;
-  return send(opts.to, `⚠️ Your ${opts.streak}-day streak breaks tonight`, html, text);
+    return { subject: `⚠️ Your ${streak}-day streak breaks tonight`, html, text };
+  }
+
+  if (kind === "feedback") {
+    const html = layout({
+      preheader: "One quick reply — is FocusFlow helping you study?",
+      heading: `Quick question, ${first} 👋`,
+      body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
+      You've been using FocusFlow for a little while now — I'd love to hear how it's going.
+    </p>
+    <ul style="margin:0 0 8px;padding-left:22px;color:#334155;font-size:15px;line-height:1.9;">
+      <li>Is the <b>daily streak</b> actually helping you study?</li>
+      <li>Anything confusing or annoying?</li>
+      <li>Any feature you wish existed?</li>
+    </ul>
+    <p style="margin:14px 0 0;color:#334155;font-size:15px;line-height:1.65;">
+      Just <b>reply to this email</b> — it comes straight to me, and I read every one.
+    </p>`,
+      ctaText: "Open your dashboard →",
+      ctaUrl: `${siteUrl()}/dashboard`,
+    });
+    const text = `Quick question, ${first} —
+
+How's FocusFlow working for you? Is the daily streak helping? Anything confusing, annoying, or missing?
+
+Just reply to this email — it comes straight to me.
+
+${siteUrl()}/dashboard
+
+— FocusFlow · ${siteUrl()}`;
+    return { subject: "How's FocusFlow working for you?", html, text };
+  }
+
+  if (kind === "comeback") {
+    const html = layout({
+      preheader: "Even 10 minutes today restarts the momentum.",
+      heading: `Long time no study, ${first} 👀`,
+      body: `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">
+      You haven't been around lately. No guilt — life happens.
+    </p>
+    <p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">
+      But your subjects are still waiting, and even <b>10 minutes today</b> restarts the momentum.
+      That's one short revision session — then the streak engine takes over again.
+    </p>`,
+      ctaText: "Pick up where you left off →",
+      ctaUrl: url,
+    });
+    const text = `Long time no study, ${first} —
+
+You haven't been around lately. No guilt — life happens. But your subjects are still waiting, and even 10 minutes today restarts the momentum:
+
+${url}
+
+— FocusFlow · ${siteUrl()}
+Don't want daily emails? Just reply "stop".`;
+    return { subject: "Your study streak misses you 🌱", html, text };
+  }
+
+  // custom (admin-composed)
+  const subject = (ctx.customSubject || "A message from FocusFlow").trim();
+  const bodyText = (ctx.customBody || "").trim();
+  const paragraphs = bodyText
+    .split(/\n{2,}/)
+    .map((p) => `<p style="margin:0 0 14px;color:#334155;font-size:15px;line-height:1.65;">${esc(p).replace(/\n/g, "<br/>")}</p>`)
+    .join("");
+  const html = layout({
+    preheader: esc(bodyText.slice(0, 120)),
+    heading: `✉️ A message from FocusFlow`,
+    body: paragraphs || `<p style="margin:0;color:#334155;font-size:15px;line-height:1.65;">(no content)</p>`,
+    ctaText: "Open FocusFlow →",
+    ctaUrl: `${siteUrl()}/dashboard`,
+  });
+  const text = `${subject}
+
+${bodyText}
+
+— FocusFlow · ${siteUrl()}`;
+  return { subject, html, text };
+}
+
+/* ---------- automated sends (cron + signup) ---------- */
+export async function sendWelcome(to: string, name: string): Promise<boolean> {
+  const r = renderTemplate("welcome", { name });
+  return send(to, r.subject, r.html, r.text);
+}
+
+export async function sendDaily(opts: {
+  to: string;
+  name: string;
+  studiedMin: number;
+  streak: number;
+  atRisk: boolean;
+  frozenToday: boolean;
+  freezeStock: number;
+}): Promise<boolean> {
+  const kind: EmailTemplateId = opts.studiedMin > 0 ? "progress" : "streak";
+  const r = renderTemplate(kind, {
+    name: opts.name,
+    studiedMin: opts.studiedMin,
+    streak: opts.streak,
+    freezeStock: opts.freezeStock,
+  });
+  return send(opts.to, r.subject, r.html, r.text);
 }
