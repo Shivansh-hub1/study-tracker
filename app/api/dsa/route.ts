@@ -91,11 +91,15 @@ async function demoteOthers(db: DB, userId: number, now: string) {
   );
 }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const __hit2 = cacheGet(`u${user.id}:dsa`);
-  if (__hit2) return NextResponse.json(__hit2);
+  const url = new URL(req.url);
+  const force = url.searchParams.get("refresh") === "1";
+  if (!force) {
+    const __hit2 = cacheGet(`u${user.id}:dsa`);
+    if (__hit2) return NextResponse.json(__hit2);
+  }
   const __data = await payload(user.id);
   cacheSet(`u${user.id}:dsa`, __data);
   return NextResponse.json(__data);

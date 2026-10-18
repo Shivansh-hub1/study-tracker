@@ -186,6 +186,7 @@ export default function SessionsPage() {
           setData({ sessions: prev.map((s: any) => (s.id === modal.id ? res.session : s)) } as any);
           toast("Session updated", "success");
         }
+        try { window.dispatchEvent(new Event("ff:session-saved")); } catch {}
         playSound("success");
       } else {
         const res: any = await api("/api/sessions", { method: "POST", body: JSON.stringify(payload) }, { queueOffline: true });
@@ -195,6 +196,7 @@ export default function SessionsPage() {
           setData({ sessions: [res.session, ...prev] } as any);
           toast("Session logged", "success");
         }
+        try { window.dispatchEvent(new Event("ff:session-saved")); } catch {}
         playSound("success");
       }
       setModal(null);

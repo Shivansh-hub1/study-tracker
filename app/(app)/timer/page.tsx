@@ -5,7 +5,7 @@ import {
   Play, Pause, RotateCcw, Timer as TimerIcon, Hourglass, Watch, Bell, BellOff,
   Coffee, Moon, Zap, Flag, BookOpen, Check, Route, History, Sparkles, Clock,
 } from "lucide-react";
-import { useFetch, api } from "@/lib/client";
+import { useFetch, api, bustCache } from "@/lib/client";
 import { fmtClock } from "@/lib/utils";
 import { useToast } from "@/components/Providers";
 import { soundEngine } from "@/lib/sounds";
@@ -134,12 +134,86 @@ export default function TimersPage() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [p.status, mode]);
 
+  const [isRefreshingJourney, setIsRefreshingJourney] = useState(false);
+  const prevJourneyCurrentRef = useRef(journeyCurrent);
+
+  const refreshJourney = useCallback(
+    async (manual = false) => {
+      setIsRefreshingJourney(true);
+      bustCache("/api/dsa");
+      bustCache("/api/webdev");
+      try {
+        const [freshDsa, freshWeb] = await Promise.all([
+          reloadDsa ? reloadDsa(true, true) : null,
+          reloadWeb ? reloadWeb(true, true) : null,
+        ]);
+        const dTopics: any[] = freshDsa?.topics || dsaTopics;
+        const wTopics: any[] = freshWeb?.topics || webTopics;
+        const latestDsaTitle = dTopics.find((t: any) => t.key === (freshDsa?.current ?? dsaData?.current))?.title || "";
+        const latestWebTitle = wTopics.find((t: any) => t.key === (freshWeb?.current ?? webData?.current))?.title || "";
+        const newJourneyCurrent = isDsa ? latestDsaTitle : isWeb ? latestWebTitle : "";
+
+        setP((cur) => {
+          const wasAuto = !cur.topic || cur.topic === journeyCurrent || manual;
+          if ((isDsa || isWeb) && newJourneyCurrent && wasAuto && cur.topic !== newJourneyCurrent) {
+            const next = { ...cur, topic: newJourneyCurrent };
+            try { localStorage.setItem(LS_KEY, JSON.stringify(next)); } catch {}
+            return next;
+          }
+          return cur;
+        });
+
+        if (manual) {
+          soundEngine.click();
+          toast("Topic & progress refreshed", "success");
+        }
+      } catch {
+        if (manual) toast("Failed to refresh topic", "error");
+      } finally {
+        setIsRefreshingJourney(false);
+      }
+    },
+    [reloadDsa, reloadWeb, dsaTopics, webTopics, dsaData, webData, isDsa, isWeb, journeyCurrent, toast]
+  );
+
   useEffect(() => {
     if (!hydrated || (!dsaData && !webData)) return;
     const want = isDsa ? currentDsaTitle : isWeb ? currentWebTitle : "";
-    if ((isDsa || isWeb) && !p.topic && want) persist({ ...p, topic: want });
-    else if (!isDsa && !isWeb && p.topic) persist({ ...p, topic: "" });
-  }, [hydrated, dsaData, webData, isDsa, isWeb, p.subjectId]);
+    const prev = prevJourneyCurrentRef.current;
+    prevJourneyCurrentRef.current = want;
+
+    if (isDsa || isWeb) {
+      if (!p.topic || p.topic === prev) {
+        if (want && p.topic !== want) persist({ ...p, topic: want });
+      }
+    } else if (!isDsa && !isWeb && p.topic) {
+      persist({ ...p, topic: "" });
+    }
+  }, [hydrated, dsaData, webData, isDsa, isWeb, currentDsaTitle, currentWebTitle, p.topic, p.subjectId, persist]);
+
+  // Listen for session saved events across tabs/modals to refresh topic
+  useEffect(() => {
+    const onSessionSaved = () => {
+      refreshJourney();
+    };
+    window.addEventListener("ff:session-saved", onSessionSaved);
+    return () => window.removeEventListener("ff:session-saved", onSessionSaved);
+  }, [refreshJourney]);
+
+  // Auto-refresh when tab gains focus
+  useEffect(() => {
+    const onFocus = () => {
+      if (typeof document !== "undefined" && document.visibilityState === "visible") {
+        refreshJourney();
+      }
+    };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onFocus);
+    return () => {
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onFocus);
+    };
+  }, [refreshJourney]);
 
   useEffect(() => {
     if (p.status !== "running") return;
@@ -180,9 +254,10 @@ export default function TimersPage() {
         toast(r?._queued ? `No internet — ${fmtClock(seconds)} saved, will sync` : `Logged ${fmtClock(seconds)} of focus`, "success");
         if (!r?._queued && (shopData?.items || []).some((i: any) => i.key === "confetti" && i.owned)) burstConfetti();
         if (!r?._queued) { try { window.dispatchEvent(new Event("ff:session-saved")); } catch {} }
+        await refreshJourney();
       } catch {}
     },
-    [p.subjectId, p.phase, p.topic, selLecture?.title, toast, shopData]
+    [p.subjectId, p.phase, p.topic, selLecture?.title, toast, shopData, refreshJourney]
   );
 
   const notify = useCallback((title: string, body: string) => {
@@ -562,7 +637,24 @@ export default function TimersPage() {
                 <div style={{ width: 32, height: 32, borderRadius: 10, background: "var(--accent-soft)", display: "grid", placeItems: "center", color: "var(--accent)" }}><Route size={16} /></div>
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 800, display: "flex", gap: 8, alignItems: "center" }}>
-                    Journey topic {p.topic === journeyCurrent && journeyCurrent ? <span className="badge" style={{ background: "#10b98122", color: "#10b981", fontSize: 11 }}>Auto ✓</span> : <span className="badge" style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 11 }}>Manual</span>}
+                    Journey topic {p.topic === journeyCurrent && journeyCurrent ? (
+                      <span className="badge" style={{ background: "#10b98122", color: "#10b981", fontSize: 11 }}>Auto ✓</span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (journeyCurrent) {
+                            persist({ ...p, topic: journeyCurrent });
+                            toast(`Switched to auto topic: ${journeyCurrent}`, "info");
+                          }
+                        }}
+                        className="badge"
+                        style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 11, cursor: "pointer", border: "1px dashed var(--border)" }}
+                        title="Click to reset to Auto"
+                      >
+                        Manual · click to Auto
+                      </button>
+                    )}
                   </div>
                   <div style={{ fontSize: 11, color: "var(--muted)", marginTop: 2, display: "flex", gap: 6, alignItems: "center" }}>
                     <div style={{ width: 60, height: 4, borderRadius: 99, background: "var(--border)", overflow: "hidden" }}><div style={{ width: `${journeyPct}%`, height: "100%", background: "var(--accent-grad)", borderRadius: 99 }} /></div>
@@ -570,7 +662,19 @@ export default function TimersPage() {
                   </div>
                 </div>
               </div>
-              <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "var(--accent-soft)", padding: "6px 10px", borderRadius: 8, whiteSpace: "nowrap" }}>Open journey →</a>
+              <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                <button
+                  type="button"
+                  onClick={() => refreshJourney(true)}
+                  disabled={isRefreshingJourney}
+                  className="iconbtn"
+                  style={{ width: 30, height: 30, borderRadius: 8, display: "grid", placeItems: "center", background: "var(--surface-2)", border: "1px solid var(--border)" }}
+                  title="Refresh topic and progress from server"
+                >
+                  <RotateCcw size={13} className={isRefreshingJourney ? "animate-spin" : ""} style={{ color: "var(--text)" }} />
+                </button>
+                <a href={isDsa ? "/dsa" : "/webdev"} style={{ fontSize: 12, fontWeight: 700, color: "var(--accent)", background: "var(--accent-soft)", padding: "6px 10px", borderRadius: 8, whiteSpace: "nowrap" }}>Open journey →</a>
+              </div>
             </div>
 
             <select className="select" style={{ width: "100%", borderRadius: 12, padding: "12px 14px", fontWeight: 600, fontSize: 14 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>

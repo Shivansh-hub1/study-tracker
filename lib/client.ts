@@ -96,19 +96,23 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const reload = useCallback(async (background = false) => {
-    if (!path) return;
+  const reload = useCallback(async (background = false, bypassCache = false) => {
+    if (!path) return null;
+    if (bypassCache) bustCache(path);
     if (!background) {
       setLoading(true);
       setError(null);
     }
     try {
-      const d = await api(path);
+      const url = bypassCache ? `${path}${path.includes("?") ? "&" : "?"}refresh=1&_t=${Date.now()}` : path;
+      const d = await api(url);
       cacheSet(path, Date.now(), d);
       setData(d);
+      return d;
     } catch (e: any) {
       // offline: keep showing cached data silently
       if (!background && (typeof navigator === "undefined" || navigator.onLine)) setError(e.message);
+      return null;
     } finally {
       if (!background) setLoading(false);
     }
@@ -148,11 +152,15 @@ export function useFetch<T = any>(path: string | null, deps: any[] = []) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload]);
 
-  // After offline mutations sync, visible data refreshes itself.
+  // After offline mutations sync or when a session is saved, visible data refreshes itself.
   useEffect(() => {
-    const onSync = () => { reload(); };
+    const onSync = () => { reload(true, true); };
     window.addEventListener("ff-sync", onSync);
-    return () => window.removeEventListener("ff-sync", onSync);
+    window.addEventListener("ff:session-saved", onSync);
+    return () => {
+      window.removeEventListener("ff-sync", onSync);
+      window.removeEventListener("ff:session-saved", onSync);
+    };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reload]);
   return { data, loading, error, reload, setData };
