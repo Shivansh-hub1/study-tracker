@@ -9,6 +9,7 @@ const Pet = dynamic(() => import("./Pet"), { ssr: false });
 import Link from "next/link";
 import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
 import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
+import DevQuoteBar from "./DevQuoteBar";
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
@@ -189,6 +190,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           </button>
           <OfflineBadge />
         </div>
+        <DevQuoteBar />
         {children}
         <AchievementPopup />
         <Pet />
