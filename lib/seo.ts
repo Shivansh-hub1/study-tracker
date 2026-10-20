@@ -5,7 +5,8 @@ export const SITE_DESCRIPTION =
   "FocusFlow is a fast, free study tracker with a focus timer, session logging, DSA and WebDev roadmaps, smart revision queues, habits, and progress analytics.";
 
 export const CANONICAL_SITE_URL =
-  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") || "https://yourstudytracker.vercel.app";
+  process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+  (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://tracker.devshivansh.in");
 
 export const AUTHOR_INFO = {
   name: "Shivansh",
