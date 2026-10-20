@@ -153,6 +153,13 @@ export default function AppShell({ user, children }: { user: Me; children: React
             <ShieldCheck size={17} /> Admin Panel
           </Link>
         )}
+        <div style={{ display: "flex", gap: 10, padding: "12px 14px 4px", fontSize: 11, color: "var(--muted)" }}>
+          <Link href="/blog" style={{ color: "inherit", textDecoration: "none" }}>Blog</Link>
+          <span>•</span>
+          <Link href="/about" style={{ color: "inherit", textDecoration: "none" }}>About</Link>
+          <span>•</span>
+          <Link href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>Privacy</Link>
+        </div>
         <div className="sspacer" />
         <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 12px" }}>
           <div className={ownedItem("pfp_ring") ? "pfp-ring" : ""} style={{ flexShrink: 0, padding: 2.5, borderRadius: "50%" }}>
@@ -164,7 +171,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           >
             {user.pfp ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.pfp} alt="" style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              <img src={user.pfp} alt={`${user.name || "User"} profile picture`} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
             ) : avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
           </div>
           </div>

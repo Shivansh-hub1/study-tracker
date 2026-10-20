@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check } from "lucide-react";
-import { SITE_DESCRIPTION, SITE_NAME, siteBaseUrl } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_NAME, CANONICAL_SITE_URL } from "@/lib/seo";
 import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
@@ -66,11 +66,10 @@ const FAQS = [
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
-  const base = siteBaseUrl();
   return {
     title: "FocusFlow — Free Study Tracker with Focus Timer & Roadmaps",
     description: SITE_DESCRIPTION,
-    alternates: { canonical: `${base}/` },
+    alternates: { canonical: `${CANONICAL_SITE_URL}/` },
     openGraph: {
       type: "website",
       siteName: SITE_NAME,
@@ -83,24 +82,23 @@ export async function generateMetadata(): Promise<Metadata> {
   };
 }
 
-const base = siteBaseUrl();
 function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
   return {
   "@context": "https://schema.org",
   "@graph": [
     {
       "@type": "WebSite",
-      "@id": `${base}/#website`,
-      url: `${base}/`,
+      "@id": `${CANONICAL_SITE_URL}/#website`,
+      url: `${CANONICAL_SITE_URL}/`,
       name: SITE_NAME,
       description: SITE_DESCRIPTION,
-      potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: `${base}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" },
+      potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: `${CANONICAL_SITE_URL}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" },
     },
     {
       "@type": "SoftwareApplication",
-      "@id": `${base}/#app`,
+      "@id": `${CANONICAL_SITE_URL}/#app`,
       name: SITE_NAME,
-      url: `${base}/`,
+      url: `${CANONICAL_SITE_URL}/`,
       applicationCategory: "EducationalApplication",
       operatingSystem: "Web",
       description: SITE_DESCRIPTION,
@@ -110,13 +108,13 @@ function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
     },
     {
       "@type": "FAQPage",
-      "@id": `${base}/#faq`,
+      "@id": `${CANONICAL_SITE_URL}/#faq`,
       mainEntity: faqs.map((f) => ({ "@type": "Question", name: f.q, acceptedAnswer: { "@type": "Answer", text: f.a } })),
     },
     {
       "@type": "BreadcrumbList",
-      "@id": `${base}/#breadcrumb`,
-      itemListElement: [{ "@type": "ListItem", position: 1, name: "Home", item: `${base}/` }],
+      "@id": `${CANONICAL_SITE_URL}/#breadcrumb`,
+      itemListElement: [{ "@type": "ListItem", position: 1, name: "Home", item: `${CANONICAL_SITE_URL}/` }],
     },
   ],
   };
@@ -140,6 +138,8 @@ export default async function Home() {
           <nav className="land-links" aria-label="Primary">
             <Link href="#features">Features</Link>
             <Link href="#how">How it works</Link>
+            <Link href="/about">About</Link>
+            <Link href="/blog">Blog</Link>
             <Link href="#faq">FAQ</Link>
             <Link href="/login">Sign in</Link>
             <Link href="/signup" className="btn btn-primary btn-sm">Get started free <ArrowRight size={14} /></Link>

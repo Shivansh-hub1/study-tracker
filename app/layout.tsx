@@ -2,14 +2,13 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, siteBaseUrl } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export async function generateMetadata(): Promise<Metadata> {
-  const base = siteBaseUrl();
   return {
-    metadataBase: new URL(base),
+    metadataBase: new URL(CANONICAL_SITE_URL),
     title: { default: `${SITE_NAME} — Study Tracker`, template: `%s | ${SITE_NAME}` },
     description: SITE_DESCRIPTION,
     keywords: SITE_KEYWORDS,
@@ -46,9 +45,7 @@ export async function generateMetadata(): Promise<Metadata> {
       follow: true,
       googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
     },
-    verification: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION
-      ? { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION }
-      : undefined,
+    verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "google-site-verification-focusflow" },
     other: {
       "theme-color": "#7c3aed",
       "color-scheme": "dark light",
@@ -64,7 +61,7 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
-  const base = siteBaseUrl();
+  const base = CANONICAL_SITE_URL;
 
   const globalJsonLd = {
     "@context": "https://schema.org",
@@ -95,7 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         "@id": `${base}/#organization`,
         name: SITE_NAME,
         url: `${base}/`,
-        logo: `${base}/icon-512.png`,
+        logo: `${CANONICAL_SITE_URL}/icon-512.webp`,
         sameAs: [],
         contactPoint: { "@type": "ContactPoint", contactType: "customer support", availableLanguage: ["English"] },
       },

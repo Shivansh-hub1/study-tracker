@@ -1,25 +1,18 @@
 import type { MetadataRoute } from "next";
-import { siteBaseUrlHttps } from "@/lib/seo";
+import { CANONICAL_SITE_URL } from "@/lib/seo";
 
 export default function robots(): MetadataRoute.Robots {
-  const base = siteBaseUrlHttps();
   return {
     rules: [
       {
-        userAgent: "*",
+        userAgent: "Googlebot",
         allow: [
           "/",
-          "/dsa",
-          "/webdev",
-          "/revision",
-          "/habits",
-          "/progress",
-          "/achievements",
-          "/timer",
           "/about",
+          "/blog",
+          "/blog/*",
           "/privacy",
           "/terms",
-          "/blog",
           "/login",
           "/signup",
         ],
@@ -27,13 +20,36 @@ export default function robots(): MetadataRoute.Robots {
           "/api/",
           "/dashboard",
           "/admin",
+          "/settings",
           "/sessions",
           "/subjects",
           "/planner",
+        ],
+      },
+      {
+        userAgent: "*",
+        allow: [
+          "/",
+          "/about",
+          "/blog",
+          "/blog/*",
+          "/privacy",
+          "/terms",
+          "/login",
+          "/signup",
+        ],
+        disallow: [
+          "/api/",
+          "/dashboard",
+          "/admin",
           "/settings",
+          "/sessions",
+          "/subjects",
+          "/planner",
         ],
       },
     ],
-    sitemap: `${base}/sitemap.xml`,
+    sitemap: `${CANONICAL_SITE_URL}/sitemap.xml`,
+    host: CANONICAL_SITE_URL,
   };
 }

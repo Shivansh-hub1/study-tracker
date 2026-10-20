@@ -39,7 +39,7 @@ type Block = { subjectId: number; minutes: number };
 
 export function generateTimetable(cfg: TTConfig): { slots: Slot[]; warnings: string[] } {
   const warnings: string[] = [];
-  const days = [...new Set(cfg.days)].sort((a, b) => a - b);
+  const days = Array.from(new Set(cfg.days)).sort((a, b) => a - b);
   if (days.length === 0) return { slots: [], warnings: ["Select at least one study day."] };
   const subjects = cfg.subjects.filter((s) => s.weeklyMinutes > 0);
   if (subjects.length === 0) return { slots: [], warnings: ["Add at least one subject with weekly time."] };

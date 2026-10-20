@@ -1,26 +1,98 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GraduationCap, ArrowRight, Check, Users, Code2, Heart, Target } from "lucide-react";
-import { SITE_NAME, SITE_DESCRIPTION, siteBaseUrl } from "@/lib/seo";
+import { GraduationCap, ArrowRight, Heart, Target, Code2, Users, ChevronRight, HelpCircle } from "lucide-react";
+import { SITE_NAME, SITE_DESCRIPTION, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 
-export async function generateMetadata(): Promise<Metadata> {
-  const base = siteBaseUrl();
+export const dynamic = "force-static";
+
+export function generateMetadata(): Metadata {
   return {
-    title: "About FocusFlow — Mission, Team & Philosophy",
-    description: "Learn about FocusFlow's mission to make deep-focus study tools free for every student. Built by developers, for developers.",
-    alternates: { canonical: `${base}/about` },
-    openGraph: { type: "website", siteName: SITE_NAME, title: "About FocusFlow", description: "Mission, team, and philosophy behind the free study tracker.", url: "/about", images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "About FocusFlow" }] },
-    twitter: { card: "summary_large_image", title: "About FocusFlow", description: "Free study tracker built by developers, for developers.", images: ["/opengraph-image"] },
+    title: "About FocusFlow — Mission, Creator & Engineering Philosophy",
+    description: "Learn why FocusFlow was built: a distraction-free, 100% free study ecosystem for developers and students with Pomodoro timers, DSA roadmaps, and spaced repetition.",
+    alternates: { canonical: `${CANONICAL_SITE_URL}/about` },
+    openGraph: {
+      type: "website",
+      siteName: SITE_NAME,
+      title: "About FocusFlow — Mission & Creator",
+      description: "Distraction-free, 100% free study ecosystem for developers and students. Built by developers, for developers.",
+      url: `${CANONICAL_SITE_URL}/about`,
+      images: [{ url: `${CANONICAL_SITE_URL}/opengraph-image`, width: 1200, height: 630, alt: "About FocusFlow" }],
+    },
+    twitter: {
+      card: "summary_large_image",
+      title: "About FocusFlow",
+      description: "Free study tracker built by developers, for developers.",
+      images: [`${CANONICAL_SITE_URL}/opengraph-image`],
+    },
+    robots: {
+      index: true,
+      follow: true,
+      googleBot: { index: true, follow: true },
+    },
   };
 }
 
-const base = siteBaseUrl();
+const ABOUT_FAQS = [
+  {
+    q: "Why is FocusFlow completely free?",
+    a: "Education and focused study tools shouldn't be locked behind paywalls. FocusFlow was built out of frustration with expensive subscription timers and fragmented tools. It is free forever with no ads and no upsells."
+  },
+  {
+    q: "Who builds and maintains FocusFlow?",
+    a: "FocusFlow is built and maintained by Shivansh, a full-stack software engineer who uses the application daily for DSA sprints, system design prep, and spaced repetition learning."
+  },
+  {
+    q: "How does FocusFlow keep user data private?",
+    a: "Your study history and timer sessions are stored locally in your browser SQLite database. No third-party trackers, telemetry, or advertising pixels exist in the codebase."
+  }
+];
+
 const jsonLd = {
   "@context": "https://schema.org",
   "@graph": [
-    { "@type": "AboutPage", "@id": `${base}/about#page`, name: "About FocusFlow", description: "Mission, team, and philosophy behind the free study tracker.", url: `${base}/about` },
-    { "@type": "Organization", "@id": `${base}/#organization`, name: SITE_NAME, url: `${base}/`, description: SITE_DESCRIPTION, logo: `${base}/icon-512.png`, sameAs: [], contactPoint: { "@type": "ContactPoint", contactType: "customer support", availableLanguage: ["English"] } },
-    { "@type": "BreadcrumbList", "@id": `${base}/about#breadcrumb`, itemListElement: [{ "@type": "ListItem", position: 1, name: "Home", item: `${base}/` }, { "@type": "ListItem", position: 2, name: "About", item: `${base}/about` }] },
+    {
+      "@type": "AboutPage",
+      "@id": `${CANONICAL_SITE_URL}/about#page`,
+      name: "About FocusFlow",
+      description: "Mission, creator, and engineering philosophy behind the free study tracker.",
+      url: `${CANONICAL_SITE_URL}/about`,
+    },
+    {
+      "@type": "Person",
+      "@id": `${CANONICAL_SITE_URL}/#author`,
+      name: AUTHOR_INFO.name,
+      jobTitle: AUTHOR_INFO.role,
+      url: AUTHOR_INFO.url,
+      description: AUTHOR_INFO.bio,
+    },
+    {
+      "@type": "Organization",
+      "@id": `${CANONICAL_SITE_URL}/#organization`,
+      name: SITE_NAME,
+      url: `${CANONICAL_SITE_URL}/`,
+      description: SITE_DESCRIPTION,
+      logo: `${CANONICAL_SITE_URL}/icon-512.webp`,
+    },
+    {
+      "@type": "BreadcrumbList",
+      "@id": `${CANONICAL_SITE_URL}/about#breadcrumb`,
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: "Home", item: `${CANONICAL_SITE_URL}/` },
+        { "@type": "ListItem", position: 2, name: "About", item: `${CANONICAL_SITE_URL}/about` },
+      ],
+    },
+    {
+      "@type": "FAQPage",
+      "@id": `${CANONICAL_SITE_URL}/about#faq`,
+      mainEntity: ABOUT_FAQS.map((f) => ({
+        "@type": "Question",
+        name: f.q,
+        acceptedAnswer: {
+          "@type": "Answer",
+          text: f.a,
+        },
+      })),
+    },
   ],
 };
 
@@ -29,53 +101,117 @@ export default function AboutPage() {
     <>
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }} />
       <div className="land">
-        <header className="land-nav"><Link href="/" className="land-logo"><span className="land-logo-icon"><GraduationCap size={22} /></span>Focus<span className="glow-text">Flow</span></Link><nav className="land-links" aria-label="Primary"><Link href="/#features">Features</Link><Link href="/#how">How it works</Link><Link href="/#faq">FAQ</Link><Link href="/login">Sign in</Link><Link href="/signup" className="btn btn-primary btn-sm">Start free <ArrowRight size={14} /></Link></nav></header>
-        <main>
-          <section className="land-hero" style={{ textAlign: "center", padding: "60px 20px" }}>
+        <header className="land-nav">
+          <Link href="/" className="land-logo">
+            <span className="land-logo-icon"><GraduationCap size={22} /></span>
+            Focus<span className="glow-text">Flow</span>
+          </Link>
+          <nav className="land-links" aria-label="Primary">
+            <Link href="/#features">Features</Link>
+            <Link href="/#how">How it works</Link>
+            <Link href="/about" className="active">About</Link>
+            <Link href="/blog">Blog</Link>
+            <Link href="/login">Sign in</Link>
+            <Link href="/signup" className="btn btn-primary btn-sm">Start free <ArrowRight size={14} /></Link>
+          </nav>
+        </header>
+
+        <main style={{ maxWidth: 900, margin: "0 auto", padding: "40px 20px" }}>
+          <nav aria-label="Breadcrumb" style={{ display: "flex", alignItems: "center", gap: 6, fontSize: 13, color: "var(--muted)", marginBottom: 28 }}>
+            <Link href="/" style={{ color: "var(--muted)", textDecoration: "none" }}>Home</Link>
+            <ChevronRight size={14} />
+            <span style={{ color: "var(--fg)", fontWeight: 600 }}>About</span>
+          </nav>
+
+          <section className="land-hero" style={{ textAlign: "center", padding: "20px 0 40px" }}>
             <p className="land-badge"><Heart size={14} /> Built by developers, for developers</p>
-            <h1>About <span className="glow-text">FocusFlow</span></h1>
-            <p className="land-sub" style={{ maxWidth: 700, margin: "16px auto 0" }}>We believe every student deserves powerful study tools — free, forever. No paywalls. No data selling. Just deep focus.</p>
+            <h1 style={{ fontSize: "clamp(2rem, 4vw, 3.2rem)", fontWeight: 800, margin: "12px 0", color: "var(--fg)" }}>
+              About <span className="glow-text">FocusFlow</span>
+            </h1>
+            <p className="land-sub" style={{ maxWidth: 680, margin: "0 auto", color: "var(--muted)" }}>
+              We believe every student and engineer deserves powerful study tools — fast, private, and 100% free. No paywalls. No data selling. Just deep focus.
+            </p>
+          </section>
+
+          {/* Author Bio Section */}
+          <section className="card" style={{ padding: 28, marginBottom: 40, display: "flex", alignItems: "flex-start", gap: 20, background: "rgba(99, 102, 241, 0.06)", border: "1px solid rgba(99, 102, 241, 0.22)" }}>
+            <div style={{ width: 56, height: 56, borderRadius: "50%", background: "var(--accent)", color: "#fff", display: "grid", placeItems: "center", fontWeight: 700, fontSize: 24, flexShrink: 0 }}>
+              S
+            </div>
+            <div>
+              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6, flexWrap: "wrap" }}>
+                <h2 style={{ fontSize: 18, fontWeight: 700, margin: 0, color: "var(--fg)" }}>Meet the Creator: {AUTHOR_INFO.name}</h2>
+                <span className="badge" style={{ fontSize: 11 }}>{AUTHOR_INFO.role}</span>
+              </div>
+              <p style={{ fontSize: 14, color: "var(--muted)", lineHeight: 1.6, margin: "0 0 12px" }}>
+                {AUTHOR_INFO.bio}
+              </p>
+              <div style={{ display: "flex", gap: 16, fontSize: 13 }}>
+                <a href={AUTHOR_INFO.url} target="_blank" rel="noopener noreferrer" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>
+                  GitHub Profile →
+                </a>
+                <Link href="/blog" style={{ color: "var(--accent)", textDecoration: "none", fontWeight: 600 }}>
+                  Read Study Guides →
+                </Link>
+              </div>
+            </div>
           </section>
 
           <section className="land-section" aria-labelledby="mission-h">
-            <h2 id="mission-h" style={{ textAlign: "center" }}>Our Mission</h2>
-            <p className="land-sec-sub" style={{ textAlign: "center", maxWidth: 700, margin: "0 auto 32px" }}>FocusFlow exists because existing tools were either too simple (just timers) or too expensive (subscription walls). We merged the best of both worlds.</p>
+            <h2 id="mission-h" style={{ textAlign: "center", fontSize: 24, marginBottom: 12 }}>Our Mission</h2>
+            <p className="land-sec-sub" style={{ textAlign: "center", maxWidth: 680, margin: "0 auto 32px" }}>
+              Most study apps are either toy timers or bloated subscription traps. FocusFlow brings professional engineering workflows — modular roadmaps, spaced repetition algorithms, and telemetry — into a free app.
+            </p>
             <div className="land-grid">
-              <article className="card land-card"><span className="land-ico"><Target size={20} /></span><h3>Free Forever</h3><p>Every feature — timer, roadmaps, planner, habits, analytics, achievements — is free. No trials, no upsells.</p></article>
-              <article className="card land-card"><span className="land-ico"><Code2 size={20} /></span><h3>Open Philosophy</h3><p>Your data belongs to you. Export anytime (CSV/JSON). No vendor lock-in. Self-hostable if you want.</p></article>
-              <article className="card land-card"><span className="land-ico"><Users size={20} /></span><h3>Community First</h3><p>Built with feedback from students worldwide. Feature requests welcomed. No corporate roadmap.</p></article>
+              <article className="card land-card">
+                <span className="land-ico"><Target size={20} /></span>
+                <h3>Free Forever</h3>
+                <p>Every feature — timer, roadmaps, planner, habits, analytics, achievements — is free. No trials, no upsells.</p>
+              </article>
+              <article className="card land-card">
+                <span className="land-ico"><Code2 size={20} /></span>
+                <h3>Open & Private</h3>
+                <p>Your study history is stored in local SQLite/IndexedDB. Export anytime as CSV or JSON. Zero tracking.</p>
+              </article>
+              <article className="card land-card">
+                <span className="land-ico"><Users size={20} /></span>
+                <h3>Built for Deep Work</h3>
+                <p>Designed around real engineering rhythms: 50-minute blocks, dark theme by default, and keyboard shortcuts.</p>
+              </article>
             </div>
           </section>
 
-          <section className="land-section" aria-labelledby="why-h">
-            <h2 id="why-h" style={{ textAlign: "center" }}>Why FocusFlow?</h2>
-            <div className="land-grid">
-              <article className="card land-card"><h3>🎯 Deep Focus, Not Just Timing</h3><p>Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision, habits, and analytics — your whole study system in one place.</p></article>
-              <article className="card land-card"><h3>📚 Structured Learning Paths</h3><p>DSA (18 modules) and WebDev (18 modules) roadmaps with lecture-level granularity. Always know what to study next.</p></article>
-              <article className="card land-card"><h3>🔁 Spaced Repetition Built-In</h3><p>Mark topics done → they auto-enter SM-2 revision queue. Again/Hard/Easy ratings. Never forget what you learned.</p></article>
-              <article className="card land-card"><h3>📊 Analytics That Drive Action</h3><p>Daily trends, weekly comparison, subject radar, 20-week hourly heatmap. See exactly where your time goes.</p></article>
-              <article className="card land-card"><h3>🏆 Gamification That Works</h3><p>84 achievements across 10 categories. Streaks, levels, XP, shareable progress cards. Motivation that compounds.</p></article>
-              <article className="card land-card"><h3>🔧 Works Offline, Syncs Online</h3><p>PWA with service worker. Timers run in background. Data syncs when you're back online. No interruptions.</p></article>
-            </div>
-          </section>
-
-          <section className="land-section" aria-labelledby="tech-h">
-            <h2 id="tech-h" style={{ textAlign: "center" }}>Tech Stack</h2>
-            <p className="land-sec-sub" style={{ textAlign: "center", maxWidth: 700, margin: "0 auto 32px" }}>Modern, performant, and built to last.</p>
-            <div className="land-grid" style={{ gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", justifyItems: "center" }}>
-              {["Next.js 14 (App Router)", "React 18", "TypeScript", "Tailwind CSS", "SQLite (Turso)", "Recharts", "PWA/Service Worker", "Vercel"].map((tech) => (
-                <div key={tech} className="card" style={{ padding: "20px", textAlign: "center", minWidth: 180 }}><strong>{tech}</strong></div>
+          {/* About FAQs */}
+          <section style={{ margin: "48px 0" }} aria-labelledby="faq-h">
+            <h2 id="faq-h" style={{ textAlign: "center", fontSize: 24, marginBottom: 24, display: "flex", alignItems: "center", justifyContent: "center", gap: 8 }}>
+              <HelpCircle size={22} className="glow-text" /> Frequently Asked Questions
+            </h2>
+            <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+              {ABOUT_FAQS.map((faq, idx) => (
+                <details key={idx} className="card" style={{ padding: 18, borderRadius: 10 }}>
+                  <summary style={{ fontWeight: 600, cursor: "pointer", fontSize: 15, color: "var(--fg)" }}>
+                    {faq.q}
+                  </summary>
+                  <p style={{ marginTop: 10, fontSize: 14, color: "var(--muted)", lineHeight: 1.6 }}>
+                    {faq.a}
+                  </p>
+                </details>
               ))}
             </div>
           </section>
-
-          <section className="land-final card" style={{ textAlign: "center", background: "linear-gradient(135deg, var(--accent-soft) 0%, transparent 60%), var(--surface)" }}>
-            <h2>Ready to study smarter?</h2>
-            <p>Join thousands of students using FocusFlow daily. Free, powerful, and built for you.</p>
-            <div className="land-cta land-cta-center"><Link href="/signup" className="btn btn-primary btn-lg">Get started free <ArrowRight size={17} /></Link></div>
-          </section>
         </main>
-        <footer className="land-footer"><p><strong>Focus<span className="glow-text">Flow</span></strong> — Deep-focus study tracker.</p><nav aria-label="Footer"><Link href="/about">About</Link><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/blog">Blog</Link><Link href="/signup">Create account</Link><Link href="/login">Sign in</Link></nav></footer>
+
+        <footer className="land-footer">
+          <p><strong>Focus<span className="glow-text">Flow</span></strong> — Deep-focus study tracker.</p>
+          <nav aria-label="Footer">
+            <Link href="/about">About</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/blog">Blog</Link>
+            <Link href="/signup">Create account</Link>
+            <Link href="/login">Sign in</Link>
+          </nav>
+        </footer>
       </div>
     </>
   );

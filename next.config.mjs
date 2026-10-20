@@ -4,6 +4,9 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   generateEtags: true,
+  images: {
+    formats: ["image/avif", "image/webp"],
+  },
   experimental: {
     serverComponentsExternalPackages: ["better-sqlite3", "@libsql/client"],
     optimizePackageImports: ["lucide-react", "recharts"],
@@ -32,6 +35,10 @@ const nextConfig = {
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {
+        source: "/:path*.webp",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+      },
+      {
         source: "/:path*.png",
         headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
@@ -55,12 +62,6 @@ const nextConfig = {
         source: "/opengraph-image",
         headers: [{ key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" }],
       },
-    ];
-  },
-  async rewrites() {
-    return [
-      { source: "/sitemap.xml", destination: "/sitemap.xml" },
-      { source: "/robots.txt", destination: "/robots.txt" },
     ];
   },
 };

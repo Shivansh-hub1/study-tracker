@@ -376,7 +376,7 @@ export default function SettingsPage() {
           >
             {me?.user?.pfp ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={me.user.pfp} alt="Profile picture" style={{ width: "100%", height: "100%", objectFit: "cover" }} />
+              <img src={me.user.pfp} alt={`${me?.user?.name || "User"} profile picture`} style={{ width: "100%", height: "100%", objectFit: "cover" }} />
             ) : (
               (me?.user?.name || "?").split(" ").map((w: string) => w[0]).slice(0, 2).join("").toUpperCase()
             )}
