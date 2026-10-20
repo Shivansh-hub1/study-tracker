@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 import { playSound } from "@/lib/sounds";
 import React, { useState } from "react";
 import { Plus, Trash2, Sprout, Check } from "lucide-react";
@@ -40,10 +42,11 @@ export default function HabitsPage() {
 
   if (data?.disabled) return (
     <div className="grid">
-      <div className="card" style={{ padding: "48px 24px", textAlign: "center" }}>
+      <div className="card" style={{ padding: "48px 24px", textAlign: "center", maxWidth: 460, margin: "20px auto" }}>
         <div style={{ fontSize: 40, marginBottom: 10 }}>🌱</div>
         <h2 style={{ fontSize: 18, fontWeight: 800 }}>Habit tracker is turned off</h2>
-        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6 }}>An admin has temporarily disabled this feature.</p>
+        <p style={{ fontSize: 13, color: "var(--muted)", marginTop: 6, marginBottom: 20 }}>This feature is currently turned off.</p>
+        <Link href="/dashboard" className="btn btn-primary btn-sm">Return to Dashboard</Link>
       </div>
     </div>
   );

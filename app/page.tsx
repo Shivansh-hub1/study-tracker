@@ -19,12 +19,13 @@ async function flagPair() {
 }
 
 function contentFor(habits: boolean, planner: boolean) {
-  const features = FEATURES.map((f) => {
-    if (!planner && f.title === "Smart revision planner") return { ...f, text: "Due-date revision queues and checklists keep nothing slipping." };
-    if (!habits && f.title === "Habits & streaks") return { ...f, title: "Streaks & consistency", text: "Study streaks with freeze days and a consistency heatmap that keeps you honest." };
-    return f;
+  const features = FEATURES.filter((f) => {
+    if (!planner && f.title === "Smart revision planner") return false;
+    if (!habits && f.title === "Habits & streaks") return false;
+    return true;
   });
-  const heroBits: string[] = ["a focus timer", "DSA & WebDev roadmaps", planner ? "a revision planner" : "revision queues"];
+  const heroBits: string[] = ["a focus timer", "DSA & WebDev roadmaps"];
+  if (planner) heroBits.push("a revision planner");
   if (habits) heroBits.push("daily habits");
   heroBits.push("analytics");
   const sub = `FocusFlow combines ${heroBits.slice(0, -1).join(", ")} and ${heroBits[heroBits.length - 1]} — your complete study system in one place.`;
@@ -32,10 +33,11 @@ function contentFor(habits: boolean, planner: boolean) {
   if (planner) coreBits.push("planner");
   if (habits) coreBits.push("habits");
   const featList = coreBits.join(", ") + " and analytics";
-  const faqs = FAQS.map((f) => {
+  const faqs = FAQS.filter((f) => {
+    if (!habits && f.q.includes("streak")) return false;
+    return true;
+  }).map((f) => {
     if (!planner && f.q === "Is FocusFlow free?") return { ...f, a: `Yes. Every feature — ${featList} — is free for learners.` };
-    if (!habits && f.q === "How is this different from a plain Pomodoro app?")
-      return { ...f, a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision and analytics — your whole study system in one place." };
     return f;
   });
   return { features, faqs, sub };
