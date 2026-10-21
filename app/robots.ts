@@ -8,8 +8,7 @@ const DISALLOWED_ROUTES = [
   "/settings",
   "/sessions",
   "/subjects",
-  "/planner",
-  "/habits",
+
   "/shop",
   "/dsa",
   "/webdev",

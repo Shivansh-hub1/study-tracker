@@ -166,7 +166,7 @@ export default function AboutPage() {
               <article className="card land-card">
                 <span className="land-ico"><Target size={20} /></span>
                 <h3>Free Forever</h3>
-                <p>Every feature — timer, roadmaps, planner, habits, analytics, achievements — is free. No trials, no upsells.</p>
+                <p>Every feature — timer, roadmaps, spaced revision queues, analytics, achievements — is free. No trials, no upsells.</p>
               </article>
               <article className="card land-card">
                 <span className="land-ico"><Code2 size={20} /></span>

@@ -65,27 +65,6 @@ export async function GET() {
   dueOf(dsaRows, DSA_TOPICS, "DSA");
   dueOf(webRows, WEBDEV_TOPICS, "WebDev");
 
-  const plannerOn = await featureOn(db, "planner");
-  // 2) Today's planner blocks
-  const monday = new Date(nowLocal);
-  monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
-  const weekKey = dateKey(monday);
-  const todayDow = (nowLocal.getDay() + 6) % 7; // 0 = Monday
-  const blocks = (await db.all(
-    `SELECT b.*, s.name as subject_name FROM planner_blocks b LEFT JOIN subjects s ON s.id = b.subject_id
-     WHERE b.user_id = ? AND b.day = ?`,
-    user.id, todayDow
-  )) as any[];
-  if (plannerOn && blocks.length) {
-    const done = blocks.filter((b: any) => b.done_week === weekKey).length;
-    const mins = blocks.reduce((a: number, b: any) => a + Number(b.minutes || 0), 0);
-    plan.push({
-      icon: "📅",
-      title: `Planner: ${done}/${blocks.length} blocks done`,
-      sub: `${Math.round(mins / 60 * 10) / 10}h planned today${done < blocks.length ? " — finish the rest" : " — all clear ✓"}`,
-      href: "/planner",
-    });
-  }
 
   // 3) Weakest subject nudge (least minutes in the last 7 days among subjects with a target)
   const weekAgo = new Date(nowLocal.getTime() - 7 * DAY).toISOString();

@@ -7,7 +7,7 @@ const STATIC_ASSETS = [
   "/dsa",
   "/webdev",
   "/revision",
-  "/habits",
+
   "/progress",
   "/achievements",
   "/timer",

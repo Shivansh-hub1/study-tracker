@@ -78,7 +78,7 @@ export default function PrivacyPage() {
             </h2>
             <ul style={{ lineHeight: 1.8, color: "var(--muted)", paddingLeft: 20 }}>
               <li><strong>Account Credentials:</strong> Email address and password hash (used strictly for authentication).</li>
-              <li><strong>Study History:</strong> Sessions, elapsed time, subjects, roadmap statuses, and habits — stored in your local browser database.</li>
+              <li><strong>Study History:</strong> Sessions, elapsed time, subjects, and roadmap statuses — stored in your local browser database.</li>
               <li><strong>Preferences:</strong> Theme settings, sound toggles, and Pomodoro intervals — stored strictly on your device.</li>
               <li><strong>Zero Telemetry:</strong> No Google Analytics, no Facebook pixels, no fingerprinting, and no marketing cookies.</li>
             </ul>

@@ -29,7 +29,7 @@ export const THEMES = [
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };
-const ThemeContext = createContext<ThemeCtx>({ theme: "light", setTheme: () => {} });
+const ThemeContext = createContext<ThemeCtx>({ theme: "dark", setTheme: () => {} });
 
 export function useTheme() {
   return useContext(ThemeContext);
@@ -47,11 +47,11 @@ export function useToast() {
 let toastId = 0;
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState("light");
+  const [theme, setThemeState] = useState("dark");
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    const t = localStorage.getItem("ff_theme") || "light";
+    const t = localStorage.getItem("ff_theme") || "dark";
     setThemeState(t);
     document.documentElement.setAttribute("data-theme", t);
   }, []);

@@ -17,7 +17,7 @@ import { useFetch } from "@/lib/client";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
-  Trophy, CalendarDays, Sprout,
+  Trophy,
 } from "lucide-react";
 
 const NAV = [
@@ -27,8 +27,8 @@ const NAV = [
   { href: "/dsa", label: "DSA Journey", icon: Route },
   { href: "/webdev", label: "Web Dev", icon: Code2 },
   { href: "/revision", label: "Revision", icon: History },
-  { href: "/planner", label: "Planner", icon: CalendarDays },
-  { href: "/habits", label: "Habits", icon: Sprout },
+
+
   { href: "/achievements", label: "Achievements", icon: Trophy },
   { href: "/shop", label: "XP Shop", icon: ShoppingBag },
   { href: "/progress", label: "Progress", icon: TrendingUp },
@@ -70,7 +70,7 @@ function OfflineBadge() {
 
 export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
   const pathname = usePathname();
-  const { data: features } = useFetch("/api/features");
+
   const { data: shopData } = useFetch("/api/shop");
   const [open, setOpen] = useState(false);
   const [dueCount, setDueCount] = useState(0);
@@ -136,7 +136,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
           </span>
         </div>
         <div className="ssection">Menu</div>
-        {NAV.filter((n) => !((n.href === "/habits" && features?.habits === false) || (n.href === "/planner" && features?.planner === false))).map((n) => {
+        {NAV.map((n) => {
           const Icon = n.icon;
           const active = pathname.startsWith(n.href);
           return (

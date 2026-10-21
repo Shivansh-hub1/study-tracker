@@ -2,53 +2,17 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check, Play, Sparkles } from "lucide-react";
 import { SITE_DESCRIPTION, SITE_NAME, CANONICAL_SITE_URL } from "@/lib/seo";
-import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-async function flagPair() {
-  try {
-    const db = await getDb();
-    const [habits, planner] = await Promise.all([featureOn(db, "habits"), featureOn(db, "planner")]);
-    return { habits, planner };
-  } catch {
-    return { habits: true, planner: true };
-  }
-}
-
-function contentFor(habits: boolean, planner: boolean) {
-  const features = FEATURES.filter((f) => {
-    if (!planner && f.title === "Smart revision planner") return false;
-    if (!habits && f.title === "Habits & streaks") return false;
-    return true;
-  });
-  const heroBits: string[] = ["a focus timer", "DSA & WebDev roadmaps"];
-  if (planner) heroBits.push("a revision planner");
-  if (habits) heroBits.push("daily habits");
-  heroBits.push("analytics");
-  const sub = `FocusFlow combines ${heroBits.slice(0, -1).join(", ")} and ${heroBits[heroBits.length - 1]} — your complete study system in one place.`;
-  const coreBits: string[] = ["timer", "roadmaps"];
-  if (planner) coreBits.push("planner");
-  if (habits) coreBits.push("habits");
-  const featList = coreBits.join(", ") + " and analytics";
-  const faqs = FAQS.filter((f) => {
-    if (!habits && f.q.includes("streak")) return false;
-    return true;
-  }).map((f) => {
-    if (!planner && f.q === "Is FocusFlow free?") return { ...f, a: `Yes. Every feature — ${featList} — is free for learners.` };
-    return f;
-  });
-  return { features, faqs, sub };
-}
 
 const FEATURES = [
   { icon: Timer, title: "Focus timer & Pomodoro", text: "Stopwatch, countdown and Pomodoro modes with lap tracking, background mode and one-tap session logging." },
   { icon: Route, title: "DSA roadmap", text: "A step-by-step Data Structures & Algorithms journey — mark topics learning, revising or mastered." },
   { icon: Code2, title: "WebDev roadmap", text: "A guided HTML-to-full-stack journey so you always know what to learn next." },
-  { icon: CalendarCheck, title: "Smart revision planner", text: "Due-date revision queues, weekly planner blocks and checklists keep nothing slipping." },
-  { icon: Flame, title: "Habits & streaks", text: "Daily habits, study streaks with freeze days, and a consistency heatmap that keeps you honest." },
+  { icon: CalendarCheck, title: "SM-2 spaced revision", text: "Due-date spaced repetition queues so you review topics right when memory retention curves dip." },
   { icon: BarChart3, title: "Progress analytics", text: "Daily trends, weekly comparisons, subject split, study-by-hour charts and XP levels." },
   { icon: Trophy, title: "Achievements & sharing", text: "Unlock achievements, climb levels and share beautiful progress cards with one click." },
 ];
@@ -60,11 +24,11 @@ const STEPS = [
 ];
 
 const FAQS = [
-  { q: "Is FocusFlow free?", a: "Yes. Every feature — timer, roadmaps, planner, habits and analytics — is free for learners." },
+  { q: "Is FocusFlow free?", a: "Yes. Every feature — timer, roadmaps, revision and analytics — is free for learners." },
   { q: "Do I need an account?", a: "Yes, a free account keeps your sessions, streaks and roadmaps safe and synced whenever you sign in." },
   { q: "Does it work on mobile?", a: "Yes. FocusFlow is fully responsive and works in any modern mobile or desktop browser — you can even add it to your home screen." },
   { q: "Can I track DSA and web development?", a: "Yes. Guided DSA and WebDev journeys let you mark every topic as learning, revising or mastered, with revision queues so you never forget." },
-  { q: "How is this different from a plain Pomodoro app?", a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision, habits and analytics — your whole study system in one place." },
+  { q: "How is this different from a plain Pomodoro app?", a: "Pomodoro apps only time you. FocusFlow connects timing with subjects, roadmaps, revision and analytics — your whole study system in one place." },
 ];
 
 export async function generateMetadata(): Promise<Metadata> {
@@ -125,8 +89,8 @@ function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
 export default async function Home() {
   // Already signed in? Go straight to the app — never show the landing/login again.
   if (await getSessionUser()) redirect("/dashboard");
-  const { habits, planner } = await flagPair();
-  const { features, faqs, sub } = contentFor(habits, planner);
+  const features = FEATURES;
+  const faqs = FAQS;
   const jsonLd = jsonLdFor(features, faqs);
   return (
     <>
@@ -183,9 +147,9 @@ export default async function Home() {
                   <span />
                 </div>
                 <div className="notion-window-crumb">
-                  FocusFlow / 📚 Data Structures &amp; Algorithms / ⏱️ Deep Work Session
+                  FocusFlow / ðŸ“š Data Structures &amp; Algorithms / â±ï¸ Deep Work Session
                 </div>
-                <div style={{ fontSize: "11px", opacity: 0.65 }}>● Ready</div>
+                <div style={{ fontSize: "11px", opacity: 0.65 }}>â— Ready</div>
               </div>
               <div className="notion-window-body">
                 <div className="notion-window-timer">
@@ -199,7 +163,7 @@ export default async function Home() {
                     <span className="notion-timer-mode">Long Break</span>
                   </div>
                   <div className="notion-timer-task">
-                    Current: Dynamic Programming · Coin Change
+                    Current: Dynamic Programming Â· Coin Change
                   </div>
                 </div>
 
@@ -226,7 +190,7 @@ export default async function Home() {
                   <div className="notion-side-card">
                     <div className="notion-side-head">
                       <h4>14-Day Study Streak</h4>
-                      <span style={{ fontSize: "11.5px", color: "var(--notion-accent-orange)", fontWeight: 600 }}>🔥 Active</span>
+                      <span style={{ fontSize: "11.5px", color: "var(--notion-accent-orange)", fontWeight: 600 }}>ðŸ”¥ Active</span>
                     </div>
                     <div className="notion-heat-row">
                       <span className="notion-heat-sq lvl-2" title="Mon: 2.5h" />
@@ -298,7 +262,7 @@ export default async function Home() {
         </main>
 
         <footer className="land-footer">
-          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> — Deep-focus study tracker.</p>
+          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> â€” Deep-focus study tracker.</p>
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
             <Link href="/privacy">Privacy</Link>

@@ -11,31 +11,13 @@ import { Modal, EmptyState, Spinner, Stat, CardSkeleton, Dot, FieldError } from 
 import { useToast } from "@/components/Providers";
 import { playSound } from "@/lib/sounds";
 import { bustCache } from "@/lib/client";
-import { Sparkles, Sprout, CalendarDays } from "lucide-react";
+
 
 export default function AdminPage() {
   const { toast } = useToast();
   const { data, loading, error, setData } = useFetch("/api/admin/users");
-  const { data: adminSettings, reload: reloadAdminSettings } = useFetch("/api/admin/settings");
-  const [busyFeature, setBusyFeature] = useState<string | null>(null);
-  const toggleFeature = async (key: string, label: string) => {
-    playSound("click");
-    setBusyFeature(key);
-    try {
-      const next = !(adminSettings?.[key] ?? true);
-      await api("/api/admin/settings", { method: "POST", body: JSON.stringify({ feature: key, value: next }) }, { queueOffline: false });
-      playSound("success");
-      toast(`${label} ${next ? "enabled" : "disabled"}`, "success");
-      bustCache("/api/features");
-      bustCache("/api/smart-plan");
-      reloadAdminSettings();
-    } catch (e: any) {
-      playSound("error");
-      toast(e.message, "error");
-    } finally {
-      setBusyFeature(null);
-    }
-  };
+
+
   const users = useMemo(() => data?.users || [], [data]);
   const [q, setQ] = useState("");
 
@@ -181,33 +163,11 @@ export default function AdminPage() {
 
   return (
     <div className="grid" style={{ gap: 20 }}>
-      {/* Feature switches */}
-      {[
-        { key: "smartPlan", label: "Smart daily plan", desc: "Auto-generated plan card (revision due, planner blocks, weak subject) on every user dashboard.", icon: <Sparkles size={18} style={{ color: "var(--accent)" }} /> },
-        { key: "habits", label: "Habit tracker", desc: "Daily habits page (tick habits, build streaks) for all users.", icon: <Sprout size={18} style={{ color: "#10b981" }} /> },
-        { key: "planner", label: "Weekly planner", desc: "Weekly study-block planner for all users.", icon: <CalendarDays size={18} style={{ color: "#6366f1" }} /> },
-      ].map((f) => (
-        <div key={f.key} className="card" style={{ padding: "16px 20px", display: "flex", alignItems: "center", gap: 14, flexWrap: "wrap" }}>
-          {f.icon}
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ fontWeight: 800, fontSize: 14 }}>{f.label}</div>
-            <div style={{ fontSize: 12, color: "var(--muted)" }}>{f.desc}</div>
-          </div>
-          <button
-            className={adminSettings?.[f.key] === false ? "btn" : "btn btn-primary"}
-            disabled={busyFeature === f.key || !adminSettings}
-            onClick={() => toggleFeature(f.key, f.label)}
-            style={{ minWidth: 110, fontWeight: 800 }}
-          >
-            {adminSettings ? (adminSettings[f.key] ? "ON — turn off" : "OFF — turn on") : "Loading..."}
-          </button>
-        </div>
-      ))}
       <div className="grid grid-4">
-        <Stat icon={<Users size={22} />} label="Total users" value={String(users.length)} accent="#6366f1" />
+        <Stat icon={<Users size={22} />} label="Total users" value={String(users.length)} accent="#0075de" />
         <Stat icon={<UserCheck size={22} />} label="Active today" value={String(activeToday)} accent="#10b981" />
-        <Stat icon={<ListChecks size={22} />} label="Total sessions" value={String(totalSessions)} accent="#f59e0b" />
-        <Stat icon={<Activity size={22} />} label="Study time (all users)" value={fmtMinutes(Math.round(totalSec / 60))} accent="#ec4899" />
+        <Stat icon={<ListChecks size={22} />} label="Total sessions" value={String(totalSessions)} accent="#dd5b00" />
+        <Stat icon={<Activity size={22} />} label="Study time (all users)" value={fmtMinutes(Math.round(totalSec / 60))} accent="#ff64c8" />
       </div>
 
       <div className="card card-pad-0">
