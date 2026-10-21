@@ -134,7 +134,7 @@ export function Stat({
           placeItems: "center",
           background: accent ? `${accent}1f` : "var(--accent-soft)",
           color: accent || "var(--accent)",
-          boxShadow: accent ? `0 0 16px -4px ${accent}` : "var(--glow)",
+          boxShadow: "none",
         }}
       >
         {icon}
@@ -167,5 +167,5 @@ export function FieldError({ msg }: { msg?: string | null }) {
 }
 
 export function Dot({ color }: { color: string }) {
-  return <span style={{ width: 9, height: 9, borderRadius: "50%", background: color, display: "inline-block", boxShadow: `0 0 8px ${color}` }} />;
+  return <span style={{ width: 8, height: 8, borderRadius: "50%", background: color, display: "inline-block" }} />;
 }

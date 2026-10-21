@@ -55,8 +55,8 @@ export function prettyDT(iso: string): string {
 }
 
 export const SUBJECT_COLORS = [
-  "#6366f1", "#0ea5e9", "#10b981", "#f59e0b", "#ec4899",
-  "#8b5cf6", "#ef4444", "#14b8a6", "#f97316", "#84cc16",
+  "#0075de", "#62aef0", "#1aae39", "#dd5b00", "#ff64c8",
+  "#2a9d99", "#d6b6f6", "#523410", "#391c57", "#793400",
   "#06b6d4", "#e879f9",
 ];
 

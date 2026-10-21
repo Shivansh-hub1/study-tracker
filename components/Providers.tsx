@@ -4,8 +4,8 @@ import React, { createContext, useCallback, useContext, useEffect, useMemo, useS
 
 /* ---------------- Theme ---------------- */
 export const THEMES = [
-  { id: "light", name: "Daylight", swatch: "linear-gradient(135deg,#6366f1,#ec4899)" },
-  { id: "dark", name: "Midnight", swatch: "linear-gradient(135deg,#818cf8,#f472b6)" },
+  { id: "light", name: "Notion Daylight", swatch: "linear-gradient(135deg,#f6f5f4,#0075de)" },
+  { id: "dark", name: "Notion Graphite", swatch: "linear-gradient(135deg,#202020,#2e8cff)" },
   { id: "nebula", name: "Nebula Neon", swatch: "linear-gradient(135deg,#a855f7,#fb7185)" },
   { id: "matrix", name: "Matrix Neon", swatch: "linear-gradient(135deg,#10b981,#a3e635)" },
   { id: "cyber", name: "Cyber Neon", swatch: "linear-gradient(135deg,#22d3ee,#f0abfc)" },
@@ -29,7 +29,7 @@ export const THEMES = [
 ] as const;
 
 type ThemeCtx = { theme: string; setTheme: (t: string) => void };
-const ThemeContext = createContext<ThemeCtx>({ theme: "dark", setTheme: () => {} });
+const ThemeContext = createContext<ThemeCtx>({ theme: "light", setTheme: () => {} });
 
 export function useTheme() {
   return useContext(ThemeContext);
@@ -47,11 +47,11 @@ export function useToast() {
 let toastId = 0;
 
 export function Providers({ children }: { children: React.ReactNode }) {
-  const [theme, setThemeState] = useState("dark");
+  const [theme, setThemeState] = useState("light");
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    const t = localStorage.getItem("ff_theme") || "dark";
+    const t = localStorage.getItem("ff_theme") || "light";
     setThemeState(t);
     document.documentElement.setAttribute("data-theme", t);
   }, []);

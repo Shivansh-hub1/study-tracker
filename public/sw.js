@@ -1,7 +1,7 @@
 // Service Worker for FocusFlow PWA
 // Provides offline support, caching, and background sync
 
-const CACHE_NAME = "focusflow-v4";
+const CACHE_NAME = "focusflow-v5";
 const STATIC_ASSETS = [
   "/",
   "/dsa",
