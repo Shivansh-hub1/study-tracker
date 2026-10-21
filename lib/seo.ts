@@ -1,8 +1,24 @@
 import { headers } from "next/headers";
 
 export const SITE_NAME = "FocusFlow";
+export const SITE_ALIASES = [
+  "FocusFlow",
+  "Focus Flow",
+  "FocusFlow Tracker",
+  "Focus Flow Tracker",
+  "Your Study Tracker",
+  "YourStudyTracker",
+  "DSA Tracker",
+  "DSA Study Tracker",
+  "Web Dev Tracker",
+  "WebDev Tracker",
+  "Web Development Tracker",
+  "Study Tracker",
+  "StudyTracker",
+];
+
 export const SITE_DESCRIPTION =
-  "FocusFlow is a fast, free study tracker with a focus timer, session logging, DSA and WebDev roadmaps, smart revision queues, habits, and progress analytics.";
+  "FocusFlow (Your Study Tracker) is a fast, free study tracker with a focus timer, session logging, structured DSA & WebDev roadmaps, SM-2 revision queues, habits, and progress analytics.";
 
 export const CANONICAL_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -17,15 +33,37 @@ export const AUTHOR_INFO = {
 };
 
 export const SITE_KEYWORDS = [
+  // Target keywords & spacing permutations (spaces and without spaces)
+  "dsa tracker",
+  "DSA tracker",
+  "DSA sheet tracker",
+  "dsa study tracker",
+  "dsa practice tracker",
+  "dsa progress tracker",
+  "data structures and algorithms tracker",
+  "web dev tracker",
+  "webdev tracker",
+  "web development tracker",
+  "web development study tracker",
+  "web dev roadmap tracker",
+  "focus flow",
+  "focusflow",
+  "focus flow tracker",
+  "focusflow tracker",
+  "focusflow webdev tracker",
+  "focusflow dsa tracker",
+  "your study tracker",
+  "yourstudytracker",
   "study tracker",
+  "studytracker",
+  "free study tracker",
+  "online study tracker",
+  "developer study tracker",
   "focus timer",
   "pomodoro timer",
-  "DSA practice tracker",
-  "web development roadmap",
   "spaced repetition SM-2",
   "revision planner",
   "study planner",
-  "exam countdown",
   "study streak",
   "habit tracker",
   "developer productivity",

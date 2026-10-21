@@ -24,6 +24,9 @@ const DISALLOWED_ROUTES = [
 
 const ALLOWED_ROUTES = [
   "/",
+  "/dsa-tracker",
+  "/webdev-tracker",
+  "/study-tracker",
   "/about",
   "/blog",
   "/blog/*",

@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check, Play, Sparkles } from "lucide-react";
-import { SITE_DESCRIPTION, SITE_NAME, CANONICAL_SITE_URL } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_ALIASES, CANONICAL_SITE_URL } from "@/lib/seo";
 import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -57,6 +57,7 @@ function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
       "@id": `${CANONICAL_SITE_URL}/#website`,
       url: `${CANONICAL_SITE_URL}/`,
       name: SITE_NAME,
+      alternateName: SITE_ALIASES,
       description: SITE_DESCRIPTION,
       potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: `${CANONICAL_SITE_URL}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" },
     },
@@ -64,6 +65,7 @@ function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
       "@type": "SoftwareApplication",
       "@id": `${CANONICAL_SITE_URL}/#app`,
       name: SITE_NAME,
+      alternateName: SITE_ALIASES,
       url: `${CANONICAL_SITE_URL}/`,
       applicationCategory: "EducationalApplication",
       operatingSystem: "Web",
@@ -102,8 +104,8 @@ export default async function Home() {
             Focus<span className="land-logo-flow">Flow</span>
           </Link>
           <nav className="land-links" aria-label="Primary">
-            <Link href="#features">Features</Link>
-            <Link href="#how">How it works</Link>
+            <Link href="/dsa-tracker">DSA Tracker</Link>
+            <Link href="/webdev-tracker">WebDev Tracker</Link>
             <Link href="/about">About</Link>
             <Link href="/blog">Blog</Link>
             <Link href="#faq">FAQ</Link>
@@ -265,9 +267,12 @@ export default async function Home() {
           <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> â€” Deep-focus study tracker.</p>
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
+            <Link href="/dsa-tracker">DSA Tracker</Link>
+            <Link href="/webdev-tracker">WebDev Tracker</Link>
+            <Link href="/study-tracker">Study Tracker</Link>
+            <Link href="/blog">Blog</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
-            <Link href="/blog">Blog</Link>
             <Link href="/signup">Create account</Link>
             <Link href="/login">Sign in</Link>
           </nav>

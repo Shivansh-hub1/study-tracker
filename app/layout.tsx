@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
 import { Providers } from "@/components/Providers";
-import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_ALIASES, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
@@ -71,6 +71,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         "@id": `${base}/#website`,
         url: `${base}/`,
         name: SITE_NAME,
+        alternateName: SITE_ALIASES,
         description: SITE_DESCRIPTION,
         potentialAction: { "@type": "SearchAction", target: { "@type": "EntryPoint", urlTemplate: `${base}/search?q={search_term_string}` }, "query-input": "required name=search_term_string" },
         publisher: { "@type": "Organization", name: SITE_NAME, url: `${base}/` },
@@ -79,6 +80,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         "@type": "SoftwareApplication",
         "@id": `${base}/#app`,
         name: SITE_NAME,
+        alternateName: SITE_ALIASES,
         url: `${base}/`,
         applicationCategory: "EducationalApplication",
         operatingSystem: "Web",
@@ -91,6 +93,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         "@type": "Organization",
         "@id": `${base}/#organization`,
         name: SITE_NAME,
+        alternateName: SITE_ALIASES,
         url: `${base}/`,
         logo: `${CANONICAL_SITE_URL}/icon-512.webp`,
         sameAs: [],

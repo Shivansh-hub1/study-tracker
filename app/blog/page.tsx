@@ -88,8 +88,9 @@ export default function BlogPage() {
             Focus<span className="glow-text">Flow</span>
           </Link>
           <nav className="land-links" aria-label="Primary">
-            <Link href="/#features">Features</Link>
-            <Link href="/#how">How it works</Link>
+            <Link href="/dsa-tracker">DSA Tracker</Link>
+            <Link href="/webdev-tracker">WebDev Tracker</Link>
+            <Link href="/study-tracker">Study Tracker</Link>
             <Link href="/about">About</Link>
             <Link href="/blog" className="active">Blog</Link>
             <Link href="/login">Sign in</Link>
@@ -171,9 +172,12 @@ export default function BlogPage() {
           <p><strong>Focus<span className="glow-text">Flow</span></strong> — Deep-focus study tracker.</p>
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
+            <Link href="/dsa-tracker">DSA Tracker</Link>
+            <Link href="/webdev-tracker">WebDev Tracker</Link>
+            <Link href="/study-tracker">Study Tracker</Link>
+            <Link href="/blog">Blog</Link>
             <Link href="/privacy">Privacy</Link>
             <Link href="/terms">Terms</Link>
-            <Link href="/blog">Blog</Link>
             <Link href="/signup">Create account</Link>
             <Link href="/login">Sign in</Link>
           </nav>
