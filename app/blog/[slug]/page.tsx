@@ -21,7 +21,7 @@ export function generateMetadata({ params }: Props): Metadata {
 
   const url = `${CANONICAL_SITE_URL}/blog/${post.slug}`;
   return {
-    title: `${post.title} — ${SITE_NAME}`,
+    title: post.title,
     description: post.metaDescription,
     alternates: { canonical: url },
     openGraph: {

@@ -7,7 +7,7 @@ export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {
-    title: "Privacy Policy — FocusFlow",
+    title: "Privacy Policy",
     description: "FocusFlow privacy policy: 100% private, local-first study tracking. Zero third-party analytics, zero ad trackers, and zero data selling.",
     alternates: { canonical: `${CANONICAL_SITE_URL}/privacy` },
     openGraph: {

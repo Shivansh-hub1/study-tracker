@@ -7,7 +7,7 @@ export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {
-    title: "About FocusFlow — Mission, Creator & Engineering Philosophy",
+    title: "About — Mission, Creator & Engineering Philosophy",
     description: "Learn why FocusFlow was built: a distraction-free, 100% free study ecosystem for developers and students with Pomodoro timers, DSA roadmaps, and spaced repetition.",
     alternates: { canonical: `${CANONICAL_SITE_URL}/about` },
     openGraph: {

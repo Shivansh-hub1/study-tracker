@@ -7,7 +7,7 @@ export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {
-    title: "Terms of Service — FocusFlow",
+    title: "Terms of Service",
     description: "FocusFlow terms of service: straightforward, fair, and free forever study tracking for students and developers.",
     alternates: { canonical: `${CANONICAL_SITE_URL}/terms` },
     openGraph: {

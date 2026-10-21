@@ -8,7 +8,7 @@ export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {
-    title: "Engineering & Study Guides — FocusFlow Blog",
+    title: "Engineering & Study Guides",
     description: "Practical engineering guides on spaced repetition SM-2, Pomodoro calibration, self-taught DSA roadmaps, full-stack WebDev, and study analytics. Written by developers, for developers.",
     alternates: { canonical: `${CANONICAL_SITE_URL}/blog` },
     openGraph: {
