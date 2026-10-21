@@ -35,7 +35,7 @@ export default function WebDevPage() {
     try {
       const updated = await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key, status }) }, { queueOffline: true });
       setData(updated);
-      if (status === "done") toast("Topic done! Next one unlocked 🎉", "success");
+      if (status === "done") toast("Topic done! Next one unlocked", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
@@ -46,7 +46,7 @@ export default function WebDevPage() {
     try {
       const updated = await api("/api/webdev", { method: "PATCH", body: JSON.stringify({ key, lecture_idx: idx }) }, { queueOffline: true });
       setData(updated);
-      if (idx >= len) toast("Module complete! Next one unlocked 🎉", "success");
+      if (idx >= len) toast("Module complete! Next one unlocked", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
@@ -135,7 +135,7 @@ export default function WebDevPage() {
 
       {(data.revision_due?.length || 0) > 0 && (
         <Link href="/revision" className="card" style={{ display: "flex", alignItems: "center", gap: 12, borderColor: "var(--warn)", textDecoration: "none" }}>
-          <span style={{ fontSize: 22 }}>🔁</span>
+          <RotateCcw size={20} style={{ color: "var(--warn)", flexShrink: 0 }} />
           <span style={{ flex: 1, fontSize: 14 }}>
             <b>{data.revision_due.length} topic{data.revision_due.length === 1 ? "" : "s"} due for revision</b>
             <span style={{ color: "var(--muted)" }}> — review them all in one place</span>
@@ -159,7 +159,7 @@ export default function WebDevPage() {
       {done === total ? (
         <div className="card" style={{ textAlign: "center", padding: "32px 20px" }}>
           <Trophy size={34} style={{ color: "#f59e0b" }} />
-          <h2 style={{ fontSize: 17, margin: "10px 0 4px" }}>Journey complete! 🏆</h2>
+          <h2 style={{ fontSize: 17, margin: "10px 0 4px" }}>Journey complete!</h2>
           <p style={{ color: "var(--muted)", fontSize: 13, margin: 0 }}>
             All {total} topics done. Ship projects — or restart and go deeper.
           </p>

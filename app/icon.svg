@@ -1,12 +1,10 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
-  <defs>
-    <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
-      <stop offset="0" stop-color="#6366f1"/>
-      <stop offset=".6" stop-color="#a855f7"/>
-      <stop offset="1" stop-color="#ec4899"/>
-    </linearGradient>
-  </defs>
-  <rect width="64" height="64" rx="16" fill="url(#g)"/>
-  <circle cx="32" cy="32" r="14" fill="none" stroke="#fff" stroke-width="5" stroke-linecap="round" stroke-dasharray="66" stroke-dashoffset="22" transform="rotate(-90 32 32)"/>
-  <circle cx="32" cy="32" r="4" fill="#fff"/>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#191919"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" stroke="#2e2e2e" stroke-width="2"/>
+  <!-- Muted background track -->
+  <circle cx="32" cy="32" r="15" stroke="#2e2e2e" stroke-width="4.5"/>
+  <!-- Focus Progress Arc in Notion Blue -->
+  <circle cx="32" cy="32" r="15" stroke="#2e8cff" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="28" transform="rotate(-90 32 32)"/>
+  <!-- Inner Focus Core -->
+  <circle cx="32" cy="32" r="4" fill="#ebebeb"/>
 </svg>

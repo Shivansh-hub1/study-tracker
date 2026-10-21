@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none">
+  <rect width="64" height="64" rx="16" fill="#191919"/>
+  <rect x="1" y="1" width="62" height="62" rx="15" stroke="#2e2e2e" stroke-width="2"/>
+  <!-- Muted background track -->
+  <circle cx="32" cy="32" r="15" stroke="#2e2e2e" stroke-width="4.5"/>
+  <!-- Focus Progress Arc in Notion Blue -->
+  <circle cx="32" cy="32" r="15" stroke="#2e8cff" stroke-width="4.5" stroke-linecap="round" stroke-dasharray="94.25" stroke-dashoffset="28" transform="rotate(-90 32 32)"/>
+  <!-- Inner Focus Core -->
+  <circle cx="32" cy="32" r="4" fill="#ebebeb"/>
+</svg>

@@ -3,7 +3,7 @@
 import { playSound } from "@/lib/sounds";
 import React, { useMemo, useState } from "react";
 import Link from "next/link";
-import { History, CalendarClock, CheckCheck, Play, X, Brain } from "lucide-react";
+import { History, CalendarClock, CheckCheck, Play, X, Brain, Check } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
 import { Stat, CardSkeleton, EmptyState } from "@/components/ui";
 import { useToast } from "@/components/Providers";
@@ -47,7 +47,7 @@ export default function RevisionPage() {
     try {
       await api(it.apiPath, { method: "POST", body: JSON.stringify({ action: "revise", key: it.key, rating }) }, { queueOffline: true });
       refresh();
-      toast(rating === "again" ? "Again tomorrow — it'll stick 💪" : rating === "hard" ? "Back in 3 days" : "Revised! Back in 7 days ✅", "success");
+      toast(rating === "again" ? "Again tomorrow — it'll stick" : rating === "hard" ? "Back in 3 days" : "Revised! Back in 7 days", "success");
     } catch (e: any) {
       toast(e.message, "error");
     }
@@ -77,7 +77,7 @@ export default function RevisionPage() {
       if (rest.length === 0) {
         setSession(null);
         refresh();
-        toast("Session complete! All caught up 🎉", "success");
+        toast("Session complete! All caught up", "success");
       } else {
         setSession(rest);
       }
@@ -129,7 +129,7 @@ export default function RevisionPage() {
           <div style={{ display: "flex", gap: 10, justifyContent: "center", marginTop: 22, flexWrap: "wrap" }}>
             <button className="btn btn-lg" disabled={busy} onClick={() => rateSession("again")}>Again <span style={{ fontSize: 11, opacity: 0.7 }}>· 1d</span></button>
             <button className="btn btn-lg" disabled={busy} onClick={() => rateSession("hard")}>Hard <span style={{ fontSize: 11, opacity: 0.7 }}>· 3d</span></button>
-            <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => rateSession("easy")}>Easy ✓ <span style={{ fontSize: 11, opacity: 0.8 }}>· 7d</span></button>
+            <button className="btn btn-lg btn-primary" disabled={busy} onClick={() => rateSession("easy")} style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>Easy <Check size={14} strokeWidth={2.5} /> <span style={{ fontSize: 11, opacity: 0.8 }}>· 7d</span></button>
           </div>
         </div>
       ) : (
@@ -152,7 +152,7 @@ export default function RevisionPage() {
             <b>Again</b> brings it back tomorrow, <b>Hard</b> in 3 days, <b>Easy</b> in 7 days.
           </p>
           {due.length === 0 ? (
-            <EmptyState icon={<CheckCheck size={26} />} title="All caught up ✅" hint="Nothing due. Upcoming revisions are listed below." />
+            <EmptyState icon={<CheckCheck size={26} />} title="All caught up" hint="Nothing due. Upcoming revisions are listed below." />
           ) : (
             <>
               <button className="btn btn-primary btn-block" style={{ marginBottom: 14 }} onClick={startSession}>
@@ -170,7 +170,7 @@ export default function RevisionPage() {
                     </span>
                     <button className="btn btn-sm" title="Show me again tomorrow" onClick={() => rate(r, "again")}>Again</button>
                     <button className="btn btn-sm" title="Show me in 3 days" onClick={() => rate(r, "hard")}>Hard</button>
-                    <button className="btn btn-sm btn-primary" title="Show me in 7 days" onClick={() => rate(r, "easy")}>Easy ✓</button>
+                    <button className="btn btn-sm btn-primary" title="Show me in 7 days" onClick={() => rate(r, "easy")} style={{ display: "inline-flex", alignItems: "center", gap: 4 }}>Easy <Check size={12} strokeWidth={2.5} /></button>
                   </div>
                 ))}
               </div>

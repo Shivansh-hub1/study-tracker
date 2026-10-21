@@ -55,7 +55,7 @@ export async function GET() {
     }
     if (due.length) {
       plan.push({
-        icon: "🔁",
+        icon: "repeat",
         title: `Revise ${due.length} due ${label} topic${due.length > 1 ? "s" : ""}`,
         sub: due.slice(0, 2).join(" · ") + (due.length > 2 ? ` +${due.length - 2} more` : ""),
         href: "/revision",
@@ -81,7 +81,7 @@ export async function GET() {
     const weekMin = Math.round(Number(weakest.week_sec) / 60);
     const target = Math.round(Number(weakest.target_minutes));
     plan.push({
-      icon: "🎯",
+      icon: "target",
       title: `Focus 25 min on ${weakest.name}`,
       sub: weekMin === 0 ? "No time this week — get it started" : `${weekMin}/${target}min this week — behind target`,
       href: "/timer",
@@ -96,7 +96,7 @@ export async function GET() {
   )) as any;
   const todayMin = Math.round(Number(todaySec?.c || 0) / 60);
   plan.push({
-    icon: todayMin >= 120 ? "✅" : "⏱️",
+    icon: todayMin >= 120 ? "check" : "timer",
     title: todayMin >= 120 ? "Daily goal already hit — legendary" : `${Math.max(0, 120 - todayMin)} min left to hit today's 2h goal`,
     sub: `${todayMin} min studied today`,
     href: "/timer",

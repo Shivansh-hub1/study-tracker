@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
-import { Trophy } from "lucide-react";
+import { Trophy, Sparkles, Check } from "lucide-react";
 import { useStats } from "@/lib/client";
 import { CardSkeleton, EmptyState } from "@/components/ui";
 import { BADGES, RC, CAT_LABEL } from "@/lib/achievements";
@@ -72,7 +72,7 @@ export default function AchievementsPage() {
               <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
                 <span style={{ fontSize: 34, filter: un ? "none" : "grayscale(1)", opacity: un ? 1 : 0.5, transition: "all 0.2s" }}>{b.icon}</span>
                 <div style={{ flex: 1, minWidth: 0 }}>
-                  <div style={{ fontWeight: 800, fontSize: 14.5, display: "flex", gap: 6, alignItems: "center" }}>{b.name} {un && <span style={{ fontSize: 11 }}>✨</span>}</div>
+                  <div style={{ fontWeight: 800, fontSize: 14.5, display: "flex", gap: 6, alignItems: "center" }}>{b.name} {un && <Sparkles size={13} style={{ color: c }} />}</div>
                   <div style={{ fontSize: 12.5, color: "var(--muted)", lineHeight: 1.4 }}>{b.desc}</div>
                 </div>
               </div>
@@ -80,7 +80,7 @@ export default function AchievementsPage() {
                 <span className="badge" style={{ background: `${c}22`, color: c, textTransform: "capitalize", fontSize: 11 }}>{b.rarity}</span>
                 <span className="badge" style={{ background: "var(--surface-2)", color: "var(--muted)", fontSize: 11 }}>{CAT_LABEL[b.category] || b.category}</span>
                 {un ? (
-                  <span style={{ fontSize: 12.5, fontWeight: 700, color: c, marginLeft: "auto" }}>Unlocked ✓</span>
+                  <span style={{ fontSize: 12.5, fontWeight: 700, color: c, marginLeft: "auto", display: "inline-flex", alignItems: "center", gap: 4 }}>Unlocked <Check size={14} strokeWidth={2.5} /></span>
                 ) : (
                   <span style={{ fontSize: 12.5, color: "var(--muted)", marginLeft: "auto" }}>{cur}/{tgt} • {pct}%</span>
                 )}

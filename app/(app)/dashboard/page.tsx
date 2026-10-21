@@ -11,7 +11,7 @@ const Heatmap = dynamic(() => import("@/components/Heatmap"), { ssr: false, load
 import Link from "next/link";
 import {
   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
-  BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2,
+  BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2, Coffee, RotateCcw, CheckCheck,
 } from "lucide-react";
 
 import { useFetch, api } from "@/lib/client";
@@ -181,7 +181,7 @@ export default function DashboardPage() {
   const monday = new Date(); monday.setDate(monday.getDate() - ((monday.getDay() + 6) % 7));
   const sunday = new Date(monday); sunday.setDate(sunday.getDate() + 6);
   const fmtD = (d: Date) => d.toLocaleDateString("en", { month: "short", day: "numeric" });
-  const verdict = activeDays >= 6 ? "Unstoppable week 🔥" : activeDays >= 4 ? "Strong week 💪" : activeDays >= 2 ? "Good momentum 🌱" : activeDays === 1 ? "Every big week starts with one session 🌱" : "Quiet week — Monday is a fresh start 🌅";
+  const verdict = activeDays >= 6 ? "Unstoppable week" : activeDays >= 4 ? "Strong week" : activeDays >= 2 ? "Good momentum" : activeDays === 1 ? "Every big week starts with one session" : "Quiet week — Monday is a fresh start";
 
   return (
     <div className="grid" style={{ gap: 20 }}>
@@ -192,7 +192,7 @@ export default function DashboardPage() {
           <div style={{ flex: 1, minWidth: 180 }}>
             <div style={{ fontWeight: 800, fontSize: 16 }}>Level {stats.level ?? 1}</div>
             <div style={{ fontSize: 13, color: "var(--muted)" }}>{stats.xp ?? 0} XP total · {(stats.xpNeed ?? 0) - (stats.xpInto ?? 0)} XP to level {(stats.level ?? 1) + 1}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4 }}>❄️ {stock} freeze{stock === 1 ? "" : "s"} left{frozenToday ? " · today frozen" : atRisk ? " · streak at risk!" : ""}</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}><Snowflake size={13} style={{ color: "var(--accent)" }} /> {stock} freeze{stock === 1 ? "" : "s"} left{frozenToday ? " · today frozen" : atRisk ? " · streak at risk!" : ""}</div>
           </div>
           {atRisk && stock > 0 && (
             <button className="btn" onClick={useFreeze}><Snowflake size={15} /> Freeze streak</button>
@@ -224,7 +224,12 @@ export default function DashboardPage() {
                 className="card"
                 style={{ padding: "11px 14px", display: "flex", gap: 11, alignItems: "center", textDecoration: "none", color: "inherit", border: "1px solid var(--border)" }}
               >
-                <span style={{ fontSize: 19 }}>{p.icon}</span>
+                <span style={{ display: "grid", placeItems: "center", width: 28, height: 28, borderRadius: 8, background: "var(--surface-2)", flexShrink: 0 }}>
+                  {p.icon === "🔁" || p.icon === "repeat" ? <RotateCcw size={15} style={{ color: "var(--accent)" }} /> :
+                   p.icon === "🎯" || p.icon === "target" ? <Target size={15} style={{ color: "#ec4899" }} /> :
+                   p.icon === "✅" || p.icon === "check" ? <CheckCheck size={15} style={{ color: "#10b981" }} /> :
+                   <Clock size={15} style={{ color: "#0ea5e9" }} />}
+                </span>
                 <span style={{ minWidth: 0 }}>
                   <span style={{ display: "block", fontWeight: 700, fontSize: 13.5 }}>{p.title}</span>
                   <span style={{ display: "block", fontSize: 11.5, color: "var(--muted)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{p.sub}</span>
@@ -236,7 +241,7 @@ export default function DashboardPage() {
       )}
 
       <div className="grid grid-4">
-        <Stat icon={<Flame size={22} />} label="Day streak" value={rainbowStreak ? ((<span className="rainbow-text">{stats?.streak ?? 0}</span>) as any) : `${stats?.streak ?? 0}`} sub={goldenFlame ? "golden streak ✨" : "consecutive days"} accent={goldenFlame ? "#f59e0b" : "#f97316"} />
+        <Stat icon={<Flame size={22} />} label="Day streak" value={rainbowStreak ? ((<span className="rainbow-text">{stats?.streak ?? 0}</span>) as any) : `${stats?.streak ?? 0}`} sub={goldenFlame ? "golden streak" : "consecutive days"} accent={goldenFlame ? "#f59e0b" : "#f97316"} />
         <Stat icon={<Clock size={22} />} label="Today" value={fmtMinutes(stats?.todayMin ?? 0)} sub="focused time" accent="#6366f1" />
         <Stat icon={<CalendarDays size={22} />} label="This week" value={fmtMinutes(stats?.weekMin ?? 0)} sub={`${stats?.weekSessions ?? 0} sessions`} accent="#10b981" />
         <Stat icon={<TrendingUp size={22} />} label="All time" value={`${stats?.totalHours ?? 0}h`} sub={`${stats?.totalSessions ?? 0} sessions`} accent="#ec4899" />
@@ -247,11 +252,11 @@ export default function DashboardPage() {
         <div className="card">
           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 8, marginBottom: 14 }}>
             <div>
-              <h2 style={{ fontSize: 15 }}>Sunday review ☕</h2>
+              <h2 style={{ fontSize: 15, display: "flex", alignItems: "center", gap: 6 }}>Sunday review <Coffee size={15} style={{ color: "var(--muted)" }} /></h2>
               <div style={{ fontSize: 12.5, color: "var(--muted)" }}>Week of {fmtD(monday)} – {fmtD(sunday)}</div>
             </div>
             <span className="badge" style={delta >= 0 ? { background: "#10b98122", color: "#10b981" } : { background: "var(--accent-soft)", color: "var(--muted)" }}>
-              {delta >= 0 ? `▲ ${delta}%` : `▼ ${Math.abs(delta)}%`} vs last week
+              {delta >= 0 ? `+${delta}%` : `-${Math.abs(delta)}%`} vs last week
             </span>
           </div>
           <div className="grid grid-4">

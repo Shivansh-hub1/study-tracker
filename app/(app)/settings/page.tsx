@@ -71,7 +71,7 @@ export default function SettingsPage() {
       await api("/api/push/subscribe", { method: "POST", body: JSON.stringify({ subscription: sub.toJSON() }) });
       setPushStatus("on");
       playSound("success");
-      toast("Streak reminders enabled 🔔", "success");
+      toast("Streak reminders enabled", "success");
     } catch (e: any) {
       toast(e?.message || "Could not enable notifications", "error");
     }
@@ -111,7 +111,7 @@ export default function SettingsPage() {
   const pickTheme = (t: any) => {
     if (t.shop && !ownedThemes.has(t.id)) {
       playSound("error");
-      toast(`🔒 ${t.name} is a premium theme — unlock it in the Shop for ${t.shop} XP`, "error");
+      toast(`${t.name} is a premium theme — unlock it in the Shop for ${t.shop} XP`, "error");
       return;
     }
     playSound("click");
@@ -291,7 +291,7 @@ export default function SettingsPage() {
               <div style={{ height: 44, borderRadius: 10, background: t.swatch, marginBottom: 8, display: "grid", placeItems: "center", color: "#fff" }}>
                 {theme === t.id && <Check size={18} strokeWidth={3} />}
               </div>
-              <div style={{ fontSize: 12.5, fontWeight: 600 }}>{t.shop && !ownedThemes.has(t.id as any) ? `🔒 ${t.name} · ${t.shop} XP` : t.name}</div>
+              <div style={{ fontSize: 12.5, fontWeight: 600, display: "flex", alignItems: "center", justifyContent: "center", gap: 4 }}>{t.shop && !ownedThemes.has(t.id as any) ? <><Lock size={12} /> {t.name} · {t.shop} XP</> : t.name}</div>
             </button>
           ))}
         </div>
@@ -361,7 +361,7 @@ export default function SettingsPage() {
             <button className={pushStatus === "on" ? "btn" : "btn btn-primary"} disabled={pushBusy} onClick={pushStatus === "on" ? disablePush : enablePush}>
               {pushBusy ? "…" : pushStatus === "on" ? "Turn off" : "Enable notifications"}
             </button>
-            {pushStatus === "on" && <span className="badge">🔔 On</span>}
+            {pushStatus === "on" && <span className="badge" style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><Bell size={12} /> On</span>}
           </div>
         )}
       </div>
@@ -384,7 +384,7 @@ export default function SettingsPage() {
           </label>
           <div style={{ flex: 1, minWidth: 170 }}>
             <div style={{ fontWeight: 700 }}>{me?.user?.name}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)" }}>{me?.user?.email} · 🔒 email can&apos;t be changed</div>
+            <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}><span>{me?.user?.email} ·</span> <Lock size={12} /> <span>email can&apos;t be changed</span></div>
           </div>
           {me?.user?.pfp && (
             <button className="btn" disabled={acctBusy} onClick={removePfp}>Remove picture</button>
@@ -430,8 +430,8 @@ export default function SettingsPage() {
               <a className="btn" href="/api/export?format=json"><FileJson size={15} /> Full JSON export</a>
             </>
           ) : (
-            <button className="btn" onClick={() => { playSound("error"); toast("🔒 Data Export is a Shop unlock — grab it in the XP Shop for 175 XP", "error"); }}>
-              <Lock size={15} /> 🔒 Unlock in the XP Shop
+            <button className="btn" onClick={() => { playSound("error"); toast("Data Export is a Shop unlock — grab it in the XP Shop for 175 XP", "error"); }}>
+              <Lock size={15} /> Unlock in the XP Shop
             </button>
           )}
         </div>

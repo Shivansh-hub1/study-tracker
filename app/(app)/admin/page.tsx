@@ -3,7 +3,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Users, Eye, Pencil, Trash2, ShieldCheck, Clock, Activity, UserCheck,
-  KeyRound, Search, BookOpen, Target, ListChecks, Mail,
+  KeyRound, Search, BookOpen, Target, ListChecks, Mail, BellOff,
 } from "lucide-react";
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, timeAgo, prettyDate, prettyDT } from "@/lib/utils";
@@ -201,7 +201,7 @@ export default function AdminPage() {
                       <div>
                         <div style={{ fontWeight: 600, fontSize: 13.5 }}>{u.name}</div>
                         <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                          {u.email}{u.emails_opt_out ? <span title="Emails disabled" style={{ cursor: "help" }}> 🔕</span> : null}
+                          {u.email}{u.emails_opt_out ? <span title="Emails disabled" style={{ cursor: "help", display: "inline-flex", alignItems: "center", marginLeft: 4 }}><BellOff size={11} color="var(--muted)" /></span> : null}
                         </div>
                       </div>
                     </div>
@@ -335,7 +335,7 @@ export default function AdminPage() {
       <Modal open={!!mailUser} onClose={() => setMailUser(null)} title={mailUser ? `Email ${mailUser.name}` : ""} wide>
         {mailUser?.emails_opt_out ? (
           <div className="card" style={{ padding: "12px 16px", marginBottom: 14, background: "var(--surface-2)", border: "1px solid var(--border)" }}>
-            🔕 <b>Emails are disabled for this user.</b> Enable them via <b>Edit</b> to send.
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}><BellOff size={14} color="var(--muted)" /> <span><b>Emails are disabled for this user.</b> Enable them via <b>Edit</b> to send.</span></span>
           </div>
         ) : null}
         <div style={{ fontSize: 13, color: "var(--muted)", marginBottom: 12 }}>{mailUser?.email}</div>

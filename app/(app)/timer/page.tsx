@@ -283,7 +283,7 @@ export default function TimersPage() {
           const nextPhase: Phase = finishedWork ? (nextRound % pomoRounds === 0 ? "long" : "short") : "work";
           const nextDur = nextPhase === "work" ? pomoWork : nextPhase === "short" ? pomoShort : pomoLong;
           notify(
-            finishedWork ? "Focus block complete 🎉" : "Break over",
+            finishedWork ? "Focus block complete" : "Break over",
             finishedWork ? `Time for a ${nextPhase === "long" ? "long" : "short"} break.` : `Round ${nextRound + 1} — back to it!`
           );
           persist({
@@ -298,7 +298,7 @@ export default function TimersPage() {
         } else if (cur.mode === "countdown") {
           logSession(cur.durationMs, "timer");
           soundEngine.countdownComplete();
-          notify("Timer finished ⏰", `Great — ${fmtClock(Math.round(cur.durationMs / 1000))} logged.`);
+          notify("Timer finished", `Great — ${fmtClock(Math.round(cur.durationMs / 1000))} logged.`);
           persist({ ...cur, status: "idle", remainingMs: cur.durationMs, endsAt: null });
         }
       },
@@ -313,7 +313,7 @@ export default function TimersPage() {
 
   useEffect(() => {
     if (p.status === "running") {
-      const tag = mode === "stopwatch" ? `▶ ${fmtClock(display)}` : `⏳ ${fmtClock(display)}`;
+      const tag = mode === "stopwatch" ? `▶ ${fmtClock(display)}` : `${fmtClock(display)}`;
       document.title = `${tag} — FocusFlow`;
     } else {
       document.title = "FocusFlow — Study Tracker";
@@ -638,7 +638,7 @@ export default function TimersPage() {
                 <div>
                   <div style={{ fontSize: 13, fontWeight: 800, display: "flex", gap: 8, alignItems: "center" }}>
                     Journey topic {p.topic === journeyCurrent && journeyCurrent ? (
-                      <span className="badge" style={{ background: "#10b98122", color: "#10b981", fontSize: 11 }}>Auto ✓</span>
+                      <span className="badge" style={{ background: "#10b98122", color: "#10b981", fontSize: 11, display: "inline-flex", alignItems: "center", gap: 3 }}>Auto <Check size={11} strokeWidth={2.5} /></span>
                     ) : (
                       <button
                         type="button"
@@ -680,7 +680,7 @@ export default function TimersPage() {
             <select className="select" style={{ width: "100%", borderRadius: 12, padding: "12px 14px", fontWeight: 600, fontSize: 14 }} value={p.topic} onChange={(e) => persist({ ...p, topic: e.target.value })}>
               <option value="">No topic — pick from journey</option>
               {journeyTopics.map((t: any) => (
-                <option key={t.key} value={t.title}>{t.status === "done" ? "✓ " : t.status === "revising" ? "↻ " : "○ "}{t.title}</option>
+                <option key={t.key} value={t.title}>{t.status === "done" ? "[Done] " : t.status === "revising" ? "[Revise] " : ""}{t.title}</option>
               ))}
             </select>
 
@@ -694,7 +694,7 @@ export default function TimersPage() {
                       <div style={{ fontSize: 13, fontWeight: 700, color: "var(--text)", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>{selLecture.title}</div>
                     </>
                   ) : (
-                    <span className="badge" style={{ background: "#10b98122", color: "#10b981" }}>Module complete ✓</span>
+                    <span className="badge" style={{ background: "#10b98122", color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}>Module complete <Check size={11} strokeWidth={2.5} /></span>
                   )}
                 </div>
                 <button className="iconbtn" style={{ width: 32, height: 32, borderRadius: 10 }} onClick={() => stepLecture(1)} disabled={selLectureIdx >= selLectures.length}>›</button>
@@ -711,7 +711,7 @@ export default function TimersPage() {
                 <div style={{ fontSize: 13, fontWeight: 800 }}>Revise Due Topics</div>
                 <div style={{ fontSize: 11, color: "var(--muted)" }}>{revisionDueAll.length} topics need revision • most overdue first</div>
               </div>
-              {revisionDueAll.length === 0 && <span className="badge" style={{ marginLeft: "auto", background: "#10b98122", color: "#10b981" }}>All caught up ✅</span>}
+              {revisionDueAll.length === 0 && <span className="badge" style={{ marginLeft: "auto", background: "#10b98122", color: "#10b981", display: "inline-flex", alignItems: "center", gap: 3 }}>All caught up <Check size={11} strokeWidth={2.5} /></span>}
             </div>
             {revisionDueAll.length > 0 && (
               <select className="select" style={{ width: "100%", borderRadius: 12, padding: "12px 14px", fontWeight: 600 }} value="" onChange={(e) => { if (e.target.value) persist({ ...p, topic: e.target.value }); }}>
@@ -740,7 +740,7 @@ export default function TimersPage() {
             Timers keep counting even if you switch tabs, minimise, or reload — time is tracked by the clock, not the screen. Perfect for your side-by-side video study.
           </p>
           <button className={`btn ${notif ? "" : "btn-primary"} btn-block`} onClick={requestNotif} style={{ borderRadius: 12, fontWeight: 700 }}>
-            {notif ? <><Bell size={16} /> Notifications enabled ✓</> : <><BellOff size={16} /> Enable notifications</>}
+            {notif ? <><Bell size={16} /> Notifications enabled <Check size={14} strokeWidth={2.5} /></> : <><BellOff size={16} /> Enable notifications</>}
           </button>
         </div>
 
@@ -786,12 +786,12 @@ export default function TimersPage() {
           <h2 style={{ fontSize: 14, fontWeight: 800, marginBottom: 12, display: "flex", gap: 8, alignItems: "center" }}><BookOpen size={16} style={{ color: "var(--accent)" }} /> How logging works</h2>
           <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
             {[
-              { icon: "🍅", text: "Completed pomodoro focus blocks log automatically." },
-              { icon: "⏱️", text: "Finished countdowns log their full duration." },
-              { icon: "✅", text: "Press Done on the stopwatch to log elapsed time." },
+              { icon: <TimerIcon size={14} style={{ color: "var(--accent)" }} />, text: "Completed pomodoro focus blocks log automatically." },
+              { icon: <Clock size={14} style={{ color: "var(--accent)" }} />, text: "Finished countdowns log their full duration." },
+              { icon: <Check size={14} style={{ color: "var(--accent)" }} />, text: "Press Done on the stopwatch to log elapsed time." },
             ].map((item, i) => (
               <div key={i} style={{ display: "flex", gap: 10, fontSize: 13, color: "var(--muted)", lineHeight: 1.5 }}>
-                <span style={{ fontSize: 14 }}>{item.icon}</span>
+                <span style={{ display: "grid", placeItems: "center", width: 18, height: 18, flexShrink: 0, marginTop: 1 }}>{item.icon}</span>
                 <span dangerouslySetInnerHTML={{ __html: item.text.replace("Done", "<b style='color:var(--text)'>Done</b>").replace("automatically", "<b style='color:var(--text)'>automatically</b>") }} />
               </div>
             ))}

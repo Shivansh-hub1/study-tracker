@@ -15,7 +15,7 @@ import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
 import { useFetch, api } from "@/lib/client";
 import {
-  LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
+  LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck, RotateCcw, WifiOff,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
   Trophy,
 } from "lucide-react";
@@ -53,7 +53,7 @@ function OfflineBadge() {
     return () => { window.removeEventListener("online", tryFlush); clearInterval(t); };
   }, [toast]);
   if (!online) {
-    return <span className="badge" style={{ background: "#ef444422", color: "#f87171", whiteSpace: "nowrap" }}>● Offline</span>;
+    return <span className="badge" style={{ background: "#ef444422", color: "#f87171", whiteSpace: "nowrap", display: "inline-flex", alignItems: "center", gap: 4 }}><WifiOff size={11} /> Offline</span>;
   }
   if (pending > 0) {
     return (
@@ -61,7 +61,7 @@ function OfflineBadge() {
         const r = await flushOutbox();
         if (r.synced > 0) toast(`Synced ${r.synced} offline change${r.synced === 1 ? "" : "s"}`, "success");
       }}>
-        ⏳ {pending} to sync
+        <span style={{ display: "inline-flex", alignItems: "center", gap: 4 }}><RotateCcw size={11} className="animate-spin" /> {pending} to sync</span>
       </button>
     );
   }
