@@ -48,6 +48,10 @@ export function generateMetadata(): Metadata {
 
 const FAQS = [
   {
+    q: "Who created FocusFlow (Your Study Tracker)?",
+    a: "FocusFlow was created and engineered by Shivansh, a full-stack software engineer who built it as a distraction-free study operating system combining Pomodoro timers, DSA and WebDev roadmaps, and spaced repetition."
+  },
+  {
     q: "What is FocusFlow (Your Study Tracker)?",
     a: "FocusFlow is a free, modern study tracker designed for deep work. It combines Pomodoro timers, subject tracking, structured developer roadmaps (DSA & WebDev), SM-2 spaced repetition flashcards, and consistency heatmaps into one unified workspace."
   },
@@ -85,7 +89,18 @@ const jsonLd = {
       operatingSystem: "Web",
       url: `${CANONICAL_SITE_URL}/study-tracker`,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      author: { "@type": "Person", "@id": `${CANONICAL_SITE_URL}/#author`, name: "Shivansh", url: AUTHOR_INFO.url },
+      creator: { "@type": "Person", "@id": `${CANONICAL_SITE_URL}/#author`, name: "Shivansh" },
       featureList: "Focus timer, Pomodoro, DSA roadmap, WebDev roadmap, Spaced repetition revision, Consistency heatmap, XP rewards",
+    },
+    {
+      "@type": "Person",
+      "@id": `${CANONICAL_SITE_URL}/#author`,
+      name: "Shivansh",
+      jobTitle: AUTHOR_INFO.role,
+      description: AUTHOR_INFO.bio,
+      url: AUTHOR_INFO.url,
+      sameAs: [AUTHOR_INFO.url],
     },
     {
       "@type": "FAQPage",
@@ -233,6 +248,21 @@ export default function StudyTrackerPage() {
             </Link>
           </section>
         </main>
+
+        <footer className="land-footer">
+          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> — Deep-focus study tracker created by <strong>Shivansh</strong>.</p>
+          <nav aria-label="Footer">
+            <Link href="/about">About</Link>
+            <Link href="/dsa-tracker">DSA Tracker</Link>
+            <Link href="/webdev-tracker">WebDev Tracker</Link>
+            <Link href="/study-tracker">Study Tracker</Link>
+            <Link href="/blog">Blog</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/signup">Create account</Link>
+            <Link href="/login">Sign in</Link>
+          </nav>
+        </footer>
       </div>
     </>
   );

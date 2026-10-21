@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check, Play, Sparkles } from "lucide-react";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_ALIASES, CANONICAL_SITE_URL } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_ALIASES, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -24,6 +24,7 @@ const STEPS = [
 ];
 
 const FAQS = [
+  { q: "Who created FocusFlow?", a: "FocusFlow was created and engineered by Shivansh, a full-stack software developer who built it as a 100% free, private study ecosystem with Pomodoro timers, structured DSA & WebDev roadmaps, and spaced repetition." },
   { q: "Is FocusFlow free?", a: "Yes. Every feature — timer, roadmaps, revision and analytics — is free for learners." },
   { q: "Do I need an account?", a: "Yes, a free account keeps your sessions, streaks and roadmaps safe and synced whenever you sign in." },
   { q: "Does it work on mobile?", a: "Yes. FocusFlow is fully responsive and works in any modern mobile or desktop browser — you can even add it to your home screen." },
@@ -71,8 +72,19 @@ function jsonLdFor(features: typeof FEATURES, faqs: typeof FAQS) {
       operatingSystem: "Web",
       description: SITE_DESCRIPTION,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD", availability: "https://schema.org/InStock" },
+      author: { "@type": "Person", "@id": `${CANONICAL_SITE_URL}/#author`, name: "Shivansh", url: AUTHOR_INFO.url },
+      creator: { "@type": "Person", "@id": `${CANONICAL_SITE_URL}/#author`, name: "Shivansh" },
       featureList: features.map((f) => f.title).join(", "),
       aggregateRating: { "@type": "AggregateRating", ratingValue: "4.9", reviewCount: "127", bestRating: "5", worstRating: "1" },
+    },
+    {
+      "@type": "Person",
+      "@id": `${CANONICAL_SITE_URL}/#author`,
+      name: "Shivansh",
+      jobTitle: AUTHOR_INFO.role,
+      description: AUTHOR_INFO.bio,
+      url: AUTHOR_INFO.url,
+      sameAs: [AUTHOR_INFO.url],
     },
     {
       "@type": "FAQPage",
@@ -123,7 +135,7 @@ export default async function Home() {
               <span className="land-hero-accent">Stay consistent. Master your craft.</span>
             </h1>
             <p className="land-sub">
-              A distraction-free study operating system for developers and students. Combining Pomodoro focus timers, structured DSA &amp; WebDev roadmaps, and SM-2 spaced repetition in one quiet workspace.
+              Created by Shivansh, FocusFlow is a distraction-free study operating system for developers and students. Combining Pomodoro focus timers, structured DSA &amp; WebDev roadmaps, and SM-2 spaced repetition in one quiet workspace.
             </p>
             <div className="land-cta">
               <Link href="/signup" className="btn-notion-primary">
@@ -134,10 +146,10 @@ export default async function Home() {
               </Link>
             </div>
             <ul className="land-signals">
-              <li className="notion-pill"><span className="notion-dot dot-green" /> Spaced repetition (SM-2)</li>
-              <li className="notion-pill"><span className="notion-dot dot-sky" /> DSA &amp; WebDev roadmaps</li>
-              <li className="notion-pill"><span className="notion-dot dot-orange" /> Focus timers &amp; Pomodoro</li>
-              <li className="notion-pill"><span className="notion-dot dot-teal" /> 100% free &amp; local-first</li>
+              <li className="notion-pill"><span className="notion-dot dot-green" /> Created by Shivansh</li>
+              <li className="notion-pill"><span className="notion-dot dot-sky" /> Spaced repetition (SM-2)</li>
+              <li className="notion-pill"><span className="notion-dot dot-orange" /> DSA &amp; WebDev roadmaps</li>
+              <li className="notion-pill"><span className="notion-dot dot-teal" /> 100% free &amp; private</li>
             </ul>
 
             {/* Hero Workspace Window (Notion Document / Product Canvas) */}
@@ -264,7 +276,7 @@ export default async function Home() {
         </main>
 
         <footer className="land-footer">
-          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> â€” Deep-focus study tracker.</p>
+          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> — Deep-focus study tracker created by <strong>Shivansh</strong>.</p>
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
             <Link href="/dsa-tracker">DSA Tracker</Link>

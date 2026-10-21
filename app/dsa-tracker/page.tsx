@@ -68,6 +68,10 @@ const DSA_MODULES = [
 
 const FAQS = [
   {
+    q: "Who created the FocusFlow DSA Tracker?",
+    a: "The FocusFlow DSA Tracker was created and built by Shivansh, a full-stack software engineer who designed it to eliminate the chaos of disjointed spreadsheets and help developers consistently master algorithms."
+  },
+  {
     q: "What is a DSA Tracker and why do I need one?",
     a: "A DSA tracker is a structured progress and revision system for Data Structures and Algorithms. Rather than solving random LeetCode problems, a DSA tracker organizes problems by topic dependencies and schedules automated reviews so you don't forget solutions after two weeks."
   },
@@ -105,7 +109,18 @@ const jsonLd = {
       operatingSystem: "Web",
       url: `${CANONICAL_SITE_URL}/dsa-tracker`,
       offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+      author: { "@type": "Person", "@id": `${CANONICAL_SITE_URL}/#author`, name: "Shivansh", url: AUTHOR_INFO.url },
+      creator: { "@type": "Person", "@id": `${CANONICAL_SITE_URL}/#author`, name: "Shivansh" },
       featureList: "18-module structured roadmap, SM-2 spaced repetition revision, focus timer integration, streak tracking, consistency heatmaps",
+    },
+    {
+      "@type": "Person",
+      "@id": `${CANONICAL_SITE_URL}/#author`,
+      name: "Shivansh",
+      jobTitle: AUTHOR_INFO.role,
+      description: AUTHOR_INFO.bio,
+      url: AUTHOR_INFO.url,
+      sameAs: [AUTHOR_INFO.url],
     },
     {
       "@type": "FAQPage",
@@ -263,6 +278,21 @@ export default function DsaTrackerPage() {
             </Link>
           </section>
         </main>
+
+        <footer className="land-footer">
+          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> — Deep-focus study tracker created by <strong>Shivansh</strong>.</p>
+          <nav aria-label="Footer">
+            <Link href="/about">About</Link>
+            <Link href="/dsa-tracker">DSA Tracker</Link>
+            <Link href="/webdev-tracker">WebDev Tracker</Link>
+            <Link href="/study-tracker">Study Tracker</Link>
+            <Link href="/blog">Blog</Link>
+            <Link href="/privacy">Privacy</Link>
+            <Link href="/terms">Terms</Link>
+            <Link href="/signup">Create account</Link>
+            <Link href="/login">Sign in</Link>
+          </nav>
+        </footer>
       </div>
     </>
   );

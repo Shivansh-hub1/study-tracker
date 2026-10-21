@@ -18,7 +18,7 @@ export const SITE_ALIASES = [
 ];
 
 export const SITE_DESCRIPTION =
-  "FocusFlow (Your Study Tracker) is a fast, free study tracker with a focus timer, session logging, structured DSA & WebDev roadmaps, SM-2 revision queues, habits, and progress analytics.";
+  "Created by Shivansh, FocusFlow (Your Study Tracker) is a fast, free study operating system with a focus timer, session logging, structured DSA and WebDev roadmaps, SM-2 revision queues, habits, and progress analytics.";
 
 export const CANONICAL_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
