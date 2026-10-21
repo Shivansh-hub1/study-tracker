@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check } from "lucide-react";
+import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check, Play, Sparkles } from "lucide-react";
 import { SITE_DESCRIPTION, SITE_NAME, CANONICAL_SITE_URL } from "@/lib/seo";
 import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
@@ -134,8 +134,8 @@ export default async function Home() {
       <div className="land">
         <header className="land-nav">
           <Link href="/" className="land-logo">
-            <span className="land-logo-icon"><GraduationCap size={22} /></span>
-            Focus<span className="glow-text">Flow</span>
+            <span className="land-logo-icon"><GraduationCap size={18} /></span>
+            Focus<span className="land-logo-flow">Flow</span>
           </Link>
           <nav className="land-links" aria-label="Primary">
             <Link href="#features">Features</Link>
@@ -143,35 +143,116 @@ export default async function Home() {
             <Link href="/about">About</Link>
             <Link href="/blog">Blog</Link>
             <Link href="#faq">FAQ</Link>
-            <Link href="/login">Sign in</Link>
-            <Link href="/signup" className="btn btn-primary btn-sm">Get started free <ArrowRight size={14} /></Link>
+            <Link href="/login" className="btn-notion-utility">Sign in</Link>
+            <Link href="/signup" className="btn-notion-primary" style={{ padding: "8px 18px", fontSize: "14px" }}>
+              Get started free <ArrowRight size={14} />
+            </Link>
           </nav>
         </header>
 
         <main>
           <section className="land-hero">
-            <p className="land-badge"><Check size={14} /> Free study tracker for students & developers</p>
-            <h1>Track every study session.<br /><span className="glow-text">Stay consistent. Grow.</span></h1>
-            <p className="land-sub">{sub}</p>
+            <h1>
+              Track every study session.<br />
+              <span className="land-hero-accent">Stay consistent. Master your craft.</span>
+            </h1>
+            <p className="land-sub">
+              A distraction-free study operating system for developers and students. Combining Pomodoro focus timers, structured DSA &amp; WebDev roadmaps, and SM-2 spaced repetition in one quiet workspace.
+            </p>
             <div className="land-cta">
-              <Link href="/signup" className="btn btn-primary btn-lg">Start tracking free <ArrowRight size={17} /></Link>
-              <Link href="/login" className="btn btn-lg">Sign in</Link>
+              <Link href="/signup" className="btn-notion-primary">
+                Start tracking free <ArrowRight size={16} />
+              </Link>
+              <Link href="/login" className="btn-notion-secondary">
+                Sign in to account
+              </Link>
             </div>
-            <ul className="land-ticks">
-              <li><Check size={14} /> No credit card</li>
-              <li><Check size={14} /> Works on mobile</li>
-              <li><Check size={14} /> Free forever plan</li>
+            <ul className="land-signals">
+              <li className="notion-pill"><span className="notion-dot dot-green" /> Spaced repetition (SM-2)</li>
+              <li className="notion-pill"><span className="notion-dot dot-sky" /> DSA &amp; WebDev roadmaps</li>
+              <li className="notion-pill"><span className="notion-dot dot-orange" /> Focus timers &amp; Pomodoro</li>
+              <li className="notion-pill"><span className="notion-dot dot-teal" /> 100% free &amp; local-first</li>
             </ul>
+
+            {/* Hero Workspace Window (Notion Document / Product Canvas) */}
+            <div className="notion-hero-window" aria-hidden="true">
+              <div className="notion-window-bar">
+                <div className="notion-window-dots">
+                  <span />
+                  <span />
+                  <span />
+                </div>
+                <div className="notion-window-crumb">
+                  FocusFlow / 📚 Data Structures &amp; Algorithms / ⏱️ Deep Work Session
+                </div>
+                <div style={{ fontSize: "11px", opacity: 0.65 }}>● Ready</div>
+              </div>
+              <div className="notion-window-body">
+                <div className="notion-window-timer">
+                  <span className="notion-timer-tag">
+                    <Timer size={12} style={{ color: "var(--notion-primary)" }} /> Focus Block 2 of 4
+                  </span>
+                  <div className="notion-timer-digits">25:00</div>
+                  <div className="notion-timer-modes">
+                    <span className="notion-timer-mode active">Pomodoro</span>
+                    <span className="notion-timer-mode">Short Break</span>
+                    <span className="notion-timer-mode">Long Break</span>
+                  </div>
+                  <div className="notion-timer-task">
+                    Current: Dynamic Programming · Coin Change
+                  </div>
+                </div>
+
+                <div className="notion-window-side">
+                  <div className="notion-side-card">
+                    <div className="notion-side-head">
+                      <h4>Revision Queue</h4>
+                      <span className="notion-side-tag">SM-2 Spaced</span>
+                    </div>
+                    <div className="notion-side-item">
+                      <span className="notion-item-name">Binary Search Trees</span>
+                      <span className="notion-item-due" style={{ color: "var(--notion-accent-green)", fontWeight: 600 }}>Due Today</span>
+                    </div>
+                    <div className="notion-side-item">
+                      <span className="notion-item-name">CSS Grid &amp; Flexbox</span>
+                      <span className="notion-item-due">In 3 days</span>
+                    </div>
+                    <div className="notion-side-item">
+                      <span className="notion-item-name">Graph BFS/DFS</span>
+                      <span className="notion-item-due">In 6 days</span>
+                    </div>
+                  </div>
+
+                  <div className="notion-side-card">
+                    <div className="notion-side-head">
+                      <h4>14-Day Study Streak</h4>
+                      <span style={{ fontSize: "11.5px", color: "var(--notion-accent-orange)", fontWeight: 600 }}>🔥 Active</span>
+                    </div>
+                    <div className="notion-heat-row">
+                      <span className="notion-heat-sq lvl-2" title="Mon: 2.5h" />
+                      <span className="notion-heat-sq lvl-3" title="Tue: 4h" />
+                      <span className="notion-heat-sq lvl-2" title="Wed: 3h" />
+                      <span className="notion-heat-sq lvl-1" title="Thu: 1.5h" />
+                      <span className="notion-heat-sq lvl-3" title="Fri: 4.5h" />
+                      <span className="notion-heat-sq lvl-3" title="Sat: 5h" />
+                      <span className="notion-heat-sq lvl-2" title="Today: 3h" />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
           </section>
 
           <section id="features" className="land-section" aria-labelledby="features-h">
             <h2 id="features-h">Everything you need to study smarter</h2>
-            <p className="land-sec-sub">One app for timing, planning, revising and reviewing.</p>
+            <p className="land-sec-sub">One quiet workspace for timing, planning, revising, and tracking.</p>
             <div className="land-grid">
               {features.map((f) => (
-                <article key={f.title} className="card land-card">
-                  <span className="land-ico"><f.icon size={20} /></span>
-                  <h3>{f.title}</h3>
+                <article key={f.title} className="land-card">
+                  <div className="land-card-head">
+                    <span className="land-card-icon"><f.icon size={20} /></span>
+                    <h3>{f.title}</h3>
+                  </div>
                   <p>{f.text}</p>
                 </article>
               ))}
@@ -182,7 +263,7 @@ export default async function Home() {
             <h2 id="how-h">Get started in under a minute</h2>
             <div className="land-steps">
               {STEPS.map((s) => (
-                <article key={s.n} className="card land-step">
+                <article key={s.n} className="land-step">
                   <span className="land-num">{s.n}</span>
                   <h3>{s.title}</h3>
                   <p>{s.text}</p>
@@ -190,7 +271,7 @@ export default async function Home() {
               ))}
             </div>
             <div className="land-cta land-cta-center">
-              <Link href="/signup" className="btn btn-primary btn-lg">Create your free account <ArrowRight size={17} /></Link>
+              <Link href="/signup" className="btn-notion-primary">Create your free account <ArrowRight size={16} /></Link>
             </div>
           </section>
 
@@ -198,7 +279,7 @@ export default async function Home() {
             <h2 id="faq-h">Frequently asked questions</h2>
             <div className="land-faq">
               {faqs.map((f) => (
-                <details key={f.q} className="card">
+                <details key={f.q}>
                   <summary>{f.q}</summary>
                   <p>{f.a}</p>
                 </details>
@@ -206,18 +287,18 @@ export default async function Home() {
             </div>
           </section>
 
-          <section className="land-final card">
+          <section className="land-final">
             <h2>Ready to build your streak?</h2>
-            <p>Join FocusFlow today — free, fast, and made for deep focus.</p>
+            <p>Join FocusFlow today. Free, fast, and made for deep focus.</p>
             <div className="land-cta land-cta-center">
-              <Link href="/signup" className="btn btn-primary btn-lg">Get started free <ArrowRight size={17} /></Link>
-              <Link href="/login" className="btn btn-lg">Sign in</Link>
+              <Link href="/signup" className="btn-notion-primary">Get started free <ArrowRight size={16} /></Link>
+              <Link href="/login" className="btn-notion-secondary">Sign in</Link>
             </div>
           </section>
         </main>
 
         <footer className="land-footer">
-          <p><strong>Focus<span className="glow-text">Flow</span></strong> — Deep-focus study tracker.</p>
+          <p><strong>Focus<span className="land-logo-flow">Flow</span></strong> — Deep-focus study tracker.</p>
           <nav aria-label="Footer">
             <Link href="/about">About</Link>
             <Link href="/privacy">Privacy</Link>
