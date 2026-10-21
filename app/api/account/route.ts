@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
-import { getSessionUser } from "@/lib/auth";
+import { getSessionUser, bustAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
 
@@ -57,5 +57,6 @@ export async function PATCH(req: NextRequest) {
 
   vals.push(user.id);
   await db.run(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, ...vals);
+  bustAuthUser(user.id);
   return NextResponse.json({ ok: true });
 }

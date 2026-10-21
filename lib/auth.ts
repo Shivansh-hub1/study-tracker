@@ -9,6 +9,12 @@ export const COOKIE = "st_token";
 
 export type AuthUser = { id: number; name: string; email: string; role: string; pfp?: string | null };
 
+const userSessionCache = new Map<number, { at: number; user: AuthUser }>();
+
+export function bustAuthUser(uid: number) {
+  userSessionCache.delete(uid);
+}
+
 export async function signToken(userId: number) {
   return new SignJWT({ uid: userId })
     .setProtectedHeader({ alg: "HS256" })
@@ -31,6 +37,8 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   if (!token) return null;
   const uid = await verifyToken(token);
   if (!uid) return null;
+  const hit = userSessionCache.get(uid);
+  if (hit && Date.now() - hit.at < 30_000) return hit.user;
   const db = await getDb();
   const user = (await db.get(
     "SELECT id, name, email, role, last_active_at, pfp FROM users WHERE id = ?",
@@ -42,7 +50,9 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   if (stale) {
     db.run("UPDATE users SET last_active_at = ? WHERE id = ?", new Date().toISOString(), uid).catch(() => {});
   }
-  return { id: user.id, name: user.name, email: user.email, role: user.role, pfp: user.pfp ?? null };
+  const authUser: AuthUser = { id: user.id, name: user.name, email: user.email, role: user.role, pfp: user.pfp ?? null };
+  userSessionCache.set(uid, { at: Date.now(), user: authUser });
+  return authUser;
 }
 
 /** Returns the user only if they have the admin role, else null. */

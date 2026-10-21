@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-int
 export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(CANONICAL_SITE_URL),
-    title: { default: `${SITE_NAME} — Study Tracker`, template: `%s | ${SITE_NAME}` },
+    title: { default: `${SITE_NAME} â€” Study Tracker`, template: `%s | ${SITE_NAME}` },
     description: SITE_DESCRIPTION,
     keywords: SITE_KEYWORDS,
     authors: [{ name: SITE_NAME }],
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       siteName: SITE_NAME,
-      title: `${SITE_NAME} — Free Study Tracker with Focus Timer & Roadmaps`,
+      title: `${SITE_NAME} â€” Free Study Tracker with Focus Timer & Roadmaps`,
       description: SITE_DESCRIPTION,
       url: "/",
       locale: "en_US",
@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: "/opengraph-image",
           width: 1200,
           height: 630,
-          alt: `${SITE_NAME} — Deep-focus study tracker with timer, roadmaps and analytics`,
+          alt: `${SITE_NAME} â€” Deep-focus study tracker with timer, roadmaps and analytics`,
         },
       ],
     },
@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       site: "@FocusFlowApp",
       creator: "@FocusFlowApp",
-      title: `${SITE_NAME} — Free Study Tracker`,
+      title: `${SITE_NAME} â€” Free Study Tracker`,
       description: SITE_DESCRIPTION,
       images: ["/opengraph-image"],
     },
@@ -47,7 +47,7 @@ export async function generateMetadata(): Promise<Metadata> {
     },
     verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "google-site-verification-focusflow" },
     other: {
-      "theme-color": "#7c3aed",
+      "theme-color": "#191919",
       "color-scheme": "dark light",
     },
   };
@@ -56,7 +56,7 @@ export async function generateMetadata(): Promise<Metadata> {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
-  themeColor: "#7c3aed",
+  themeColor: "#191919",
   maximumScale: 5,
 };
 
@@ -104,7 +104,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <head>
         <link rel="preconnect" href="https://fonts.googleapis.com" crossOrigin="anonymous" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link rel="preconnect" href="https://yourstudytracker.vercel.app" crossOrigin="anonymous" />
+
         <link rel="dns-prefetch" href="https://fonts.googleapis.com" />
         <link rel="dns-prefetch" href="https://fonts.gstatic.com" />
         <script
@@ -115,11 +115,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(globalJsonLd) }} />
       </head>
       <body>
-        <div className="glass-blobs" aria-hidden="true">
-          <i className="b1" />
-          <i className="b2" />
-          <i className="b3" />
-        </div>
         <Providers>{children}</Providers>
       </body>
     </html>

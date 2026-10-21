@@ -5,7 +5,7 @@
 type Entry = { at: number; data: any };
 
 const store = new Map<string, Entry>();
-const DEFAULT_TTL = 5_000; // ms — covers bursts of page loads, stays fresh
+const DEFAULT_TTL = 30_000; // ms — fast reads, invalidated on any mutation
 const MAX_ENTRIES = 400;
 
 export function cacheGet<T = any>(key: string, ttl: number = DEFAULT_TTL): T | null {

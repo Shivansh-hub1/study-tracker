@@ -13,7 +13,7 @@ import DevQuoteBar from "./DevQuoteBar";
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";
-import { useFetch } from "@/lib/client";
+import { useFetch, api } from "@/lib/client";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
@@ -114,8 +114,8 @@ export default function AppShell({ user, children }: { user: Me; children: React
     (async () => {
       try {
         const [a, b] = await Promise.all([
-          fetch("/api/dsa").then((r) => r.json()),
-          fetch("/api/webdev").then((r) => r.json()),
+          api("/api/dsa"),
+          api("/api/webdev"),
         ]);
         if (on) setDueCount((a.revision_due?.length || 0) + (b.revision_due?.length || 0));
       } catch {}

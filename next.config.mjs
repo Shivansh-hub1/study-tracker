@@ -4,12 +4,16 @@ const nextConfig = {
   poweredByHeader: false,
   compress: true,
   generateEtags: true,
+  swcMinify: true,
+  compiler: {
+    removeConsole: process.env.NODE_ENV === "production" ? { exclude: ["error", "warn"] } : false,
+  },
   images: {
     formats: ["image/avif", "image/webp"],
   },
   experimental: {
     serverComponentsExternalPackages: ["better-sqlite3", "@libsql/client"],
-    optimizePackageImports: ["lucide-react", "recharts"],
+    optimizePackageImports: ["lucide-react", "recharts", "jose"],
   },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
@@ -25,6 +29,10 @@ const nextConfig = {
           { key: "Permissions-Policy", value: "camera=(), microphone=(), geolocation=()" },
           { key: "X-DNS-Prefetch-Control", value: "on" },
         ],
+      },
+      {
+        source: "/_next/static/:path*",
+        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
       },
       {
         source: "/:path*.ico",

@@ -419,6 +419,10 @@ async function initLocal(): Promise<DB> {
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const raw = new Database(path.join(DATA_DIR, "study.db"));
   raw.pragma("journal_mode = WAL");
+  raw.pragma("synchronous = NORMAL");
+  raw.pragma("cache_size = -64000");
+  raw.pragma("temp_store = MEMORY");
+  raw.pragma("mmap_size = 268435456");
   for (const s of SCHEMA) raw.exec(s);
   const db: DB = {
     async run(sql, ...args) {
