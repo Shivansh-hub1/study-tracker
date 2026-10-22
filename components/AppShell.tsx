@@ -69,7 +69,8 @@ function OfflineBadge() {
 }
 
 export default function AppShell({ user, children }: { user: Me; children: React.ReactNode }) {
-  const pathname = usePathname();
+  const rawPathname = usePathname();
+  const pathname = rawPathname || "";
 
   const { data: shopData } = useFetch("/api/shop");
   const [open, setOpen] = useState(false);
@@ -161,26 +162,37 @@ export default function AppShell({ user, children }: { user: Me; children: React
           <Link href="/privacy" style={{ color: "inherit", textDecoration: "none" }}>Privacy</Link>
         </div>
         <div className="sspacer" />
-        <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 12px" }}>
-          <div className={ownedItem("pfp_ring") ? "pfp-ring" : ""} style={{ flexShrink: 0, padding: 2.5, borderRadius: "50%" }}>
-          <div
-            style={{
-              width: 34, height: 34, borderRadius: "50%", background: "var(--accent-grad)", color: "#fff",
-              display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, boxShadow: "var(--glow)",
-            }}
-          >
-            {user.pfp ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img src={user.pfp} alt={`${user.name || "User"} profile picture`} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
-            ) : avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : user.name.split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+        {user.role === "guest" ? (
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, padding: "10px 12px", background: "var(--surface-2)", borderRadius: 12, margin: "6px 10px 12px", border: "1px solid var(--border)" }}>
+            <div style={{ fontSize: 12, fontWeight: 700, color: "var(--fg)" }}>Guest Mode</div>
+            <div style={{ fontSize: 11, color: "var(--muted)", lineHeight: 1.4 }}>Sign in to save sessions and track your streak.</div>
+            <div style={{ display: "flex", gap: 6, marginTop: 4 }}>
+              <Link href="/login" className="btn btn-sm btn-primary" style={{ flex: 1, padding: "5px 8px", fontSize: 11.5, textAlign: "center", textDecoration: "none" }}>Sign in</Link>
+              <Link href="/signup" className="btn btn-sm" style={{ flex: 1, padding: "5px 8px", fontSize: 11.5, textAlign: "center", textDecoration: "none" }}>Sign up</Link>
+            </div>
           </div>
+        ) : (
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 12px" }}>
+            <div className={ownedItem("pfp_ring") ? "pfp-ring" : ""} style={{ flexShrink: 0, padding: 2.5, borderRadius: "50%" }}>
+            <div
+              style={{
+                width: 34, height: 34, borderRadius: "50%", background: "var(--accent-grad)", color: "#fff",
+                display: "grid", placeItems: "center", fontWeight: 800, fontSize: 13, boxShadow: "var(--glow)",
+              }}
+            >
+              {user.pfp ? (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={user.pfp} alt={`${user.name || "User"} profile picture`} style={{ width: "100%", height: "100%", borderRadius: "50%", objectFit: "cover" }} />
+              ) : avatarItem ? <span style={{ fontSize: 17 }}>{avatarItem.icon}</span> : (user.name || "User").split(" ").map((w) => w[0]).slice(0, 2).join("").toUpperCase()}
+            </div>
+            </div>
+            <div style={{ minWidth: 0, flex: 1 }}>
+              <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
+              {titleItem && <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--accent)", letterSpacing: 0.3 }}>{titleItem.name.replace("Title: ", "")}</div>}
+              <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
+            </div>
           </div>
-          <div style={{ minWidth: 0, flex: 1 }}>
-            <div style={{ fontWeight: 700, fontSize: 13.5, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.name}</div>
-            {titleItem && <div style={{ fontSize: 10.5, fontWeight: 800, color: "var(--accent)", letterSpacing: 0.3 }}>{titleItem.name.replace("Title: ", "")}</div>}
-            <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{user.email}</div>
-          </div>
-        </div>
+        )}
       </aside>
 
       <div className="main">

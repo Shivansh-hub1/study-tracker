@@ -65,31 +65,47 @@ export default function AchievementPopup() {
   const [queue, setQueue] = useState<typeof BADGES>([]);
   const [current, setCurrent] = useState<(typeof BADGES)[number] | null>(null);
   const [show, setShow] = useState(false);
+  const currentRef = React.useRef(current);
+  currentRef.current = current;
+  const initializedRef = React.useRef(false);
 
   const checkNew = useCallback(() => {
     if (!stats) return;
     const seen = getSeen();
     const unlocked = BADGES.filter(b => b.test(stats));
+
+    // First time loading on this browser/session:
+    // Mark all existing historical unlocks as already seen so demo accounts don't spam 35 popups
+    if (!initializedRef.current) {
+      initializedRef.current = true;
+      let rawSeen = null;
+      try { rawSeen = localStorage.getItem(SEEN_KEY); } catch {}
+      if (!rawSeen || seen.size === 0) {
+        unlocked.forEach(b => seen.add(b.id));
+        setSeen(seen);
+        return;
+      }
+    }
+
     const newOnes = unlocked.filter(b => !seen.has(b.id));
     if (newOnes.length > 0) {
       setQueue(prev => {
         const existingIds = new Set(prev.map(p => p.id));
-        const toAdd = newOnes.filter(n => !existingIds.has(n.id) && n.id !== current?.id);
-        const merged: typeof BADGES = [];
-        prev.forEach(p => merged.push(p));
-        toAdd.forEach(p => merged.push(p));
-        return merged;
+        const toAdd = newOnes.filter(n => !existingIds.has(n.id) && n.id !== currentRef.current?.id);
+        if (toAdd.length === 0) return prev;
+        // Cap to at most 2 in queue to avoid popup fatigue
+        return [...prev, ...toAdd].slice(0, 2);
       });
     }
-  }, [stats, current]);
+  }, [stats]);
 
   useEffect(() => {
     checkNew();
   }, [checkNew]);
 
-  // Poll every 10s for new unlocks (when session logged)
+  // Poll every 15s for new unlocks (when session logged)
   useEffect(() => {
-    const t = setInterval(checkNew, 10000);
+    const t = setInterval(checkNew, 15000);
     return () => clearInterval(t);
   }, [checkNew]);
 
@@ -97,6 +113,11 @@ export default function AchievementPopup() {
   useEffect(() => {
     if (!show && queue.length > 0 && !current) {
       const next = queue[0];
+      // Mark as seen immediately so it can never re-appear
+      const seen = getSeen();
+      seen.add(next.id);
+      setSeen(seen);
+
       setCurrent(next);
       setQueue(q => q.slice(1));
       setShow(true);

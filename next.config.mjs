@@ -17,6 +17,15 @@ const nextConfig = {
   },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  async redirects() {
+    return [
+      {
+        source: "/focus-timer",
+        destination: "/timer",
+        permanent: true,
+      },
+    ];
+  },
   async headers() {
     return [
       {

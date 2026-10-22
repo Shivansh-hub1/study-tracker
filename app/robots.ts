@@ -15,7 +15,6 @@ const DISALLOWED_ROUTES = [
   "/revision",
   "/progress",
   "/achievements",
-  "/timer",
   "/offline",
   "/forgot",
   "/reset",
@@ -24,6 +23,7 @@ const DISALLOWED_ROUTES = [
 
 const ALLOWED_ROUTES = [
   "/",
+  "/timer",
   "/dsa-tracker",
   "/webdev-tracker",
   "/study-tracker",

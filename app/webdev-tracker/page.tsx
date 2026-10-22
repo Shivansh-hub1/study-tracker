@@ -154,7 +154,7 @@ export default function WebDevTrackerPage() {
           <nav className="land-links" aria-label="Primary">
             <Link href="/dsa-tracker">DSA Tracker</Link>
             <Link href="/webdev-tracker" className="active">WebDev Tracker</Link>
-            <Link href="/focus-timer">Focus Timer</Link>
+            <Link href="/timer">Focus Timer</Link>
             <Link href="/blog">Blog</Link>
             <Link href="/login" className="btn-notion-utility">Sign in</Link>
             <Link href="/signup" className="btn-notion-primary" style={{ padding: "8px 18px", fontSize: "14px" }}>

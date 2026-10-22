@@ -434,6 +434,7 @@ export default function TimersPage() {
     short: { label: "Short break", icon: <Coffee size={14} />, color: "#10b981", bg: "#10b98122" },
     long: { label: "Long break", icon: <Moon size={14} />, color: "#0ea5e9", bg: "#0ea5e922" },
   };
+  const curPhaseMeta = phaseMeta[p.phase] || phaseMeta.work;
 
   if (!hydrated) return <div className="card" style={{ height: 520 }}><div className="skel" style={{ width: "100%", height: "100%", borderRadius: 24 }} /></div>;
 
@@ -499,8 +500,8 @@ export default function TimersPage() {
         {/* Phase + Rounds — improved */}
         {mode === "pomodoro" && (
           <div style={{ display: "flex", gap: 10, alignItems: "center", background: "var(--surface-2)", border: "1px solid var(--border)", borderRadius: 999, padding: "6px 14px" }}>
-            <span className="badge" style={{ background: phaseMeta[p.phase].bg, color: phaseMeta[p.phase].color, border: `1px solid ${phaseMeta[p.phase].color}22`, fontWeight: 700 }}>
-              {phaseMeta[p.phase].icon} {phaseMeta[p.phase].label}
+            <span className="badge" style={{ background: curPhaseMeta.bg, color: curPhaseMeta.color, border: `1px solid ${curPhaseMeta.color}22`, fontWeight: 700 }}>
+              {curPhaseMeta.icon} {curPhaseMeta.label}
             </span>
             <span style={{ display: "flex", gap: 5, alignItems: "center" }}>
               {Array.from({ length: pomoRounds }).map((_, i) => (
@@ -538,7 +539,7 @@ export default function TimersPage() {
             {isTimed ? (
               <circle
                 cx={150} cy={150} r={R} fill="none"
-                stroke={mode === "pomodoro" ? phaseMeta[p.phase].color : "url(#ringGrad)"}
+                stroke={mode === "pomodoro" ? curPhaseMeta.color : "url(#ringGrad)"}
                 strokeWidth={12} strokeLinecap="round" strokeDasharray={C}
                 strokeDashoffset={C * (1 - Math.min(1, Math.max(0, pct)))}
                 style={{ transition: "stroke-dashoffset 0.4s cubic-bezier(0.4,0,0.2,1)", filter: p.status === "running" ? "url(#glow)" : "none" }}
@@ -563,7 +564,7 @@ export default function TimersPage() {
                 animation: p.status === "running" ? "pulseGlow 1.5s infinite" : "none",
               }} />
               <span style={{ fontSize: 13, fontWeight: 600, color: "var(--muted)", textTransform: "uppercase", letterSpacing: 0.06 }}>
-                {p.status === "running" ? (mode === "stopwatch" ? "Tracking" : `${phaseMeta[p.phase]?.label || "Focusing"} • ${Math.ceil(remaining/60000)}m left`) : p.status === "paused" ? "Paused" : "Ready to focus"}
+                {p.status === "running" ? (mode === "stopwatch" ? "Tracking" : `${curPhaseMeta.label || "Focusing"} • ${Math.ceil(remaining/60000)}m left`) : p.status === "paused" ? "Paused" : "Ready to focus"}
               </span>
             </div>
             {p.status === "idle" && (
