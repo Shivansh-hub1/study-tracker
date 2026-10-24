@@ -55,7 +55,7 @@ export default function Heatmap({ data, weeks = 20, compact = false }: { data: A
   const cell = compact ? { width: 9, height: 9 } : undefined;
   return (
     <div>
-      <div style={{ display: "flex", gap, overflowX: "auto", paddingBottom: 2 }}>
+      <div style={{ display: "flex", gap, overflowX: "auto", WebkitOverflowScrolling: "touch", paddingBottom: 2 }}>
         {cols.map((col, i) => {
           const m = months.find((x: any) => x.i === i);
           return (

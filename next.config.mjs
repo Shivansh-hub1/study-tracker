@@ -17,13 +17,13 @@ const nextConfig = {
   },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
-  async redirects() {
+      async redirects() {
     return [
-      {
-        source: "/focus-timer",
-        destination: "/timer",
-        permanent: true,
-      },
+      { source: "/focus-timer", destination: "/timer", permanent: true },
+      { source: "/pomodoro", destination: "/timer", permanent: true },
+      { source: "/focus", destination: "/timer", permanent: true },
+      { source: "/stopwatch", destination: "/timer", permanent: true },
+      { source: "/planner", destination: "/revision", permanent: true },
     ];
   },
   async headers() {

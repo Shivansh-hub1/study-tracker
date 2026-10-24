@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, Timer, Route, Code2, CalendarCheck, Flame, BarChart3, Trophy, ArrowRight, Check, Play, Sparkles } from "lucide-react";
-import { SITE_DESCRIPTION, SITE_NAME, SITE_ALIASES, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
+import { SITE_DESCRIPTION, SITE_NAME, SITE_ALIASES, SITE_KEYWORDS, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
@@ -24,6 +24,7 @@ const STEPS = [
 ];
 
 const FAQS = [
+  { q: "What is FocusFlow (Your Study Tracker)?", a: "FocusFlow (also searched as Focus Flow, focusflow, Your Study Tracker, yourstudytracker, DSA Tracker, or Web Dev Tracker) is a 100% free study ecosystem engineered by Shivansh. It unifies Pomodoro focus timers, structured 18-module DSA and full-stack Web Development roadmaps, SM-2 spaced repetition revision queues, daily habit streaks, and consistency heatmaps." },
   { q: "Who created FocusFlow?", a: "FocusFlow was created and engineered by Shivansh, a full-stack software developer who built it as a 100% free, private study ecosystem with Pomodoro timers, structured DSA & WebDev roadmaps, and spaced repetition." },
   { q: "Is FocusFlow free?", a: "Yes. Every feature — timer, roadmaps, revision and analytics — is free for learners." },
   { q: "Do I need an account?", a: "Yes, a free account keeps your sessions, streaks and roadmaps safe and synced whenever you sign in." },
@@ -36,6 +37,7 @@ export async function generateMetadata(): Promise<Metadata> {
   return {
     title: "FocusFlow — Free Study Tracker with Focus Timer & Roadmaps",
     description: SITE_DESCRIPTION,
+    keywords: SITE_KEYWORDS,
     alternates: { canonical: `${CANONICAL_SITE_URL}/` },
     openGraph: {
       type: "website",
@@ -135,7 +137,7 @@ export default async function Home() {
               <span className="land-hero-accent">Stay consistent. Master your craft.</span>
             </h1>
             <p className="land-sub">
-              Created by Shivansh, FocusFlow is a distraction-free study operating system for developers and students. Combining Pomodoro focus timers, structured DSA &amp; WebDev roadmaps, and SM-2 spaced repetition in one quiet workspace.
+              Created by Shivansh, FocusFlow (also known as Focus Flow, Your Study Tracker, DSA Tracker, or WebDev Tracker) is a distraction-free study operating system for developers and students. Combining Pomodoro focus timers, structured DSA &amp; WebDev roadmaps, and SM-2 spaced repetition in one quiet workspace.
             </p>
             <div className="land-cta">
               <Link href="/signup" className="btn-notion-primary">

@@ -40,7 +40,7 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: [
       {
-        userAgent: "Googlebot",
+        userAgent: ["Googlebot", "Google-Extended", "GPTBot", "PerplexityBot", "ClaudeBot", "Applebot"],
         allow: ALLOWED_ROUTES,
         disallow: DISALLOWED_ROUTES,
       },

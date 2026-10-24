@@ -11,6 +11,7 @@ interface RouteItem {
 
 const PUBLIC_ROUTES: RouteItem[] = [
   { path: "", changeFrequency: "weekly", priority: 1.0 },
+  { path: "/timer", changeFrequency: "weekly", priority: 0.95 },
   { path: "/dsa-tracker", changeFrequency: "weekly", priority: 0.95 },
   { path: "/webdev-tracker", changeFrequency: "weekly", priority: 0.95 },
   { path: "/study-tracker", changeFrequency: "weekly", priority: 0.95 },

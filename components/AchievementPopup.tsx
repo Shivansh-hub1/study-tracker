@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState, useCallback } from "react";
+import Link from "next/link";
 import { useStats } from "@/lib/client";
 import { BADGES, RC, CAT_LABEL } from "@/lib/achievements";
 import { Trophy, X, Sparkles } from "lucide-react";
@@ -190,7 +191,7 @@ export default function AchievementPopup() {
             </button>
           </div>
 
-          <a href="/achievements" onClick={close} style={{ fontSize: 12.5, color: "var(--muted)", textDecoration: "underline" }}>View all {BADGES.length} achievements →</a>
+          <Link href="/achievements" onClick={close} style={{ fontSize: 12.5, color: "var(--muted)", textDecoration: "underline" }}>View all {BADGES.length} achievements →</Link>
         </div>
       </div>
     </div>

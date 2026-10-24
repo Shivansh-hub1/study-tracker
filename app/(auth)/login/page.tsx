@@ -32,7 +32,10 @@ export default function LoginPage() {
       return;
     }
     playSound("success"); toast("Welcome back!", "success");
-    router.push("/dashboard");
+    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
+    const nextUrl = params?.get("next");
+    const dest = nextUrl && nextUrl.startsWith("/") && !nextUrl.startsWith("//") ? nextUrl : "/dashboard";
+    router.push(dest);
     router.refresh();
   };
 

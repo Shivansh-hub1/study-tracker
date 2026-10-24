@@ -384,7 +384,7 @@ export default function SettingsPage() {
           </label>
           <div style={{ flex: 1, minWidth: 170 }}>
             <div style={{ fontWeight: 700 }}>{me?.user?.name}</div>
-            <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4 }}><span>{me?.user?.email} ·</span> <Lock size={12} /> <span>email can&apos;t be changed</span></div>
+            <div style={{ fontSize: 13, color: "var(--muted)", display: "flex", alignItems: "center", gap: 4, flexWrap: "wrap" }}><span>{me?.user?.email} ·</span> <Lock size={12} /> <span>email can&apos;t be changed</span></div>
           </div>
           {me?.user?.pfp && (
             <button className="btn" disabled={acctBusy} onClick={removePfp}>Remove picture</button>

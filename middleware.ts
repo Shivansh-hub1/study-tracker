@@ -80,6 +80,7 @@ export async function middleware(req: NextRequest) {
     if (isApi) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     const url = req.nextUrl.clone();
     url.pathname = "/login";
+    url.searchParams.set("next", pathname);
     return NextResponse.redirect(url);
   }
 

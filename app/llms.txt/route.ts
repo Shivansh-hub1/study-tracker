@@ -4,9 +4,9 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const base = new URL(req.url).origin;
-  const md = `# FocusFlow (Your Study Tracker)
+  const md = `# FocusFlow (Your Study Tracker, DSA Tracker, WebDev Tracker)
 
-> Created by Shivansh, FocusFlow is a free, high-performance study tracker and focus timer web application designed for students and developers. It unifies customizable Pomodoro timers, structured Data Structures & Algorithms (DSA) roadmaps, Full-Stack Web Development roadmaps, SM-2 spaced repetition revision queues, and consistency analytics in one quiet, ad-free workspace.
+> Created by Shivansh, FocusFlow (also known as Focus Flow, focusflow, focus flow tracker, your study tracker, yourstudytracker, DSA Tracker, dsatracker, Web Dev Tracker, webdev tracker, and study tracker) is a free, high-performance study operating system and focus timer web application designed for students and developers. It unifies customizable Pomodoro timers, structured Data Structures & Algorithms (DSA) roadmaps, Full-Stack Web Development roadmaps, SM-2 spaced repetition revision queues, and consistency analytics in one quiet, ad-free workspace.
 
 ## Creator & Engineering Leadership
 
