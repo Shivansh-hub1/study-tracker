@@ -347,6 +347,7 @@ export default function SessionsPage() {
                         {label}
                         <span className="badge" style={{ marginLeft: 8, fontSize: 11 }}>{groupSessions.length} sessions · {fmtMinutes(Math.round(dayTotal / 60))}</span>
                       </div>
+                      <div className="table-wrap">
                       <table className="table">
                         <tbody>
                           {groupSessions.map((s: any) => (
@@ -371,12 +372,14 @@ export default function SessionsPage() {
                           ))}
                         </tbody>
                       </table>
+                      </div>
                     </div>
                   );
                 })}
               </div>
             ) : (
               // Flat table for other sorts
+              <div className="table-wrap">
               <table className="table">
                 <thead>
                   <tr><th>Subject</th><th>Topic</th><th>Type</th><th>Started</th><th>Duration</th><th>Notes</th><th style={{ width: 90 }}></th></tr>
@@ -404,6 +407,7 @@ export default function SessionsPage() {
                   ))}
                 </tbody>
               </table>
+              </div>
             )}
           </div>
         )}

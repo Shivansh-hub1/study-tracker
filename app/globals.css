@@ -250,7 +250,9 @@ p { margin: 0; }
 .divider { height: 1px; background: var(--border); margin: 14px 0; border: none; }
 
 /* Table */
-.table { width: 100%; border-collapse: collapse; font-size: 14px; }
+.table-wrap { width: 100%; overflow-x: auto; -webkit-overflow-scrolling: touch; }
+.card-pad-0:has(.table), .card:has(.table) { overflow-x: auto; }
+.table { width: 100%; min-width: 500px; border-collapse: collapse; font-size: 14px; }
 .table th { text-align: left; padding: 10px 12px; color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; border-bottom: 1px solid var(--border); font-weight: 700; }
 .table td { padding: 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
 .table tr:last-child td { border-bottom: none; }
@@ -1676,3 +1678,24 @@ html[data-bg-anim] body::before {
   animation: ff-bg-hue 40s linear infinite;
 }
 @keyframes ff-bg-hue { to { filter: hue-rotate(360deg); } }
+
+/* Dev quote bar mobile optimization */
+.dev-quote-bar { margin: 8px 0 16px; width: 100%; }
+@media (max-width: 500px) {
+  .dev-quote-remaining { display: none !important; }
+}
+
+/* Extra small mobile screens (<= 480px and <= 360px) */
+@media (max-width: 480px) {
+  .land-nav { padding: 10px 14px; }
+  .land-links { gap: 6px; }
+  .land-links .btn-notion-utility { padding: 6px 10px; font-size: 12px; }
+  .land-links .btn-notion-primary { padding: 6px 12px !important; font-size: 12px !important; }
+  .land-logo { font-size: 17px; }
+  .land-logo-icon { width: 32px; height: 32px; }
+  .main { padding: 12px 12px 64px; }
+}
+@media (max-width: 360px) {
+  .land-links .btn-notion-primary svg { display: none; }
+  .land-links .btn-notion-primary { padding: 5px 8px !important; font-size: 11px !important; }
+}

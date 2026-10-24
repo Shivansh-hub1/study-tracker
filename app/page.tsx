@@ -160,10 +160,10 @@ export default async function Home() {
                   <span />
                   <span />
                 </div>
-                <div className="notion-window-crumb">
-                  FocusFlow / ðŸ“š Data Structures &amp; Algorithms / â±ï¸ Deep Work Session
+                <div className="notion-window-crumb" style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+                  FocusFlow / <Route size={12} /> Data Structures &amp; Algorithms / <Timer size={12} /> Deep Work Session
                 </div>
-                <div style={{ fontSize: "11px", opacity: 0.65 }}>â— Ready</div>
+                <div style={{ fontSize: "11px", opacity: 0.65 }}>● Ready</div>
               </div>
               <div className="notion-window-body">
                 <div className="notion-window-timer">
@@ -177,7 +177,7 @@ export default async function Home() {
                     <span className="notion-timer-mode">Long Break</span>
                   </div>
                   <div className="notion-timer-task">
-                    Current: Dynamic Programming Â· Coin Change
+                    Current: Dynamic Programming · Coin Change
                   </div>
                 </div>
 
@@ -204,7 +204,9 @@ export default async function Home() {
                   <div className="notion-side-card">
                     <div className="notion-side-head">
                       <h4>14-Day Study Streak</h4>
-                      <span style={{ fontSize: "11.5px", color: "var(--notion-accent-orange)", fontWeight: 600 }}>ðŸ”¥ Active</span>
+                      <span style={{ fontSize: "11.5px", color: "var(--notion-accent-orange)", fontWeight: 600, display: "inline-flex", alignItems: "center", gap: 4 }}>
+                        <Flame size={12} /> Active
+                      </span>
                     </div>
                     <div className="notion-heat-row">
                       <span className="notion-heat-sq lvl-2" title="Mon: 2.5h" />

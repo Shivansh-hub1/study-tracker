@@ -9,7 +9,7 @@ const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-int
 export async function generateMetadata(): Promise<Metadata> {
   return {
     metadataBase: new URL(CANONICAL_SITE_URL),
-    title: { default: `${SITE_NAME} â€” Study Tracker`, template: `%s | ${SITE_NAME}` },
+    title: { default: `${SITE_NAME} — Study Tracker`, template: `%s | ${SITE_NAME}` },
     description: SITE_DESCRIPTION,
     keywords: SITE_KEYWORDS,
     authors: [{ name: "Shivansh", url: AUTHOR_INFO.url }, { name: SITE_NAME }],
@@ -19,7 +19,7 @@ export async function generateMetadata(): Promise<Metadata> {
     openGraph: {
       type: "website",
       siteName: SITE_NAME,
-      title: `${SITE_NAME} â€” Free Study Tracker with Focus Timer & Roadmaps`,
+      title: `${SITE_NAME} — Free Study Tracker with Focus Timer & Roadmaps`,
       description: SITE_DESCRIPTION,
       url: "/",
       locale: "en_US",
@@ -28,7 +28,7 @@ export async function generateMetadata(): Promise<Metadata> {
           url: "/opengraph-image",
           width: 1200,
           height: 630,
-          alt: `${SITE_NAME} â€” Deep-focus study tracker with timer, roadmaps and analytics`,
+          alt: `${SITE_NAME} — Deep-focus study tracker with timer, roadmaps and analytics`,
         },
       ],
     },
@@ -36,7 +36,7 @@ export async function generateMetadata(): Promise<Metadata> {
       card: "summary_large_image",
       site: "@FocusFlowApp",
       creator: "@FocusFlowApp",
-      title: `${SITE_NAME} â€” Free Study Tracker`,
+      title: `${SITE_NAME} — Free Study Tracker`,
       description: SITE_DESCRIPTION,
       images: ["/opengraph-image"],
     },

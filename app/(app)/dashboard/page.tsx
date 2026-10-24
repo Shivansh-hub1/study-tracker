@@ -306,6 +306,7 @@ export default function DashboardPage() {
           {(sessData?.sessions || []).length === 0 ? (
             <EmptyState icon={<Clock size={26} />} title="No sessions logged" hint="Pomodoros, timers and stopwatch runs appear here." action={<Link className="btn btn-primary" href="/timer"><Play size={15} /> Start a session</Link>} />
           ) : (
+            <div className="table-wrap">
             <table className="table">
               <thead><tr><th>Subject</th><th>Type</th><th>Duration</th><th>When</th></tr></thead>
               <tbody>
@@ -323,6 +324,7 @@ export default function DashboardPage() {
                 ))}
               </tbody>
             </table>
+            </div>
           )}
         </div>
 

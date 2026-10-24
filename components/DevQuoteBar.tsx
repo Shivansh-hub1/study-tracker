@@ -17,13 +17,14 @@ export default function DevQuoteBar() {
 
   return (
     <div
+      className="dev-quote-bar"
       style={{
         display: "flex",
         alignItems: "center",
         justifyContent: "space-between",
         gap: 12,
         padding: "6px 14px",
-        margin: "10px 18px 4px",
+        margin: "8px 0 16px",
         borderRadius: 12,
         background: "var(--accent-soft)",
         border: "1px solid var(--border)",
@@ -78,6 +79,7 @@ export default function DevQuoteBar() {
 
       <div style={{ display: "flex", alignItems: "center", gap: 6, flexShrink: 0 }}>
         <span
+          className="dev-quote-remaining"
           style={{
             fontSize: 10,
             fontFamily: "monospace",

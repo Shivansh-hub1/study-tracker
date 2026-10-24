@@ -442,6 +442,11 @@ export default function TimersPage() {
     <div className="grid" style={{ gridTemplateColumns: "1.4fr 0.9fr", gap: 20, alignItems: "start" }}>
       <style>{`
         @media (max-width: 1100px){ .grid[style*="1.4fr"] { grid-template-columns: 1fr !important; } }
+        @media (max-width: 640px) {
+          .timer-hero { padding: 20px 14px 18px !important; border-radius: 20px !important; }
+          .timer-tabs { width: 100%; display: flex; }
+          .timer-tab { flex: 1; justify-content: center; padding: 8px 10px !important; font-size: 12.5px !important; }
+        }
         .timer-hero {
           background: radial-gradient(600px 400px at 50% -10%, var(--accent-soft), transparent 70%), var(--surface);
           border: 1px solid var(--border);
@@ -518,8 +523,8 @@ export default function TimersPage() {
         )}
 
         {/* Ring — Bigger, gradient, glow */}
-        <div className="ring-wrap" style={{ width: 300, height: 300, position: "relative" }}>
-          <svg width={300} height={300} style={{ transform: "rotate(-90deg)", position: "relative", zIndex: 1 }}>
+        <div className="ring-wrap" style={{ width: "100%", maxWidth: 300, aspectRatio: "1 / 1", position: "relative" }}>
+          <svg viewBox="0 0 300 300" style={{ width: "100%", height: "100%", transform: "rotate(-90deg)", position: "relative", zIndex: 1 }}>
             <defs>
               <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stopColor="var(--accent)" />
@@ -553,7 +558,7 @@ export default function TimersPage() {
           </svg>
           {/* Center label — improved typography */}
           <div className="ring-label" style={{ zIndex: 2 }}>
-            <div className="timer-display" style={{ fontSize: 64, fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, background: p.status === "running" ? "var(--accent-grad)" : "none", WebkitBackgroundClip: p.status === "running" ? "text" : "unset", backgroundClip: p.status === "running" ? "text" : "unset", color: p.status === "running" ? "transparent" : "var(--text)" }}>
+            <div className="timer-display" style={{ fontSize: "clamp(44px, 12vw, 64px)", fontWeight: 900, letterSpacing: "-0.04em", lineHeight: 1, background: p.status === "running" ? "var(--accent-grad)" : "none", WebkitBackgroundClip: p.status === "running" ? "text" : "unset", backgroundClip: p.status === "running" ? "text" : "unset", color: p.status === "running" ? "transparent" : "var(--text)" }}>
               {mode === "stopwatch" ? fmtClock(Math.floor(swElapsed / 1000)) : fmtClock(display)}
             </div>
             <div style={{ display: "flex", alignItems: "center", gap: 6, justifyContent: "center", marginTop: 8 }}>
@@ -576,7 +581,7 @@ export default function TimersPage() {
         </div>
 
         {/* Controls — bigger, premium */}
-        <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+        <div style={{ display: "flex", gap: 12, alignItems: "center", flexWrap: "wrap", justifyContent: "center" }}>
           <button className="iconbtn" onClick={reset} title="Reset" style={{ width: 44, height: 44, borderRadius: 14, background: "var(--surface-2)" }}><RotateCcw size={18} /></button>
           {mode === "stopwatch" ? (
             <>
