@@ -72,5 +72,5 @@ export function setAuthCookie(token: string) {
 }
 
 export function clearAuthCookie() {
-  cookies().set(COOKIE, "", { httpOnly: true, path: "/", maxAge: 0 });
+  cookies().set(COOKIE, "", { httpOnly: true, sameSite: "lax", path: "/", maxAge: 0, secure: process.env.NODE_ENV === "production" });
 }

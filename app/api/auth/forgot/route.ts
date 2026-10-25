@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import crypto from "crypto";
 import { getDb } from "@/lib/db";
 import { sendPasswordReset, mailConfigured } from "@/lib/mailer";
+import { CANONICAL_SITE_URL } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
 
@@ -35,7 +36,7 @@ export async function POST(req: NextRequest) {
         tokenHash, user.id, em, expiresAt, new Date().toISOString()
       );
       if (mailConfigured()) {
-        const base = process.env.NEXT_PUBLIC_SITE_URL || "https://yourstudytracker.vercel.app";
+        const base = process.env.NEXT_PUBLIC_SITE_URL || CANONICAL_SITE_URL;
         try { await sendPasswordReset(em, user.name, `${base}/reset?token=${token}`); } catch (e) { console.error("reset email failed", e); }
       } else {
         console.log(`[auth] SMTP not configured — reset link for ${em}: /reset?token=${token}`);

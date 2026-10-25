@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { CANONICAL_SITE_URL } from "./seo";
 
 /*
  * FocusFlow mailer — SMTP-based, provider-agnostic.
@@ -57,7 +58,7 @@ export async function sendRaw(to: string, subject: string, html: string, text: s
 }
 
 function siteUrl(): string {
-  return process.env.NEXT_PUBLIC_SITE_URL || "https://yourstudytracker.vercel.app";
+  return process.env.NEXT_PUBLIC_SITE_URL || CANONICAL_SITE_URL;
 }
 
 function fmtMinutes(min: number): string {

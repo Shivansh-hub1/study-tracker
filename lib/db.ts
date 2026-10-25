@@ -102,17 +102,7 @@ const SCHEMA = [
     day TEXT NOT NULL,
     UNIQUE(user_id, day)
   )`,
-  `CREATE TABLE IF NOT EXISTS exams (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    title TEXT NOT NULL,
-    subject TEXT NOT NULL DEFAULT '',
-    exam_date TEXT NOT NULL,
-    notes TEXT NOT NULL DEFAULT '',
-    checklist TEXT NOT NULL DEFAULT '[]',
-    created_at TEXT NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS planner_blocks (
+    `CREATE TABLE IF NOT EXISTS planner_blocks (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     day INTEGER NOT NULL DEFAULT 0,
@@ -122,24 +112,7 @@ const SCHEMA = [
     done_week TEXT NOT NULL DEFAULT '',
     created_at TEXT NOT NULL
   )`,
-  `CREATE TABLE IF NOT EXISTS decks (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    user_id INTEGER NOT NULL,
-    name TEXT NOT NULL,
-    subject TEXT NOT NULL DEFAULT '',
-    created_at TEXT NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS cards (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    deck_id INTEGER NOT NULL,
-    user_id INTEGER NOT NULL,
-    front TEXT NOT NULL,
-    back TEXT NOT NULL,
-    correct INTEGER NOT NULL DEFAULT 0,
-    wrong INTEGER NOT NULL DEFAULT 0,
-    created_at TEXT NOT NULL
-  )`,
-  `CREATE TABLE IF NOT EXISTS habits (
+      `CREATE TABLE IF NOT EXISTS habits (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     name TEXT NOT NULL,
@@ -163,9 +136,7 @@ const SCHEMA = [
   `CREATE INDEX IF NOT EXISTS idx_planner_user ON planner_blocks(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_habits_user ON habits(user_id)`,
   `CREATE INDEX IF NOT EXISTS idx_habit_logs_user_day ON habit_logs(user_id, habit_id, day)`,
-  `CREATE INDEX IF NOT EXISTS idx_decks_user ON decks(user_id)`,
-  `CREATE INDEX IF NOT EXISTS idx_cards_deck ON cards(deck_id)`,
-  `CREATE TABLE IF NOT EXISTS xp_purchases (
+      `CREATE TABLE IF NOT EXISTS xp_purchases (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     user_id INTEGER NOT NULL,
     item TEXT NOT NULL,
@@ -229,21 +200,17 @@ const MIGRATIONS = [
   "ALTER TABLE settings ADD COLUMN freeze_week TEXT NOT NULL DEFAULT ''",
 ];
 
-async function migrateIfNeeded(db: DB) {
-  const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
-  if (m?.value !== "2") {
-    if (m?.value !== "1") {
-      for (const sql of MIGRATIONS) {
-        try { await db.run(sql); } catch { /* column already exists */ }
-      }
-      await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
+async function runMigrations(db: DB, v: number) {
+  if (v >= 5) return;
+  if (v < 1) {
+    for (const sql of MIGRATIONS) {
+      try { await db.run(sql); } catch {}
     }
-    // v2: profile pictures
-    try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch { /* column already exists */ }
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','2')");
   }
-  // v3: time transfers (move half of a 6h+ day to an earlier day)
-  if (m?.value !== "3") {
+  if (v < 2) {
+    try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch {}
+  }
+  if (v < 3) {
     await db.run(`CREATE TABLE IF NOT EXISTS time_transfers (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       user_id INTEGER NOT NULL,
@@ -252,15 +219,11 @@ async function migrateIfNeeded(db: DB) {
       minutes INTEGER NOT NULL,
       created_at TEXT NOT NULL
     )`);
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','3')");
   }
-  // v4: per-user email opt-out (admin controlled)
-  if (m?.value !== "4") {
-    try { await db.run("ALTER TABLE users ADD COLUMN emails_opt_out INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','4')");
+  if (v < 4) {
+    try { await db.run("ALTER TABLE users ADD COLUMN emails_opt_out INTEGER NOT NULL DEFAULT 0"); } catch {}
   }
-  // v5: password resets + web push subscriptions
-  if (m?.value !== "5") {
+  if (v < 5) {
     await db.run(`CREATE TABLE IF NOT EXISTS password_resets (
       token_hash TEXT PRIMARY KEY,
       user_id INTEGER NOT NULL,
@@ -278,8 +241,13 @@ async function migrateIfNeeded(db: DB) {
       created_at TEXT NOT NULL
     )`);
     await db.run("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)");
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','5')");
   }
+  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v', '5')");
+}
+
+async function migrateIfNeeded(db: DB) {
+  const m = await db.get<{ value: string }>("SELECT value FROM _meta WHERE key = 'schema_v'");
+  await runMigrations(db, parseInt(m?.value || "0", 10));
 }
 
 async function init(): Promise<DB> {
@@ -360,55 +328,7 @@ async function initTurso(): Promise<DB> {
     snap = { users: Number(cu?.c ?? 0), v: m?.value ?? null, owner: !!o };
   }
   if (snap.users === 0) await seedIfEmpty(db, batchExec, true);
-  if (snap.v !== "1") {
-    for (const sql of MIGRATIONS) {
-      try { await db.run(sql); } catch { /* column already exists */ }
-    }
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','1')");
-  }
-  // v2: profile pictures (must ALSO run here — initTurso returns before migrateIfNeeded)
-  if (snap.v !== "2") {
-    try { await db.run("ALTER TABLE users ADD COLUMN pfp TEXT"); } catch { /* column already exists */ }
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','2')");
-  }
-  // v3: time transfers (must ALSO run here — initTurso returns before migrateIfNeeded)
-  if (snap.v !== "3") {
-    await db.run(`CREATE TABLE IF NOT EXISTS time_transfers (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_id INTEGER NOT NULL,
-      from_day TEXT NOT NULL,
-      to_day TEXT NOT NULL,
-      minutes INTEGER NOT NULL,
-      created_at TEXT NOT NULL
-    )`);
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','3')");
-  }
-  // v4: per-user email opt-out (must ALSO run here — initTurso returns before migrateIfNeeded)
-  if (snap.v !== "4") {
-    try { await db.run("ALTER TABLE users ADD COLUMN emails_opt_out INTEGER NOT NULL DEFAULT 0"); } catch { /* column already exists */ }
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','4')");
-  }
-  // v5: password resets + web push subscriptions (must ALSO run here — initTurso returns before migrateIfNeeded)
-  if (snap.v !== "5") {
-    await db.run(`CREATE TABLE IF NOT EXISTS password_resets (
-      token_hash TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      email TEXT NOT NULL,
-      expires_at TEXT NOT NULL,
-      used INTEGER NOT NULL DEFAULT 0,
-      created_at TEXT NOT NULL
-    )`);
-    await db.run("CREATE INDEX IF NOT EXISTS idx_password_resets_user ON password_resets(user_id)");
-    await db.run(`CREATE TABLE IF NOT EXISTS push_subscriptions (
-      endpoint TEXT PRIMARY KEY,
-      user_id INTEGER NOT NULL,
-      p256dh TEXT NOT NULL,
-      auth TEXT NOT NULL,
-      created_at TEXT NOT NULL
-    )`);
-    await db.run("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)");
-    await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v','5')");
-  }
+  await runMigrations(db, parseInt(snap.v || "0", 10));
   if (!snap.owner) await createOwner(db);
   return db;
 }
@@ -518,7 +438,7 @@ async function createOwner(db: DB) {
 
 /** Delete a user and ALL their data (admin cascade). */
 export async function deleteUserCascade(db: DB, userId: number) {
-  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress", "freeze_days", "exams", "planner_blocks", "decks", "cards", "habits", "habit_logs"]) {
+  for (const t of ["sessions", "subjects", "goals", "timetables", "settings", "dsa_progress", "web_progress", "freeze_days", "planner_blocks", "habits", "habit_logs", "time_transfers", "xp_purchases", "password_resets", "push_subscriptions"]) {
     await db.run(`DELETE FROM ${t} WHERE user_id = ?`, userId);
   }
   await db.run("DELETE FROM users WHERE id = ?", userId);
