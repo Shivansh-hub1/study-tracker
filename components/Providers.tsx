@@ -51,14 +51,14 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = useState<Toast[]>([]);
 
   useEffect(() => {
-    const t = localStorage.getItem("ff_theme") || "dark";
+    let t = "dark"; try { t = localStorage.getItem("ff_theme") || "dark"; } catch {}
     setThemeState(t);
     document.documentElement.setAttribute("data-theme", t);
   }, []);
 
   const setTheme = useCallback((t: string) => {
     setThemeState(t);
-    localStorage.setItem("ff_theme", t);
+    try { localStorage.setItem("ff_theme", t); } catch {}
     document.documentElement.setAttribute("data-theme", t);
   }, []);
 

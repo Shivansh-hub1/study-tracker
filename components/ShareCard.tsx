@@ -16,7 +16,8 @@ export function fmtShareHours(min: number) {
 
 function rr(x: CanvasRenderingContext2D, px: number, py: number, w: number, h: number, r: number) {
   x.beginPath();
-  (x as any).roundRect(px, py, w, h, r);
+  if (typeof (x as any).roundRect === "function") (x as any).roundRect(px, py, w, h, r);
+  else x.rect(px, py, w, h);
 }
 
 /** Paints a 1080x1350 story-style progress card. Pure canvas, no deps. */

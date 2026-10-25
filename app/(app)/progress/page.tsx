@@ -238,7 +238,7 @@ export default function ProgressPage() {
       {/* Heatmap */}
       <div className="card">
         <h2 style={{ fontSize: 15, marginBottom: 12 }}>Consistency heatmap {yearView ? "— full year" : "— last 20 weeks"}</h2>
-        <Heatmap data={stats.heat} weeks={yearView ? 53 : 20} compact />
+        <Heatmap data={stats?.heat || []} weeks={yearView ? 53 : 20} compact />
         {!yearView && <p style={{ fontSize: 12, color: "var(--muted)", marginTop: 10, display: "flex", alignItems: "center", gap: 5 }}><Lock size={12} style={{ color: "var(--muted)" }} /> The 53-week full-year view is a Shop unlock (350 XP).</p>}
         <div style={{ display: "flex", gap: 6, alignItems: "center", marginTop: 10, fontSize: 11.5, color: "var(--muted)" }}>
           Less

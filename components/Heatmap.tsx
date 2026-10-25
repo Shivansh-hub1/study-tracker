@@ -2,12 +2,12 @@
 
 import React, { useMemo } from "react";
 
-export default function Heatmap({ data, weeks = 20, compact = false }: { data: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number; compact?: boolean }) {
+export default function Heatmap({ data = [], weeks = 20, compact = false }: { data?: Array<{ date: string; minutes: number; frozen?: boolean }>; weeks?: number; compact?: boolean }) {
   const { cols, max, months } = useMemo(() => {
     const byDate: Record<string, number> = {};
     const frozen = new Set<string>();
     let max = 0;
-    for (const d of data) { byDate[d.date] = d.minutes; if (d.frozen) frozen.add(d.date); if (d.minutes > max) max = d.minutes; }
+    for (const d of (data || [])) { byDate[d.date] = d.minutes; if (d.frozen) frozen.add(d.date); if (d.minutes > max) max = d.minutes; }
     // Build columns of 7 ending today, aligned to Monday start
     const dayMs = 86400000;
     const today = new Date();
