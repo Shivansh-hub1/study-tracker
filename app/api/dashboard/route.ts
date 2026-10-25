@@ -3,6 +3,7 @@ import { getDb, ensureSettings } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
+import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +20,7 @@ function mondayKey(nowLocal: Date) {
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
 
   const __ck = `u${user.id}:dash:${offsetMin}`;
   const __hit = cacheGet(__ck);
@@ -61,7 +62,10 @@ export async function GET(req: NextRequest) {
   // Lazy weekly freeze grant (same logic as /api/streak).
   let stock = Number((setRow as any)?.freeze_stock ?? 1);
   if (((setRow as any)?.freeze_week || "") !== week) {
-    stock = Math.min(2, stock + 1);
+    const deep = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'deep_freeze'", user.id)) as any;
+    const cryo = (await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'cryo'", user.id)) as any;
+    const cap = cryo ? 7 : deep ? 5 : 3;
+    stock = stock < cap ? stock + 1 : stock;
     await db.run("UPDATE settings SET freeze_stock = ?, freeze_week = ? WHERE user_id = ?", stock, week, user.id);
   }
 

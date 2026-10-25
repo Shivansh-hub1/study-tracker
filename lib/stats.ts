@@ -13,8 +13,9 @@ export function computeStats(
   spentXp: number = 0,
   transfers: any[] = []
 ) {
-  const toLocal = (iso: string) => new Date(new Date(iso).getTime() + offsetMin * 60000);
-  const nowLocal = new Date(Date.now() + offsetMin * 60000);
+  const safeOffset = Number.isFinite(Number(offsetMin)) ? Math.max(-720, Math.min(840, Math.round(Number(offsetMin)))) : 0;
+  const toLocal = (iso: string) => new Date(new Date(iso).getTime() + safeOffset * 60000);
+  const nowLocal = new Date(Date.now() + safeOffset * 60000);
   const todayK = dateKey(nowLocal);
   const frozen = new Set((frozenRows || []).map((r) => r.day));
 
@@ -60,7 +61,7 @@ export function computeStats(
   }
 
   // time transfers: move minutes between days (does not change totals or XP)
-  const parseDay = (k: string) => { const [y, m, d] = k.split("-").map(Number); return new Date(y, m - 1, d); };
+  const parseDay = (k: string) => { const [y, m, d] = (k || "").split("-").map(Number); if (!y || !m || !d) return new Date(NaN); return new Date(y, m - 1, d); };
   for (const t of transfers || []) {
     const mv = Number(t.minutes) || 0;
     if (days[t.from_day]) days[t.from_day].minutes -= mv;

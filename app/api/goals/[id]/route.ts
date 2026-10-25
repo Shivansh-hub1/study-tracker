@@ -5,6 +5,8 @@ import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
+const KINDS = ["daily_minutes", "weekly_minutes", "monthly_minutes", "weekly_sessions"];
+
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -15,6 +17,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   if (!(await db.get("SELECT id FROM goals WHERE id = ? AND user_id = ?", id, user.id)))
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   const { title, kind, target } = await req.json().catch(() => ({}));
+  if (kind !== undefined && !KINDS.includes(kind)) return NextResponse.json({ error: "Invalid goal kind" }, { status: 400 });
   await db.run(
     "UPDATE goals SET title = COALESCE(?, title), kind = COALESCE(?, kind), target = COALESCE(?, target) WHERE id = ?",
     title?.trim() || null,

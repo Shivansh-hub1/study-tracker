@@ -7,7 +7,10 @@ export const dynamic = "force-dynamic";
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json().catch(() => ({}));
-  if (!email || !password) return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+  const em = String(email || "").toLowerCase().trim();
+  const pw = String(password || "");
+  if (!em || !pw) return NextResponse.json({ error: "Email and password are required" }, { status: 400 });
+  if (pw.length > 128) return NextResponse.json({ error: "Invalid email or password" }, { status: 401 });
   const db = await getDb();
   const user = (await db.get("SELECT id, password_hash FROM users WHERE email = ?", String(email).toLowerCase().trim())) as any;
   if (!user || !bcrypt.compareSync(String(password), user.password_hash)) {

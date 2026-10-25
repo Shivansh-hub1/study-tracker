@@ -26,6 +26,11 @@ export function fmtClock(totalSec: number): string {
   return h > 0 ? `${pad(h)}:${pad(m)}:${pad(s)}` : `${pad(m)}:${pad(s)}`;
 }
 
+export function parseOffset(raw: string | number | null | undefined): number {
+  const n = Number(raw);
+  return Number.isFinite(n) ? Math.max(-720, Math.min(840, Math.round(n))) : 0;
+}
+
 export function localDateKey(d: Date): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 }

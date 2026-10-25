@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
+import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,7 @@ export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await featureOn(await getDb(), "habits"))) return NextResponse.json({ disabled: true });
-  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
 
   const __ck = `u${user.id}:habits:${offsetMin}`;

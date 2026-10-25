@@ -170,14 +170,19 @@ class SoundEngine {
   private masterVolume = 0.9;
   private unlocked = false;
 
-  private getContext(): AudioContext {
-    if (!this.ctx) {
-      this.ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+  private getContext(): AudioContext | null {
+    try {
+      if (!this.ctx && typeof window !== "undefined") {
+        const AudioCtx = window.AudioContext || (window as any).webkitAudioContext;
+        if (AudioCtx) this.ctx = new AudioCtx();
+      }
+      if (this.ctx && this.ctx.state === "suspended") {
+        this.ctx.resume().catch(() => {});
+      }
+      return this.ctx;
+    } catch {
+      return null;
     }
-    if (this.ctx.state === "suspended") {
-      this.ctx.resume();
-    }
-    return this.ctx;
   }
 
   setEnabled(enabled: boolean) {
@@ -190,11 +195,13 @@ class SoundEngine {
 
   async unlock() {
     if (this.unlocked) return;
-    const ctx = this.getContext();
-    if (ctx.state === "suspended") {
-      await ctx.resume();
-    }
-    this.unlocked = true;
+    try {
+      const ctx = this.getContext();
+      if (ctx && ctx.state === "suspended") {
+        await ctx.resume().catch(() => {});
+      }
+      this.unlocked = true;
+    } catch {}
   }
 
   play(type: SoundType, options?: { volume?: number; playbackRate?: number }) {
@@ -204,6 +211,7 @@ class SoundEngine {
     if (!config) return;
 
     const ctx = this.getContext();
+    if (!ctx) return;
     const volume = (options?.volume ?? 1) * this.masterVolume * (config.volume ?? 1);
     const playbackRate = options?.playbackRate ?? 1;
 
@@ -297,7 +305,8 @@ export function setSoundEnabled(on: boolean) {
 }
 
 export function playSound(type: FFPlaySound) {
-  switch (type) {
+  try {
+    switch (type) {
     case "achievement": soundEngine.achievementUnlock(); break;
     case "timer": soundEngine.countdownComplete(); break;
     case "success": soundEngine.topicComplete(); break;
@@ -310,7 +319,8 @@ export function playSound(type: FFPlaySound) {
     case "milestone": soundEngine.streakMilestone(); break;
     case "click":
     default: soundEngine.click(); break;
-  }
+    }
+  } catch {}
 }
 
 // unlock audio on first gesture (capture phase, fires before click handlers)

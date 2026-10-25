@@ -79,13 +79,9 @@ export default function AchievementPopup() {
     // Mark all existing historical unlocks as already seen so demo accounts don't spam 35 popups
     if (!initializedRef.current) {
       initializedRef.current = true;
-      let rawSeen = null;
-      try { rawSeen = localStorage.getItem(SEEN_KEY); } catch {}
-      if (!rawSeen || seen.size === 0) {
-        unlocked.forEach(b => seen.add(b.id));
-        setSeen(seen);
-        return;
-      }
+      unlocked.forEach(b => seen.add(b.id));
+      setSeen(seen);
+      return;
     }
 
     const newOnes = unlocked.filter(b => !seen.has(b.id));

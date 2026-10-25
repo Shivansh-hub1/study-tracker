@@ -37,6 +37,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const id = Number(params.id);
   if (!(await own(db, user.id, id))) return NextResponse.json({ error: "Not found" }, { status: 404 });
   await db.run("UPDATE sessions SET subject_id = NULL WHERE subject_id = ?", id);
+  await db.run("UPDATE planner_blocks SET subject_id = NULL WHERE subject_id = ?", id);
   await db.run("DELETE FROM subjects WHERE id = ?", id);
   return NextResponse.json({ ok: true });
 }

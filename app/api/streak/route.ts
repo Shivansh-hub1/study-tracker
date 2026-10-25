@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings, DB } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
+import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -13,11 +14,18 @@ function mondayKey(nowLocal: Date) {
   return dateKey(d);
 }
 
-// Lazy weekly grant: +1 freeze every Monday, max 2 in stock.
+async function getFreezeCap(db: DB, userId: number): Promise<number> {
+  const deep = await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'deep_freeze'", userId);
+  const cryo = await db.get("SELECT id FROM xp_purchases WHERE user_id = ? AND item = 'cryo'", userId);
+  return cryo ? 7 : deep ? 5 : 3;
+}
+
+// Lazy weekly grant: +1 freeze every Monday, up to user's freeze stock cap (3 default, 5 with Deep Freeze, 7 with Cryo).
 async function weekGrant(db: DB, userId: number, week: string, s: any) {
   let stock = Number(s?.freeze_stock ?? 1);
   if ((s?.freeze_week || "") !== week) {
-    stock = Math.min(2, stock + 1);
+    const cap = await getFreezeCap(db, userId);
+    stock = stock < cap ? stock + 1 : stock;
     await db.run("UPDATE settings SET freeze_stock = ?, freeze_week = ? WHERE user_id = ?", stock, week, userId);
   }
   return stock;
@@ -26,7 +34,7 @@ async function weekGrant(db: DB, userId: number, week: string, s: any) {
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
 
   const __ck = `u${user.id}:streak:${offsetMin}`;
   const __hit = cacheGet(__ck);
@@ -49,7 +57,7 @@ export async function POST(req: NextRequest) {
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   bustUser(user.id);
-  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
   const body = await req.json().catch(() => ({}));
   if (body.action !== "freeze" && body.action !== "unfreeze") return NextResponse.json({ error: "Unknown action" }, { status: 400 });
   const db = await getDb();
@@ -65,7 +73,8 @@ export async function POST(req: NextRequest) {
     const f = f0;
     if (!f) return NextResponse.json({ error: "Today isn't frozen" }, { status: 400 });
     await db.run("DELETE FROM freeze_days WHERE user_id = ? AND day = ?", user.id, todayK);
-    const back = Math.min(2, stock + 1);
+    const cap = await getFreezeCap(db, user.id);
+    const back = Math.min(cap, stock + 1);
     await db.run("UPDATE settings SET freeze_stock = ? WHERE user_id = ?", back, user.id);
     return NextResponse.json({ ok: true, stock: back, frozenToday: false });
   }

@@ -3,13 +3,14 @@ import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
+import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0; // minutes ahead of UTC (e.g. 330 IST)
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset")); // minutes ahead of UTC (e.g. 330 IST)
 
   const __ck = `u${user.id}:stats:${offsetMin}`;
   const __hit = cacheGet(__ck);

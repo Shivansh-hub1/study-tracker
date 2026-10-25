@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { bustUser } from "@/lib/api-cache";
+import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
 
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const offsetMin = Number(new URL(req.url).searchParams.get("offset")) || 0;
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
   const body = await req.json().catch(() => ({}));
   const fromDay = String(body.fromDay || "");
   const toDay = String(body.toDay || "");

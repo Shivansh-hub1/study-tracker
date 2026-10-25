@@ -334,34 +334,50 @@ async function initTurso(): Promise<DB> {
 }
 
 async function initLocal(): Promise<DB> {
-  const Database = (await import("better-sqlite3")).default;
   const DATA_DIR = path.join(process.cwd(), "data");
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
-  const raw = new Database(path.join(DATA_DIR, "study.db"));
-  raw.pragma("journal_mode = WAL");
-  raw.pragma("synchronous = NORMAL");
-  raw.pragma("cache_size = -64000");
-  raw.pragma("temp_store = MEMORY");
-  raw.pragma("mmap_size = 268435456");
-  for (const s of SCHEMA) raw.exec(s);
-  const db: DB = {
-    async run(sql, ...args) {
-      const info = raw.prepare(sql).run(...args);
-      return { lastInsertRowid: Number(info.lastInsertRowid), changes: info.changes };
-    },
-    async get(sql, ...args) {
-      return raw.prepare(sql).get(...args) as any;
-    },
-    async all(sql, ...args) {
-      return raw.prepare(sql).all(...args) as any;
-    },
-  };
-  await seedIfEmpty(db, async (stmts) => {
-    raw.transaction(() => {
-      for (const s of stmts) raw.prepare(s.sql).run(...s.args);
-    })();
-  });
-  return db;
+  const dbPath = path.join(DATA_DIR, "study.db");
+
+  try {
+    const Database = (await import("better-sqlite3")).default;
+    const raw = new Database(dbPath);
+    raw.pragma("journal_mode = WAL");
+    raw.pragma("synchronous = NORMAL");
+    raw.pragma("cache_size = -64000");
+    raw.pragma("temp_store = MEMORY");
+    raw.pragma("mmap_size = 268435456");
+    for (const s of SCHEMA) raw.exec(s);
+    const db: DB = {
+      async run(sql, ...args) {
+        const info = raw.prepare(sql).run(...args);
+        return { lastInsertRowid: Number(info.lastInsertRowid), changes: info.changes };
+      },
+      async get(sql, ...args) {
+        return raw.prepare(sql).get(...args) as any;
+      },
+      async all(sql, ...args) {
+        return raw.prepare(sql).all(...args) as any;
+      },
+    };
+    await seedIfEmpty(db, async (stmts) => {
+      raw.transaction(() => {
+        for (const s of stmts) raw.prepare(s.sql).run(...s.args);
+      })();
+    });
+    return db;
+  } catch {
+    // Fallback: @libsql/client file driver (works on Node 24+ without C++ build tools)
+    const { createClient } = await import("@libsql/client");
+    const client = createClient({ url: `file:${dbPath.replace(/\\/g, "/")}` });
+    for (const s of SCHEMA) await client.execute(s);
+    const db = wrapTurso(client);
+    await seedIfEmpty(db, async (stmts) => {
+      for (let i = 0; i < stmts.length; i += 120) {
+        await client.batch(stmts.slice(i, i + 120) as any, "write");
+      }
+    });
+    return db;
+  }
 }
 
 export async function ensureSettings(db: DB, userId: number) {

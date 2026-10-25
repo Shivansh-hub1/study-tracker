@@ -45,7 +45,7 @@ export async function GET(req: NextRequest) {
     subjects,
     sessions,
     goals,
-    timetables: timetablesRaw.map((t) => ({ ...t, config: JSON.parse(t.config), slots: JSON.parse(t.slots) })),
+    timetables: timetablesRaw.map((t) => { const safe = (s: string, fb: any) => { try { return JSON.parse(s); } catch { return fb; } }; return { ...t, config: safe(t.config, {}), slots: safe(t.slots, []) }; }),
   };
   return new NextResponse(JSON.stringify(payload, null, 2), {
     headers: {

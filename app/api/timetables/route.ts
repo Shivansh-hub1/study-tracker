@@ -12,7 +12,7 @@ export async function GET() {
   const db = await getDb();
   const rows = (await db.all("SELECT * FROM timetables WHERE user_id = ? ORDER BY created_at DESC", user.id)) as any[];
   return NextResponse.json({
-    timetables: rows.map((r) => ({ ...r, config: JSON.parse(r.config), slots: JSON.parse(r.slots) })),
+    timetables: rows.map((r) => { const safe = (s: string, fb: any) => { try { return JSON.parse(s); } catch { return fb; } }; return { ...r, config: safe(r.config, {}), slots: safe(r.slots, []) }; }),
   });
 }
 
