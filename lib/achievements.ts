@@ -12,7 +12,7 @@ export const maxWeekly = (s: S) => Math.max(0, ...((s.weekly || []).map((w: any)
 export const maxMonthly = (s: S) => Math.max(0, ...((s.monthly || []).map((m: any) => num(m.minutes))));
 export const perfectWeek = (s: S) => (s.daily || []).slice(-7).every((d: any) => num(d.minutes) > 0) && (s.daily || []).length >= 7;
 export const perfectMonth = (s: S) => activeLast30(s) >= 30;
-export const weekendCount = (s: S) => (s.daily || []).filter((d: any) => { try { const day = new Date(d.date).getDay(); return (day === 0 || day === 6) && num(d.minutes) > 0; } catch { return false; } }).length;
+export const weekendCount = (s: S) => (s.daily || []).filter((d: any) => { try { const day = new Date(d.date + "T12:00:00").getDay(); return (day === 0 || day === 6) && num(d.minutes) > 0; } catch { return false; } }).length;
 export const timerTypesUsed = (s: S) => (s.byType || []).filter((t: any) => num(t.minutes) > 0).length;
 export const hourlyAt = (s: S, h: number) => num((s.hourly || [])[h]);
 export const hasDawn = (s: S) => hourlyAt(s, 5) > 0;
@@ -25,48 +25,48 @@ export const maxSubjectMin = (s: S) => Math.max(0, ...((s.bySubjectAll || []).ma
 
 export const BADGES: Badge[] = [
   // SESSIONS
-  { id: "first", name: "First Steps", desc: "Log your first session", icon: "🌱", rarity: "common", category: "sessions", test: (s) => s.totalSessions >= 1, prog: (s) => [Math.min(s.totalSessions, 1), 1] },
-  { id: "s10", name: "Getting Serious", desc: "Log 10 sessions", icon: "📚", rarity: "common", category: "sessions", test: (s) => s.totalSessions >= 10, prog: (s) => [Math.min(s.totalSessions, 10), 10] },
-  { id: "s50", name: "Half Century", desc: "Log 50 sessions", icon: "🔥", rarity: "rare", category: "sessions", test: (s) => s.totalSessions >= 50, prog: (s) => [Math.min(s.totalSessions, 50), 50] },
-  { id: "s100", name: "Century", desc: "Log 100 sessions", icon: "💯", rarity: "epic", category: "sessions", test: (s) => s.totalSessions >= 100, prog: (s) => [Math.min(s.totalSessions, 100), 100] },
-  { id: "s250", name: "Unstoppable", desc: "Log 250 sessions", icon: "⚔️", rarity: "epic", category: "sessions", test: (s) => s.totalSessions >= 250, prog: (s) => [Math.min(s.totalSessions, 250), 250] },
-  { id: "s500", name: "Machine", desc: "Log 500 sessions", icon: "🤖", rarity: "legendary", category: "sessions", test: (s) => s.totalSessions >= 500, prog: (s) => [Math.min(s.totalSessions, 500), 500] },
-  { id: "s1000", name: "Immortal", desc: "Log 1,000 sessions", icon: "🤯", rarity: "legendary", category: "sessions", test: (s) => s.totalSessions >= 1000, prog: (s) => [Math.min(s.totalSessions, 1000), 1000] },
+  { id: "first", name: "First Steps", desc: "Log your first session", icon: "🌱", rarity: "common", category: "sessions", test: (s) => num(s?.totalSessions) >= 1, prog: (s) => [Math.min(num(s?.totalSessions), 1), 1] },
+  { id: "s10", name: "Getting Serious", desc: "Log 10 sessions", icon: "📚", rarity: "common", category: "sessions", test: (s) => num(s?.totalSessions) >= 10, prog: (s) => [Math.min(num(s?.totalSessions), 10), 10] },
+  { id: "s50", name: "Half Century", desc: "Log 50 sessions", icon: "🔥", rarity: "rare", category: "sessions", test: (s) => num(s?.totalSessions) >= 50, prog: (s) => [Math.min(num(s?.totalSessions), 50), 50] },
+  { id: "s100", name: "Century", desc: "Log 100 sessions", icon: "💯", rarity: "epic", category: "sessions", test: (s) => num(s?.totalSessions) >= 100, prog: (s) => [Math.min(num(s?.totalSessions), 100), 100] },
+  { id: "s250", name: "Unstoppable", desc: "Log 250 sessions", icon: "⚔️", rarity: "epic", category: "sessions", test: (s) => num(s?.totalSessions) >= 250, prog: (s) => [Math.min(num(s?.totalSessions), 250), 250] },
+  { id: "s500", name: "Machine", desc: "Log 500 sessions", icon: "🤖", rarity: "legendary", category: "sessions", test: (s) => num(s?.totalSessions) >= 500, prog: (s) => [Math.min(num(s?.totalSessions), 500), 500] },
+  { id: "s1000", name: "Immortal", desc: "Log 1,000 sessions", icon: "🤯", rarity: "legendary", category: "sessions", test: (s) => num(s?.totalSessions) >= 1000, prog: (s) => [Math.min(num(s?.totalSessions), 1000), 1000] },
 
   // STREAKS
-  { id: "st3", name: "On a Roll", desc: "Reach a 3-day streak", icon: "⚡", rarity: "common", category: "streak", test: (s) => s.streak >= 3, prog: (s) => [Math.min(s.streak, 3), 3] },
-  { id: "st7", name: "Week Warrior", desc: "Reach a 7-day streak", icon: "🏅", rarity: "rare", category: "streak", test: (s) => s.streak >= 7, prog: (s) => [Math.min(s.streak, 7), 7] },
-  { id: "st14", name: "Two-Week Tear", desc: "Reach a 14-day streak", icon: "🗓️", rarity: "rare", category: "streak", test: (s) => s.streak >= 14, prog: (s) => [Math.min(s.streak, 14), 14] },
-  { id: "st30", name: "Iron Will", desc: "Reach a 30-day streak", icon: "🛡️", rarity: "legendary", category: "streak", test: (s) => s.streak >= 30, prog: (s) => [Math.min(s.streak, 30), 30] },
-  { id: "st60", name: "Two-Month Titan", desc: "Reach a 60-day streak", icon: "💎", rarity: "legendary", category: "streak", test: (s) => s.streak >= 60, prog: (s) => [Math.min(s.streak, 60), 60] },
-  { id: "st90", name: "Quarter Master", desc: "Reach a 90-day streak", icon: "🔥", rarity: "legendary", category: "streak", test: (s) => s.streak >= 90, prog: (s) => [Math.min(s.streak, 90), 90] },
-  { id: "st100", name: "Century Streak", desc: "Reach a 100-day streak", icon: "💯", rarity: "legendary", category: "streak", test: (s) => s.streak >= 100, prog: (s) => [Math.min(s.streak, 100), 100] },
-  { id: "st180", name: "Half Year Hero", desc: "Reach a 180-day streak", icon: "👑", rarity: "legendary", category: "streak", test: (s) => s.streak >= 180, prog: (s) => [Math.min(s.streak, 180), 180] },
-  { id: "st365", name: "Year of Focus", desc: "Reach a 365-day streak", icon: "🌟", rarity: "legendary", category: "streak", test: (s) => s.streak >= 365, prog: (s) => [Math.min(s.streak, 365), 365] },
+  { id: "st3", name: "On a Roll", desc: "Reach a 3-day streak", icon: "⚡", rarity: "common", category: "streak", test: (s) => num(s?.streak) >= 3, prog: (s) => [Math.min(num(s?.streak), 3), 3] },
+  { id: "st7", name: "Week Warrior", desc: "Reach a 7-day streak", icon: "🏅", rarity: "rare", category: "streak", test: (s) => num(s?.streak) >= 7, prog: (s) => [Math.min(num(s?.streak), 7), 7] },
+  { id: "st14", name: "Two-Week Tear", desc: "Reach a 14-day streak", icon: "🗓️", rarity: "rare", category: "streak", test: (s) => num(s?.streak) >= 14, prog: (s) => [Math.min(num(s?.streak), 14), 14] },
+  { id: "st30", name: "Iron Will", desc: "Reach a 30-day streak", icon: "🛡️", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 30, prog: (s) => [Math.min(num(s?.streak), 30), 30] },
+  { id: "st60", name: "Two-Month Titan", desc: "Reach a 60-day streak", icon: "💎", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 60, prog: (s) => [Math.min(num(s?.streak), 60), 60] },
+  { id: "st90", name: "Quarter Master", desc: "Reach a 90-day streak", icon: "🔥", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 90, prog: (s) => [Math.min(num(s?.streak), 90), 90] },
+  { id: "st100", name: "Century Streak", desc: "Reach a 100-day streak", icon: "💯", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 100, prog: (s) => [Math.min(num(s?.streak), 100), 100] },
+  { id: "st180", name: "Half Year Hero", desc: "Reach a 180-day streak", icon: "👑", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 180, prog: (s) => [Math.min(num(s?.streak), 180), 180] },
+  { id: "st365", name: "Year of Focus", desc: "Reach a 365-day streak", icon: "🌟", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 365, prog: (s) => [Math.min(num(s?.streak), 365), 365] },
 
   // HOURS
-  { id: "h10", name: "Deep Diver", desc: "Study 10 hours total", icon: "⏱️", rarity: "common", category: "hours", test: (s) => s.totalHours >= 10, prog: (s) => [Math.min(s.totalHours, 10), 10] },
-  { id: "h25", name: "Deep Worker", desc: "Study 25 hours total", icon: "🧠", rarity: "common", category: "hours", test: (s) => s.totalHours >= 25, prog: (s) => [Math.min(s.totalHours, 25), 25] },
-  { id: "h50", name: "Marathoner", desc: "Study 50 hours total", icon: "🏃", rarity: "rare", category: "hours", test: (s) => s.totalHours >= 50, prog: (s) => [Math.min(s.totalHours, 50), 50] },
-  { id: "h100", name: "Centurion", desc: "Study 100 hours total", icon: "👑", rarity: "epic", category: "hours", test: (s) => s.totalHours >= 100, prog: (s) => [Math.min(s.totalHours, 100), 100] },
-  { id: "h250", name: "Scholar", desc: "Study 250 hours total", icon: "🎓", rarity: "epic", category: "hours", test: (s) => s.totalHours >= 250, prog: (s) => [Math.min(s.totalHours, 250), 250] },
-  { id: "h500", name: "Grandmaster", desc: "Study 500 hours total", icon: "🏛️", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 500, prog: (s) => [Math.min(s.totalHours, 500), 500] },
-  { id: "h1000", name: "Millennium", desc: "Study 1,000 hours total", icon: "🏛️", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 1000, prog: (s) => [Math.min(s.totalHours, 1000), 1000] },
+  { id: "h10", name: "Deep Diver", desc: "Study 10 hours total", icon: "⏱️", rarity: "common", category: "hours", test: (s) => num(s?.totalHours) >= 10, prog: (s) => [Math.min(num(s?.totalHours), 10), 10] },
+  { id: "h25", name: "Deep Worker", desc: "Study 25 hours total", icon: "🧠", rarity: "common", category: "hours", test: (s) => num(s?.totalHours) >= 25, prog: (s) => [Math.min(num(s?.totalHours), 25), 25] },
+  { id: "h50", name: "Marathoner", desc: "Study 50 hours total", icon: "🏃", rarity: "rare", category: "hours", test: (s) => num(s?.totalHours) >= 50, prog: (s) => [Math.min(num(s?.totalHours), 50), 50] },
+  { id: "h100", name: "Centurion", desc: "Study 100 hours total", icon: "👑", rarity: "epic", category: "hours", test: (s) => num(s?.totalHours) >= 100, prog: (s) => [Math.min(num(s?.totalHours), 100), 100] },
+  { id: "h250", name: "Scholar", desc: "Study 250 hours total", icon: "🎓", rarity: "epic", category: "hours", test: (s) => num(s?.totalHours) >= 250, prog: (s) => [Math.min(num(s?.totalHours), 250), 250] },
+  { id: "h500", name: "Grandmaster", desc: "Study 500 hours total", icon: "🏛️", rarity: "legendary", category: "hours", test: (s) => num(s?.totalHours) >= 500, prog: (s) => [Math.min(num(s?.totalHours), 500), 500] },
+  { id: "h1000", name: "Millennium", desc: "Study 1,000 hours total", icon: "🏛️", rarity: "legendary", category: "hours", test: (s) => num(s?.totalHours) >= 1000, prog: (s) => [Math.min(num(s?.totalHours), 1000), 1000] },
 
   // LEVEL & XP
-  { id: "lv3", name: "Rising Star", desc: "Reach level 3", icon: "⭐", rarity: "common", category: "level", test: (s) => s.level >= 3, prog: (s) => [Math.min(s.level, 3), 3] },
-  { id: "lv5", name: "Superstar", desc: "Reach level 5", icon: "💫", rarity: "rare", category: "level", test: (s) => s.level >= 5, prog: (s) => [Math.min(s.level, 5), 5] },
-  { id: "lv8", name: "Legend", desc: "Reach level 8", icon: "🌟", rarity: "legendary", category: "level", test: (s) => s.level >= 8, prog: (s) => [Math.min(s.level, 8), 8] },
-  { id: "lv12", name: "Mythic", desc: "Reach level 12", icon: "🔮", rarity: "legendary", category: "level", test: (s) => s.level >= 12, prog: (s) => [Math.min(s.level, 12), 12] },
-  { id: "lv15", name: "Transcendent", desc: "Reach level 15", icon: "🚀", rarity: "epic", category: "level", test: (s) => s.level >= 15, prog: (s) => [Math.min(s.level, 15), 15] },
-  { id: "lv20", name: "God Mode", desc: "Reach level 20", icon: "⚡", rarity: "legendary", category: "level", test: (s) => s.level >= 20, prog: (s) => [Math.min(s.level, 20), 20] },
-  { id: "lv25", name: "Beyond", desc: "Reach level 25", icon: "🌌", rarity: "legendary", category: "level", test: (s) => s.level >= 25, prog: (s) => [Math.min(s.level, 25), 25] },
-  { id: "lv30", name: "Infinity", desc: "Reach level 30", icon: "♾️", rarity: "legendary", category: "level", test: (s) => s.level >= 30, prog: (s) => [Math.min(s.level, 30), 30] },
-  { id: "xp1k", name: "XP Hunter", desc: "Earn 1,000 XP", icon: "🎯", rarity: "rare", category: "level", test: (s) => s.xp >= 1000, prog: (s) => [Math.min(s.xp, 1000), 1000] },
-  { id: "xp5k", name: "XP Legend", desc: "Earn 5,000 XP", icon: "🐉", rarity: "epic", category: "level", test: (s) => s.xp >= 5000, prog: (s) => [Math.min(s.xp, 5000), 5000] },
-  { id: "xp10k", name: "XP God", desc: "Earn 10,000 XP", icon: "🐉", rarity: "epic", category: "level", test: (s) => s.xp >= 10000, prog: (s) => [Math.min(s.xp, 10000), 10000] },
-  { id: "xp25k", name: "XP Titan", desc: "Earn 25,000 XP", icon: "👑", rarity: "legendary", category: "level", test: (s) => s.xp >= 25000, prog: (s) => [Math.min(s.xp, 25000), 25000] },
-  { id: "xp50k", name: "XP Universe", desc: "Earn 50,000 XP", icon: "🌌", rarity: "legendary", category: "level", test: (s) => s.xp >= 50000, prog: (s) => [Math.min(s.xp, 50000), 50000] },
+  { id: "lv3", name: "Rising Star", desc: "Reach level 3", icon: "⭐", rarity: "common", category: "level", test: (s) => num(s?.level) >= 3, prog: (s) => [Math.min(num(s?.level), 3), 3] },
+  { id: "lv5", name: "Superstar", desc: "Reach level 5", icon: "💫", rarity: "rare", category: "level", test: (s) => num(s?.level) >= 5, prog: (s) => [Math.min(num(s?.level), 5), 5] },
+  { id: "lv8", name: "Legend", desc: "Reach level 8", icon: "🌟", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 8, prog: (s) => [Math.min(num(s?.level), 8), 8] },
+  { id: "lv12", name: "Mythic", desc: "Reach level 12", icon: "🔮", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 12, prog: (s) => [Math.min(num(s?.level), 12), 12] },
+  { id: "lv15", name: "Transcendent", desc: "Reach level 15", icon: "🚀", rarity: "epic", category: "level", test: (s) => num(s?.level) >= 15, prog: (s) => [Math.min(num(s?.level), 15), 15] },
+  { id: "lv20", name: "God Mode", desc: "Reach level 20", icon: "⚡", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 20, prog: (s) => [Math.min(num(s?.level), 20), 20] },
+  { id: "lv25", name: "Beyond", desc: "Reach level 25", icon: "🌌", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 25, prog: (s) => [Math.min(num(s?.level), 25), 25] },
+  { id: "lv30", name: "Infinity", desc: "Reach level 30", icon: "♾️", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 30, prog: (s) => [Math.min(num(s?.level), 30), 30] },
+  { id: "xp1k", name: "XP Hunter", desc: "Earn 1,000 XP", icon: "🎯", rarity: "rare", category: "level", test: (s) => num(s?.xp) >= 1000, prog: (s) => [Math.min(num(s?.xp), 1000), 1000] },
+  { id: "xp5k", name: "XP Legend", desc: "Earn 5,000 XP", icon: "🐉", rarity: "epic", category: "level", test: (s) => num(s?.xp) >= 5000, prog: (s) => [Math.min(num(s?.xp), 5000), 5000] },
+  { id: "xp10k", name: "XP God", desc: "Earn 10,000 XP", icon: "🐉", rarity: "epic", category: "level", test: (s) => num(s?.xp) >= 10000, prog: (s) => [Math.min(num(s?.xp), 10000), 10000] },
+  { id: "xp25k", name: "XP Titan", desc: "Earn 25,000 XP", icon: "👑", rarity: "legendary", category: "level", test: (s) => num(s?.xp) >= 25000, prog: (s) => [Math.min(num(s?.xp), 25000), 25000] },
+  { id: "xp50k", name: "XP Universe", desc: "Earn 50,000 XP", icon: "🌌", rarity: "legendary", category: "level", test: (s) => num(s?.xp) >= 50000, prog: (s) => [Math.min(num(s?.xp), 50000), 50000] },
 
   // DAILY BEST
   { id: "day1h", name: "First Hour", desc: "Study 1+ hour in one day", icon: "⏰", rarity: "common", category: "focus", test: (s) => bestDay(s) >= 60, prog: (s) => [Math.min(bestDay(s), 60), 60] },
@@ -107,30 +107,30 @@ export const BADGES: Badge[] = [
   { id: "timerTitan", name: "Timer Titan", desc: "Use all 4 timer types", icon: "⏱️", rarity: "rare", category: "timer", test: (s) => timerTypesUsed(s) >= 4, prog: (s) => [Math.min(timerTypesUsed(s), 4), 4] },
 
   // REVISION
-  { id: "rev10", name: "Reviser", desc: "Revise 10 journey topics", icon: "🔁", rarity: "rare", category: "journey", test: (s) => (s.revised || 0) >= 10, prog: (s) => [Math.min(s.revised || 0, 10), 10] },
-  { id: "rev25", name: "Revision Machine", desc: "Revise 25 journey topics", icon: "🔄", rarity: "epic", category: "journey", test: (s) => (s.revised || 0) >= 25, prog: (s) => [Math.min(s.revised || 0, 25), 25] },
-  { id: "rev50", name: "Revision King", desc: "Revise 50 journey topics", icon: "👑", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 50, prog: (s) => [Math.min(s.revised || 0, 50), 50] },
-  { id: "rev100", name: "Revision God", desc: "Revise 100 journey topics", icon: "♾️", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 100, prog: (s) => [Math.min(s.revised || 0, 100), 100] },
+  { id: "rev10", name: "Reviser", desc: "Revise 10 journey topics", icon: "🔁", rarity: "rare", category: "journey", test: (s) => num(s?.revised) >= 10, prog: (s) => [Math.min(num(s?.revised) || 0, 10), 10] },
+  { id: "rev25", name: "Revision Machine", desc: "Revise 25 journey topics", icon: "🔄", rarity: "epic", category: "journey", test: (s) => num(s?.revised) >= 25, prog: (s) => [Math.min(num(s?.revised) || 0, 25), 25] },
+  { id: "rev50", name: "Revision King", desc: "Revise 50 journey topics", icon: "👑", rarity: "legendary", category: "journey", test: (s) => num(s?.revised) >= 50, prog: (s) => [Math.min(num(s?.revised) || 0, 50), 50] },
+  { id: "rev100", name: "Revision God", desc: "Revise 100 journey topics", icon: "♾️", rarity: "legendary", category: "journey", test: (s) => num(s?.revised) >= 100, prog: (s) => [Math.min(num(s?.revised) || 0, 100), 100] },
 
   // === HARD MODE — SESSIONS ===
-  { id: "s2000", name: "Titan", desc: "Log 2,000 sessions", icon: "🦾", rarity: "legendary", category: "sessions", test: (s) => s.totalSessions >= 2000, prog: (s) => [Math.min(s.totalSessions, 2000), 2000] },
-  { id: "s5000", name: "Deity", desc: "Log 5,000 sessions", icon: "👁️", rarity: "legendary", category: "sessions", test: (s) => s.totalSessions >= 5000, prog: (s) => [Math.min(s.totalSessions, 5000), 5000] },
+  { id: "s2000", name: "Titan", desc: "Log 2,000 sessions", icon: "🦾", rarity: "legendary", category: "sessions", test: (s) => num(s?.totalSessions) >= 2000, prog: (s) => [Math.min(num(s?.totalSessions), 2000), 2000] },
+  { id: "s5000", name: "Deity", desc: "Log 5,000 sessions", icon: "👁️", rarity: "legendary", category: "sessions", test: (s) => num(s?.totalSessions) >= 5000, prog: (s) => [Math.min(num(s?.totalSessions), 5000), 5000] },
 
   // === HARD MODE — STREAKS ===
-  { id: "st500", name: "Immortal Streak", desc: "Reach a 500-day streak", icon: "🔱", rarity: "legendary", category: "streak", test: (s) => s.streak >= 500, prog: (s) => [Math.min(s.streak, 500), 500] },
-  { id: "st730", name: "Eternal", desc: "Reach a 730-day streak (2 years)", icon: "♾️", rarity: "legendary", category: "streak", test: (s) => s.streak >= 730, prog: (s) => [Math.min(s.streak, 730), 730] },
-  { id: "st1000", name: "Legend Forever", desc: "Reach a 1,000-day streak", icon: "🌌", rarity: "legendary", category: "streak", test: (s) => s.streak >= 1000, prog: (s) => [Math.min(s.streak, 1000), 1000] },
+  { id: "st500", name: "Immortal Streak", desc: "Reach a 500-day streak", icon: "🔱", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 500, prog: (s) => [Math.min(num(s?.streak), 500), 500] },
+  { id: "st730", name: "Eternal", desc: "Reach a 730-day streak (2 years)", icon: "♾️", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 730, prog: (s) => [Math.min(num(s?.streak), 730), 730] },
+  { id: "st1000", name: "Legend Forever", desc: "Reach a 1,000-day streak", icon: "🌌", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 1000, prog: (s) => [Math.min(num(s?.streak), 1000), 1000] },
 
   // === HARD MODE — HOURS ===
-  { id: "h2000", name: "Sage", desc: "Study 2,000 hours total", icon: "🧙", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 2000, prog: (s) => [Math.min(s.totalHours, 2000), 2000] },
-  { id: "h5000", name: "Enlightened", desc: "Study 5,000 hours total", icon: "☀️", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 5000, prog: (s) => [Math.min(s.totalHours, 5000), 5000] },
+  { id: "h2000", name: "Sage", desc: "Study 2,000 hours total", icon: "🧙", rarity: "legendary", category: "hours", test: (s) => num(s?.totalHours) >= 2000, prog: (s) => [Math.min(num(s?.totalHours), 2000), 2000] },
+  { id: "h5000", name: "Enlightened", desc: "Study 5,000 hours total", icon: "☀️", rarity: "legendary", category: "hours", test: (s) => num(s?.totalHours) >= 5000, prog: (s) => [Math.min(num(s?.totalHours), 5000), 5000] },
 
   // === HARD MODE — LEVEL & XP ===
-  { id: "lv50", name: "Demigod", desc: "Reach level 50", icon: "⚡", rarity: "legendary", category: "level", test: (s) => s.level >= 50, prog: (s) => [Math.min(s.level, 50), 50] },
-  { id: "lv75", name: "Titan Lord", desc: "Reach level 75", icon: "🌟", rarity: "legendary", category: "level", test: (s) => s.level >= 75, prog: (s) => [Math.min(s.level, 75), 75] },
-  { id: "lv100", name: "The One", desc: "Reach level 100", icon: "💎", rarity: "legendary", category: "level", test: (s) => s.level >= 100, prog: (s) => [Math.min(s.level, 100), 100] },
-  { id: "xp100k", name: "Universe Conqueror", desc: "Earn 100,000 XP", icon: "🌌", rarity: "legendary", category: "level", test: (s) => s.xp >= 100000, prog: (s) => [Math.min(s.xp, 100000), 100000] },
-  { id: "xp250k", name: "Multiverse", desc: "Earn 250,000 XP", icon: "♾️", rarity: "legendary", category: "level", test: (s) => s.xp >= 250000, prog: (s) => [Math.min(s.xp, 250000), 250000] },
+  { id: "lv50", name: "Demigod", desc: "Reach level 50", icon: "⚡", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 50, prog: (s) => [Math.min(num(s?.level), 50), 50] },
+  { id: "lv75", name: "Titan Lord", desc: "Reach level 75", icon: "🌟", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 75, prog: (s) => [Math.min(num(s?.level), 75), 75] },
+  { id: "lv100", name: "The One", desc: "Reach level 100", icon: "💎", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 100, prog: (s) => [Math.min(num(s?.level), 100), 100] },
+  { id: "xp100k", name: "Universe Conqueror", desc: "Earn 100,000 XP", icon: "🌌", rarity: "legendary", category: "level", test: (s) => num(s?.xp) >= 100000, prog: (s) => [Math.min(num(s?.xp), 100000), 100000] },
+  { id: "xp250k", name: "Multiverse", desc: "Earn 250,000 XP", icon: "♾️", rarity: "legendary", category: "level", test: (s) => num(s?.xp) >= 250000, prog: (s) => [Math.min(num(s?.xp), 250000), 250000] },
 
   // === HARD MODE — FOCUS ===
   { id: "day12h", name: "Insanity", desc: "Study 12+ hours in one day", icon: "🤯", rarity: "legendary", category: "focus", test: (s) => bestDay(s) >= 720, prog: (s) => [Math.min(bestDay(s), 720), 720] },
@@ -156,36 +156,36 @@ export const BADGES: Badge[] = [
   { id: "sub50", name: "Omniscient", desc: "Study 50+ subjects", icon: "🧠", rarity: "legendary", category: "subjects", test: (s) => subjCount(s) >= 50, prog: (s) => [Math.min(subjCount(s), 50), 50] },
   { id: "pomo500", name: "Pomodoro Deity", desc: "500 Pomodoros (12,500 min)", icon: "🍅‍🔥", rarity: "legendary", category: "timer", test: (s) => pomoMin(s) >= 12500, prog: (s) => [Math.min(pomoMin(s), 12500), 12500] },
   { id: "pomo1000", name: "Pomodoro Universe", desc: "1,000 Pomodoros (25,000 min)", icon: "🌌", rarity: "legendary", category: "timer", test: (s) => pomoMin(s) >= 25000, prog: (s) => [Math.min(pomoMin(s), 25000), 25000] },
-  { id: "rev200", name: "Revision Emperor", desc: "Revise 200 topics", icon: "👑", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 200, prog: (s) => [Math.min(s.revised || 0, 200), 200] },
-  { id: "rev500", name: "Revision Universe", desc: "Revise 500 topics", icon: "♾️", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 500, prog: (s) => [Math.min(s.revised || 0, 500), 500] },
+  { id: "rev200", name: "Revision Emperor", desc: "Revise 200 topics", icon: "👑", rarity: "legendary", category: "journey", test: (s) => num(s?.revised) >= 200, prog: (s) => [Math.min(num(s?.revised) || 0, 200), 200] },
+  { id: "rev500", name: "Revision Universe", desc: "Revise 500 topics", icon: "♾️", rarity: "legendary", category: "journey", test: (s) => num(s?.revised) >= 500, prog: (s) => [Math.min(num(s?.revised) || 0, 500), 500] },
 
   // === MEDIUM TIER ===
-  { id: "s150", name: "Session Sniper", desc: "Log 150 sessions", icon: "🎯", rarity: "rare", category: "sessions", test: (s) => s.totalSessions >= 150, prog: (s) => [Math.min(s.totalSessions, 150), 150] },
-  { id: "s750", name: "Iron Momentum", desc: "Log 750 sessions", icon: "⚙️", rarity: "epic", category: "sessions", test: (s) => s.totalSessions >= 750, prog: (s) => [Math.min(s.totalSessions, 750), 750] },
-  { id: "st21", name: "Three-Week Threat", desc: "Reach a 21-day streak", icon: "🔥", rarity: "rare", category: "streak", test: (s) => s.streak >= 21, prog: (s) => [Math.min(s.streak, 21), 21] },
-  { id: "st45", name: "Mind of Steel", desc: "Reach a 45-day streak", icon: "🦾", rarity: "epic", category: "streak", test: (s) => s.streak >= 45, prog: (s) => [Math.min(s.streak, 45), 45] },
-  { id: "h75", name: "Halfway Hero", desc: "Study 75 hours total", icon: "⏳", rarity: "epic", category: "hours", test: (s) => s.totalHours >= 75, prog: (s) => [Math.min(s.totalHours, 75), 75] },
+  { id: "s150", name: "Session Sniper", desc: "Log 150 sessions", icon: "🎯", rarity: "rare", category: "sessions", test: (s) => num(s?.totalSessions) >= 150, prog: (s) => [Math.min(num(s?.totalSessions), 150), 150] },
+  { id: "s750", name: "Iron Momentum", desc: "Log 750 sessions", icon: "⚙️", rarity: "epic", category: "sessions", test: (s) => num(s?.totalSessions) >= 750, prog: (s) => [Math.min(num(s?.totalSessions), 750), 750] },
+  { id: "st21", name: "Three-Week Threat", desc: "Reach a 21-day streak", icon: "🔥", rarity: "rare", category: "streak", test: (s) => num(s?.streak) >= 21, prog: (s) => [Math.min(num(s?.streak), 21), 21] },
+  { id: "st45", name: "Mind of Steel", desc: "Reach a 45-day streak", icon: "🦾", rarity: "epic", category: "streak", test: (s) => num(s?.streak) >= 45, prog: (s) => [Math.min(num(s?.streak), 45), 45] },
+  { id: "h75", name: "Halfway Hero", desc: "Study 75 hours total", icon: "⏳", rarity: "epic", category: "hours", test: (s) => num(s?.totalHours) >= 75, prog: (s) => [Math.min(num(s?.totalHours), 75), 75] },
   { id: "day10h", name: "Double Shift", desc: "Study 10+ hours in one day", icon: "🕑", rarity: "epic", category: "focus", test: (s) => bestDay(s) >= 600, prog: (s) => [Math.min(bestDay(s), 600), 600] },
   { id: "week30h", name: "Focus Furnace", desc: "Study 30+ hours in a week", icon: "🔥", rarity: "epic", category: "focus", test: (s) => maxWeekly(s) >= 1800, prog: (s) => [Math.min(maxWeekly(s), 1800), 1800] },
   { id: "con28", name: "Locked In", desc: "Study 28 of the last 30 days", icon: "🔒", rarity: "epic", category: "consistency", test: (s) => activeLast30(s) >= 28, prog: (s) => [Math.min(activeLast30(s), 28), 28] },
   { id: "weekend12", name: "Saturday Scholar", desc: "Study 12 weekend days", icon: "📅", rarity: "rare", category: "consistency", test: (s) => weekendCount(s) >= 12, prog: (s) => [Math.min(weekendCount(s), 12), 12] },
   { id: "spec25", name: "Specialist", desc: "25+ hours in one subject", icon: "📖", rarity: "rare", category: "subjects", test: (s) => maxSubjectMin(s) >= 1500, prog: (s) => [Math.min(maxSubjectMin(s), 1500), 1500] },
   { id: "spec50", name: "Deep Specialist", desc: "50+ hours in one subject", icon: "📕", rarity: "epic", category: "subjects", test: (s) => maxSubjectMin(s) >= 3000, prog: (s) => [Math.min(maxSubjectMin(s), 3000), 3000] },
-  { id: "rev75", name: "Revision Ace", desc: "Revise 75 journey topics", icon: "🃏", rarity: "epic", category: "journey", test: (s) => (s.revised || 0) >= 75, prog: (s) => [Math.min(s.revised || 0, 75), 75] },
-  { id: "xp75k", name: "XP Overlord", desc: "Earn 75,000 XP", icon: "⚡", rarity: "epic", category: "level", test: (s) => s.xp >= 75000, prog: (s) => [Math.min(s.xp, 75000), 75000] },
+  { id: "rev75", name: "Revision Ace", desc: "Revise 75 journey topics", icon: "🃏", rarity: "epic", category: "journey", test: (s) => num(s?.revised) >= 75, prog: (s) => [Math.min(num(s?.revised) || 0, 75), 75] },
+  { id: "xp75k", name: "XP Overlord", desc: "Earn 75,000 XP", icon: "⚡", rarity: "epic", category: "level", test: (s) => num(s?.xp) >= 75000, prog: (s) => [Math.min(num(s?.xp), 75000), 75000] },
 
   // === HARD TIER ===
-  { id: "s1500", name: "Thousand Club", desc: "Log 1,500 sessions", icon: "🏆", rarity: "epic", category: "sessions", test: (s) => s.totalSessions >= 1500, prog: (s) => [Math.min(s.totalSessions, 1500), 1500] },
-  { id: "st250", name: "Ironblood", desc: "Reach a 250-day streak", icon: "🩸", rarity: "legendary", category: "streak", test: (s) => s.streak >= 250, prog: (s) => [Math.min(s.streak, 250), 250] },
-  { id: "h750", name: "Sage in Training", desc: "Study 750 hours total", icon: "🧘", rarity: "epic", category: "hours", test: (s) => s.totalHours >= 750, prog: (s) => [Math.min(s.totalHours, 750), 750] },
-  { id: "h1500", name: "Grand Sage", desc: "Study 1,500 hours total", icon: "🗻", rarity: "legendary", category: "hours", test: (s) => s.totalHours >= 1500, prog: (s) => [Math.min(s.totalHours, 1500), 1500] },
+  { id: "s1500", name: "Thousand Club", desc: "Log 1,500 sessions", icon: "🏆", rarity: "epic", category: "sessions", test: (s) => num(s?.totalSessions) >= 1500, prog: (s) => [Math.min(num(s?.totalSessions), 1500), 1500] },
+  { id: "st250", name: "Ironblood", desc: "Reach a 250-day streak", icon: "🩸", rarity: "legendary", category: "streak", test: (s) => num(s?.streak) >= 250, prog: (s) => [Math.min(num(s?.streak), 250), 250] },
+  { id: "h750", name: "Sage in Training", desc: "Study 750 hours total", icon: "🧘", rarity: "epic", category: "hours", test: (s) => num(s?.totalHours) >= 750, prog: (s) => [Math.min(num(s?.totalHours), 750), 750] },
+  { id: "h1500", name: "Grand Sage", desc: "Study 1,500 hours total", icon: "🗻", rarity: "legendary", category: "hours", test: (s) => num(s?.totalHours) >= 1500, prog: (s) => [Math.min(num(s?.totalHours), 1500), 1500] },
   { id: "day16h", name: "Beyond Human", desc: "Study 16+ hours in one day", icon: "👽", rarity: "legendary", category: "focus", test: (s) => bestDay(s) >= 960, prog: (s) => [Math.min(bestDay(s), 960), 960] },
   { id: "week80h", name: "Event Horizon", desc: "Study 80+ hours in a week", icon: "🕳️", rarity: "legendary", category: "focus", test: (s) => maxWeekly(s) >= 4800, prog: (s) => [Math.min(maxWeekly(s), 4800), 4800] },
   { id: "month150h", name: "Deep Space", desc: "Study 150+ hours in a month", icon: "🚀", rarity: "legendary", category: "focus", test: (s) => maxMonthly(s) >= 9000, prog: (s) => [Math.min(maxMonthly(s), 9000), 9000] },
-  { id: "lv40", name: "Ascendant", desc: "Reach level 40", icon: "🌠", rarity: "legendary", category: "level", test: (s) => s.level >= 40, prog: (s) => [Math.min(s.level, 40), 40] },
+  { id: "lv40", name: "Ascendant", desc: "Reach level 40", icon: "🌠", rarity: "legendary", category: "level", test: (s) => num(s?.level) >= 40, prog: (s) => [Math.min(num(s?.level), 40), 40] },
   { id: "spec100", name: "Subject God", desc: "100+ hours in one subject", icon: "🗿", rarity: "legendary", category: "subjects", test: (s) => maxSubjectMin(s) >= 6000, prog: (s) => [Math.min(maxSubjectMin(s), 6000), 6000] },
   { id: "balanced50", name: "Twin Suns", desc: "50h before 8 AM + 50h after 10 PM", icon: "🌞", rarity: "legendary", category: "time", test: (s) => earlyMin(s) >= 3000 && nightMin(s) >= 3000, prog: (s) => [Math.min(earlyMin(s) + nightMin(s), 6000), 6000] },
-  { id: "rev150", name: "Grand Reviser", desc: "Revise 150 journey topics", icon: "🧠", rarity: "legendary", category: "journey", test: (s) => (s.revised || 0) >= 150, prog: (s) => [Math.min(s.revised || 0, 150), 150] },
+  { id: "rev150", name: "Grand Reviser", desc: "Revise 150 journey topics", icon: "🧠", rarity: "legendary", category: "journey", test: (s) => num(s?.revised) >= 150, prog: (s) => [Math.min(num(s?.revised) || 0, 150), 150] },
   { id: "weekend30", name: "Every Single Weekend", desc: "Study 30 weekend days", icon: "🎪", rarity: "legendary", category: "consistency", test: (s) => weekendCount(s) >= 30, prog: (s) => [Math.min(weekendCount(s), 30), 30] },
   { id: "perfect120", name: "Perfect 120", desc: "Study 120 days (last 140)", icon: "💎", rarity: "legendary", category: "consistency", test: (s) => activeTotal140(s) >= 120, prog: (s) => [Math.min(activeTotal140(s), 120), 120] },
 ];

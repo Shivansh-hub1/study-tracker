@@ -31,7 +31,7 @@ export default function Heatmap({ data = [], weeks = 20, compact = false }: { da
       const first = col[0];
       if (first) {
         const m = Number(first.date.slice(5, 7)) - 1;
-        if (m !== lastM) { months.push({ i, label: new Date(first.date).toLocaleString("en", { month: "short" }) }); lastM = m; }
+        if (m !== lastM) { months.push({ i, label: new Date(first.date + "T12:00:00").toLocaleString("en", { month: "short" }) }); lastM = m; }
       }
     });
     return { cols, max, months };

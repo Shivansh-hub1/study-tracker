@@ -19,13 +19,8 @@ export function computeStats(
   const todayK = dateKey(nowLocal);
   const frozen = new Set((frozenRows || []).map((r) => r.day));
 
-  // per-day buckets (last 140 days)
+  // per-day buckets: all session days tracked so multi-month/multi-year streaks calculate accurately
   const days: Record<string, { minutes: number; sessions: number }> = {};
-  for (let i = 0; i < 140; i++) {
-    const d = new Date(nowLocal);
-    d.setDate(d.getDate() - i);
-    days[dateKey(d)] = { minutes: 0, sessions: 0 };
-  }
   // by-subject totals (last 30d) + overall + hourly + weekday + type
   const bySubject: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
   const bySubjectAll: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
@@ -45,7 +40,7 @@ export function computeStats(
     const min = se.duration_sec / 60;
     totalSec += se.duration_sec;
     byType[se.type] = (byType[se.type] || 0) + se.duration_sec;
-    if (days[k]) { days[k].minutes += min; days[k].sessions += 1; }
+    (days[k] ??= { minutes: 0, sessions: 0 }); days[k].minutes += min; days[k].sessions += 1;
     hourly[local.getHours()] += min;
     const sName = se.subject_name || "Unassigned";
     const sColor = se.subject_color || "#64748b";
@@ -64,8 +59,8 @@ export function computeStats(
   const parseDay = (k: string) => { const [y, m, d] = (k || "").split("-").map(Number); if (!y || !m || !d) return new Date(NaN); return new Date(y, m - 1, d); };
   for (const t of transfers || []) {
     const mv = Number(t.minutes) || 0;
-    if (days[t.from_day]) days[t.from_day].minutes -= mv;
-    if (days[t.to_day]) days[t.to_day].minutes += mv;
+    (days[t.from_day] ??= { minutes: 0, sessions: 0 }); days[t.from_day].minutes -= mv;
+    (days[t.to_day] ??= { minutes: 0, sessions: 0 }); days[t.to_day].minutes += mv;
     if (t.from_day === todayK) todayMin -= mv;
     if (t.to_day === todayK) todayMin += mv;
     const fd = parseDay(t.from_day), td = parseDay(t.to_day);
@@ -77,7 +72,7 @@ export function computeStats(
 
   // streak (consecutive days with study time or freeze; today not required to be finished)
   let streak = 0;
-  for (let i = 0; i < 365; i++) {
+  for (let i = 0; i < 2000; i++) {
     const d = new Date(nowLocal); d.setDate(d.getDate() - i);
     const k = dateKey(d);
     const has = (days[k] && days[k].minutes > 0) || frozen.has(k);
@@ -116,10 +111,18 @@ export function computeStats(
     daily.push({ date: k, minutes: Math.round(days[k]?.minutes || 0), sessions: days[k]?.sessions || 0 });
   }
 
-  // heatmap last 140 days
-  const heat = Object.entries(days)
-    .map(([date, v]) => ({ date, minutes: Math.round(v.minutes), sessions: v.sessions, frozen: frozen.has(date) }))
-    .sort((a, b) => a.date.localeCompare(b.date));
+  // heatmap last 140 days (chronological)
+  const heat: Array<{ date: string; minutes: number; sessions: number; frozen: boolean }> = [];
+  for (let i = 139; i >= 0; i--) {
+    const d = new Date(nowLocal); d.setDate(d.getDate() - i);
+    const k = dateKey(d);
+    heat.push({
+      date: k,
+      minutes: Math.round(days[k]?.minutes || 0),
+      sessions: days[k]?.sessions || 0,
+      frozen: frozen.has(k),
+    });
+  }
 
   // monthly series: last 6 months
   const monthly: Array<{ month: string; minutes: number; sessions: number }> = [];
@@ -157,6 +160,7 @@ export function computeStats(
     .filter((d) => d.minutes > TRANSFER_THRESHOLD && !transferredFrom.has(d.date))
     .map((d) => ({ date: d.date, minutes: d.minutes, half: Math.floor(d.minutes / 2) }));
 
+  const safeSpentXp = Number.isFinite(Number(spentXp)) ? Math.max(0, Number(spentXp)) : 0;
   return {
     todayMin: Math.round(todayMin),
     weekMin: Math.round(weekMin),
@@ -167,7 +171,7 @@ export function computeStats(
     level,
     xpInto: xp - xpCur,
     xpNeed: xpNext - xpCur,
-    xpAvailable: Math.max(0, xp - spentXp),
+    xpAvailable: Math.max(0, xp - safeSpentXp),
     revised: revisedTotal,
     totalHours: Math.round((totalSec / 3600) * 10) / 10,
     totalSessions: sessions.length,

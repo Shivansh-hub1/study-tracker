@@ -41,11 +41,11 @@ export async function getUserEmailContext(db: DB, userId: number): Promise<UserE
   const now = new Date();
   const todayK = istDateKey(now);
   const todayStartUtc = istMidnightUtc(now).toISOString();
-  const cutoff90 = new Date(now.getTime() - 90 * 86400000).toISOString();
+  const cutoff365 = new Date(now.getTime() - 365 * 86400000).toISOString();
 
   const [todayRow, sessRows, frozenRows, setRow] = await Promise.all([
     db.get("SELECT COALESCE(SUM(duration_sec),0) as t FROM sessions WHERE user_id = ? AND started_at >= ?", userId, todayStartUtc),
-    db.all("SELECT started_at, duration_sec FROM sessions WHERE user_id = ? AND started_at >= ?", userId, cutoff90),
+    db.all("SELECT started_at, duration_sec FROM sessions WHERE user_id = ? AND started_at >= ?", userId, cutoff365),
     db.all("SELECT day FROM freeze_days WHERE user_id = ?", userId),
     db.get("SELECT freeze_stock FROM settings WHERE user_id = ?", userId),
   ]);
@@ -60,7 +60,7 @@ export async function getUserEmailContext(db: DB, userId: number): Promise<UserE
   }
 
   let streak = 0;
-  for (let i = 0; i < 90; i++) {
+  for (let i = 0; i < 365; i++) {
     const d = new Date(now.getTime() - i * 86400000);
     const k = istDateKey(d);
     const has = (days.get(k) || 0) > 0 || frozen.has(k);

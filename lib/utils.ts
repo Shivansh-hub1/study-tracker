@@ -47,16 +47,18 @@ export function dateKeyOffset(daysAgo: number): string {
 
 export function prettyDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
 
 export function prettyTime(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit" });
 }
 
 export function prettyDT(iso: string): string {
-  return `${prettyDate(iso)} · ${prettyTime(iso)}`;
+  const date = prettyDate(iso);
+  const time = prettyTime(iso);
+  return date && time ? `${date} · ${time}` : date || time || "";
 }
 
 export const SUBJECT_COLORS = [
@@ -71,10 +73,12 @@ export function cn(...parts: Array<string | false | null | undefined>) {
 
 export function timeAgo(iso?: string | null): string {
   if (!iso) return "never";
-  const s = Math.floor((Date.now() - new Date(iso).getTime()) / 1000);
+  const t = new Date(iso).getTime();
+  if (Number.isNaN(t)) return "never";
+  const s = Math.floor((Date.now() - t) / 1000);
   if (s < 60) return "just now";
   if (s < 3600) return `${Math.floor(s / 60)}m ago`;
   if (s < 86400) return `${Math.floor(s / 3600)}h ago`;
   if (s < 86400 * 30) return `${Math.floor(s / 86400)}d ago`;
-  return new Date(iso).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
+  return new Date(t).toLocaleDateString(undefined, { month: "short", day: "numeric", year: "numeric" });
 }
