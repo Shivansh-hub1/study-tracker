@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     "UPDATE goals SET title = COALESCE(?, title), kind = COALESCE(?, kind), target = COALESCE(?, target) WHERE id = ?",
     title?.trim() || null,
     kind || null,
-    target != null ? Math.max(1, Math.round(Number(target))) : null,
+    target != null ? Math.max(1, Math.round(Number(target) || 0)) : null,
     id
   );
   return NextResponse.json({ goal: await db.get("SELECT * FROM goals WHERE id = ?", id) });

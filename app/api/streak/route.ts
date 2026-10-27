@@ -7,10 +7,10 @@ import { parseOffset } from "@/lib/utils";
 export const dynamic = "force-dynamic";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
-function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function dateKey(d: Date) { return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
 function mondayKey(nowLocal: Date) {
   const d = new Date(nowLocal);
-  d.setDate(d.getDate() - ((d.getDay() + 6) % 7));
+  d.setUTCDate(d.getUTCDate() - ((d.getUTCDay() + 6) % 7));
   return dateKey(d);
 }
 
@@ -83,7 +83,7 @@ export async function POST(req: NextRequest) {
   if (f) return NextResponse.json({ error: "Today is already frozen" }, { status: 400 });
   // Freeze only counts when today has zero sessions (UTC range of the local day).
   const startLocal = new Date(nowLocal);
-  startLocal.setHours(0, 0, 0, 0);
+  startLocal.setUTCHours(0, 0, 0, 0);
   const startUTC = new Date(startLocal.getTime() - offsetMin * 60000).toISOString();
   const endUTC = new Date(startLocal.getTime() - offsetMin * 60000 + 86400000).toISOString();
   const c = (await db.get(

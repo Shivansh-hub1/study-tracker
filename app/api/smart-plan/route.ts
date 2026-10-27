@@ -1,7 +1,8 @@
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
+import { parseOffset } from "@/lib/utils";
 import { DSA_TOPICS } from "@/lib/dsa";
 import { WEBDEV_TOPICS } from "@/lib/webdev";
 
@@ -10,13 +11,14 @@ export const dynamic = "force-dynamic";
 const DAY = 86400000;
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
-function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function dateKey(d: Date) { return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
 
-export async function GET() {
+export async function GET(req: NextRequest) {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-  const __ck = `u${user.id}:smartplan`;
+  const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
+  const __ck = `u${user.id}:smartplan:${offsetMin}`;
   const __hit = cacheGet(__ck);
   if (__hit) return NextResponse.json(__hit);
 
@@ -30,8 +32,11 @@ export async function GET() {
     return NextResponse.json(out);
   }
 
-  const nowLocal = new Date(Date.now());
-  const nowMs = nowLocal.getTime();
+  const nowLocal = new Date(Date.now() + offsetMin * 60000);
+  const nowMs = Date.now();
+  const startTodayLocal = new Date(nowLocal);
+  startTodayLocal.setUTCHours(0, 0, 0, 0);
+  const startTodayUtc = new Date(startTodayLocal.getTime() - offsetMin * 60000).toISOString();
 
   const plan: Array<{ icon: string; title: string; sub: string; href: string }> = [];
 
@@ -89,10 +94,9 @@ export async function GET() {
   }
 
   // 4) Daily goal nudge
-  const todayK = dateKey(nowLocal);
   const todaySec = (await db.get(
     "SELECT COALESCE(SUM(duration_sec),0) as c FROM sessions WHERE user_id = ? AND started_at >= ?",
-    user.id, `${todayK}T00:00:00`
+    user.id, startTodayUtc
   )) as any;
   const todayMin = Math.round(Number(todaySec?.c || 0) / 60);
   plan.push({

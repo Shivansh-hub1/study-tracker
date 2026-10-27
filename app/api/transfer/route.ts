@@ -16,7 +16,7 @@ export const dynamic = "force-dynamic";
 const THRESHOLD = 360; // minutes — more than 6 hours
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
-function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function dateKey(d: Date) { return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
 
 const DAY_RE = /^\d{4}-\d{2}-\d{2}$/;
 
@@ -32,23 +32,16 @@ export async function POST(req: NextRequest) {
   if (!DAY_RE.test(fromDay) || !DAY_RE.test(toDay)) {
     return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
   }
-  const fd = new Date(fromDay + "T00:00:00");
-  const td = new Date(toDay + "T00:00:00");
-  if (isNaN(fd.getTime()) || isNaN(td.getTime())) {
-    return NextResponse.json({ error: "Invalid date" }, { status: 400 });
-  }
   if (toDay >= fromDay) {
     return NextResponse.json({ error: "You can only move time to an earlier day" }, { status: 400 });
   }
 
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
   const todayK = dateKey(nowLocal);
-  const earliest = new Date(nowLocal); earliest.setDate(earliest.getDate() - 139);
-  if (fd > nowLocal || fd < earliest || td < earliest) {
+  const earliest = new Date(nowLocal); earliest.setUTCDate(earliest.getUTCDate() - 139);
+  const earliestK = dateKey(earliest);
+  if (fromDay > todayK || fromDay < earliestK || toDay < earliestK) {
     return NextResponse.json({ error: "Dates out of range" }, { status: 400 });
-  }
-  if (fromDay !== todayK && fd > nowLocal) {
-    return NextResponse.json({ error: "Cannot transfer from a future day" }, { status: 400 });
   }
 
   const db = await getDb();

@@ -22,7 +22,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     "UPDATE subjects SET name = COALESCE(?, name), color = COALESCE(?, color), target_minutes = COALESCE(?, target_minutes) WHERE id = ?",
     name?.trim() || null,
     color || null,
-    target_minutes != null ? Math.max(0, Number(target_minutes)) : null,
+    target_minutes != null ? Math.max(0, Math.round(Number(target_minutes) || 0)) : null,
     id
   );
   return NextResponse.json({ subject: await db.get("SELECT * FROM subjects WHERE id = ?", id) });

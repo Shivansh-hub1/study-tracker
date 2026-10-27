@@ -15,7 +15,7 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
   const existing = (await db.get("SELECT * FROM sessions WHERE id = ? AND user_id = ?", id, user.id)) as any;
   if (!existing) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const body = await req.json().catch(() => ({}));
-  const dur = body.duration_sec != null ? Math.max(1, Math.round(Number(body.duration_sec))) : existing.duration_sec;
+  const dur = body.duration_sec != null ? Math.max(1, Math.round(Number(body.duration_sec) || 0)) : existing.duration_sec;
   if (dur > 86400) return NextResponse.json({ error: "duration_sec too long — max 24h per session" }, { status: 400 });
   const started = body.started_at ? new Date(body.started_at) : new Date(existing.started_at);
   const ended = body.ended_at ? new Date(body.ended_at) : new Date(started.getTime() + dur * 1000);

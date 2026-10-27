@@ -40,7 +40,7 @@ export default function DashboardPage() {
   const [saving, setSaving] = useState(false);
   const setStreakData = (r: any) => setDashData((prev: any) => ({ ...prev, ...r }));
   const [shareOpen, setShareOpen] = useState(false);
-  const { data: smartPlan } = useFetch("/api/smart-plan");
+  const { data: smartPlan } = useFetch(`/api/smart-plan?offset=${dashOffset}`);
   const { data: shopData } = useFetch("/api/shop");
   const goldenFlame = (shopData?.items || []).some((i: any) => i.key === "flame" && i.owned);
   const rainbowStreak = (shopData?.items || []).some((i: any) => i.key === "rainbow_streak" && i.owned);

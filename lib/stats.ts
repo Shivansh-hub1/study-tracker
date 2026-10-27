@@ -2,7 +2,7 @@
 // Used by /api/stats and the combined /api/dashboard endpoint.
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
-function dateKey(d: Date) { return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`; }
+function dateKey(d: Date) { return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
 
 export function computeStats(
   sessions: any[],
@@ -26,13 +26,13 @@ export function computeStats(
   const bySubjectAll: Record<string, { name: string; color: string; minutes: number; sessions: number }> = {};
   const hourly = new Array(24).fill(0);
   const byType: Record<string, number> = { pomodoro: 0, timer: 0, stopwatch: 0, manual: 0 };
-  const cutoff30 = new Date(nowLocal); cutoff30.setDate(cutoff30.getDate() - 30);
-  const cutoff7 = new Date(nowLocal); cutoff7.setDate(cutoff7.getDate() - 7);
+  const cutoff30 = new Date(nowLocal); cutoff30.setUTCDate(cutoff30.getUTCDate() - 30);
+  const cutoff7 = new Date(nowLocal); cutoff7.setUTCDate(cutoff7.getUTCDate() - 7);
 
   let todayMin = 0, weekMin = 0, monthMin = 0, weekSessions = 0, totalSec = 0;
-  const sundayOffset = (nowLocal.getDay() + 6) % 7; // days since Monday
-  const weekStart = new Date(nowLocal); weekStart.setDate(weekStart.getDate() - sundayOffset); weekStart.setHours(0, 0, 0, 0);
-  const monthStart = new Date(nowLocal.getFullYear(), nowLocal.getMonth(), 1);
+  const sundayOffset = (nowLocal.getUTCDay() + 6) % 7; // days since Monday
+  const weekStart = new Date(nowLocal); weekStart.setUTCDate(weekStart.getUTCDate() - sundayOffset); weekStart.setUTCHours(0, 0, 0, 0);
+  const monthStart = new Date(Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth(), 1));
 
   for (const se of sessions) {
     const local = toLocal(se.started_at);
@@ -41,7 +41,7 @@ export function computeStats(
     totalSec += se.duration_sec;
     byType[se.type] = (byType[se.type] || 0) + se.duration_sec;
     (days[k] ??= { minutes: 0, sessions: 0 }); days[k].minutes += min; days[k].sessions += 1;
-    hourly[local.getHours()] += min;
+    hourly[local.getUTCHours()] += min;
     const sName = se.subject_name || "Unassigned";
     const sColor = se.subject_color || "#64748b";
     (bySubjectAll[sName] ??= { name: sName, color: sColor, minutes: 0, sessions: 0 });
@@ -56,7 +56,7 @@ export function computeStats(
   }
 
   // time transfers: move minutes between days (does not change totals or XP)
-  const parseDay = (k: string) => { const [y, m, d] = (k || "").split("-").map(Number); if (!y || !m || !d) return new Date(NaN); return new Date(y, m - 1, d); };
+  const parseDay = (k: string) => { const [y, m, d] = (k || "").split("-").map(Number); if (!y || !m || !d) return new Date(NaN); return new Date(Date.UTC(y, m - 1, d)); };
   for (const t of transfers || []) {
     const mv = Number(t.minutes) || 0;
     (days[t.from_day] ??= { minutes: 0, sessions: 0 }); days[t.from_day].minutes -= mv;
@@ -93,7 +93,7 @@ export function computeStats(
       if (local >= start && local < end) { m += se.duration_sec / 60; c++; }
     }
     weekWindows.push({ start, end, idx: weekly.length });
-    weekly.push({ week: `${start.getMonth() + 1}/${start.getDate()}`, minutes: Math.round(m), sessions: c });
+    weekly.push({ week: `${start.getUTCMonth() + 1}/${start.getUTCDate()}`, minutes: Math.round(m), sessions: c });
   }
   for (const t of transfers || []) {
     const fd = parseDay(t.from_day), td = parseDay(t.to_day);
@@ -128,15 +128,15 @@ export function computeStats(
   const monthly: Array<{ month: string; minutes: number; sessions: number }> = [];
   const monthWindows: Array<{ start: Date; end: Date; idx: number }> = [];
   for (let m = 5; m >= 0; m--) {
-    const d = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m, 1);
-    const end = new Date(nowLocal.getFullYear(), nowLocal.getMonth() - m + 1, 1);
+    const d = new Date(Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth() - m, 1));
+    const end = new Date(Date.UTC(nowLocal.getUTCFullYear(), nowLocal.getUTCMonth() - m + 1, 1));
     let mm = 0, c = 0;
     for (const se of sessions) {
       const local = toLocal(se.started_at);
       if (local >= d && local < end) { mm += se.duration_sec / 60; c++; }
     }
     monthWindows.push({ start: d, end, idx: monthly.length });
-    monthly.push({ month: d.toLocaleString("en", { month: "short" }), minutes: Math.round(mm), sessions: c });
+    monthly.push({ month: d.toLocaleString("en", { month: "short", timeZone: "UTC" }), minutes: Math.round(mm), sessions: c });
   }
   for (const t of transfers || []) {
     const fd = parseDay(t.from_day), td = parseDay(t.to_day);
