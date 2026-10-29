@@ -169,26 +169,35 @@ p { margin: 0; }
 /* ============ LAYOUT ============ */
 .app-shell { display: flex; min-height: 100vh; background: var(--bg); }
 .sidebar {
-  width: 250px; flex-shrink: 0; padding: 18px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; scrollbar-width: thin;
-  display: flex; flex-direction: column; gap: 3px; z-index: 40;
+  width: 250px; flex-shrink: 0; padding: 16px 12px; position: sticky; top: 0; height: 100vh; overflow-y: auto; scrollbar-width: thin;
+  display: flex; flex-direction: column; gap: 2px; z-index: 40;
   background: var(--surface); border-right: 1px solid var(--border);
 }
-.main { flex: 1; min-width: 0; padding: 24px 28px 64px; max-width: 1400px; margin: 0 auto; width: 100%; }
-.sbrand { display: flex; align-items: center; gap: 10px; padding: 6px 10px 16px; font-weight: 700; font-size: 16px; letter-spacing: -0.02em; color: var(--text); }
+.main { flex: 1; min-width: 0; padding: 20px 28px 64px; max-width: 1400px; margin: 0 auto; width: 100%; }
+.sbrand { display: flex; align-items: center; gap: 10px; padding: 4px 8px 14px; font-weight: 700; font-size: 16.5px; letter-spacing: -0.025em; color: var(--text); border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); margin-bottom: 6px; }
 .sbrand .logo {
-  width: 32px; height: 32px; border-radius: 8px; background: var(--accent);
+  width: 32px; height: 32px; border-radius: 9px; background: var(--accent);
   display: grid; place-items: center; color: #fff; flex-shrink: 0;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--accent) 30%, transparent);
 }
-.snav { display: flex; align-items: center; gap: 10px; padding: 8px 10px; border-radius: 6px; color: var(--muted); font-weight: 500; font-size: 13.5px; transition: all 0.15s ease; border: 1px solid transparent; }
-.snav:hover { background: var(--accent-soft); color: var(--text); }
-.snav.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-color: transparent; box-shadow: none; }
-.snav svg { flex-shrink: 0; }
+.snav {
+  display: flex; align-items: center; gap: 10px; padding: 7px 11px; border-radius: 8px;
+  color: var(--muted); font-weight: 500; font-size: 13.5px; transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  border: 1px solid transparent; text-decoration: none;
+}
+.snav:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); color: var(--text); }
+.snav.active { background: var(--accent-soft); color: var(--accent); font-weight: 600; border-color: color-mix(in srgb, var(--accent) 22%, transparent); }
+.snav svg { flex-shrink: 0; transition: transform 0.15s ease; }
+.snav:hover svg { transform: scale(1.05); }
 .sspacer { flex: 1; }
-.ssection { font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 14px 10px 6px; font-weight: 700; }
+.ssection { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); padding: 12px 10px 4px; font-weight: 700; opacity: 0.85; }
 
-.topbar { display: flex; align-items: center; gap: 12px; margin-bottom: 24px; flex-wrap: wrap; }
-.topbar h1 { font-size: 22px; font-weight: 700; letter-spacing: -0.02em; flex: 1; min-width: 120px; color: var(--text); }
-.topbar .sub { color: var(--muted); font-size: 13px; margin-top: 2px; }
+.topbar {
+  display: flex; align-items: center; gap: 14px; margin-bottom: 22px; padding-bottom: 16px;
+  border-bottom: 1px solid color-mix(in srgb, var(--border) 60%, transparent); flex-wrap: wrap;
+}
+.topbar h1 { font-size: 21px; font-weight: 700; letter-spacing: -0.025em; flex: 1; min-width: 120px; color: var(--text); line-height: 1.25; }
+.topbar .sub { color: var(--muted); font-size: 12.5px; margin-top: 3px; display: inline-flex; align-items: center; gap: 6px; }
 
 /* ============ COMPONENTS ============ */
 .card {
@@ -633,10 +642,10 @@ select.select {
   align-items: center;
   justify-content: space-between;
   gap: 16px;
-  padding: 16px 28px;
+  padding: 14px 28px;
   background: color-mix(in srgb, var(--notion-canvas) 85%, transparent);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
   border-bottom: 1px solid var(--notion-hairline);
 }
 .land-logo {
@@ -650,13 +659,14 @@ select.select {
   letter-spacing: -0.5px;
 }
 .land-logo-icon {
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
   display: grid;
   place-items: center;
   background: var(--notion-primary);
   color: #fff;
+  box-shadow: 0 2px 8px color-mix(in srgb, var(--notion-primary) 30%, transparent);
 }
 .land-logo-flow {
   color: var(--notion-primary);
@@ -665,17 +675,20 @@ select.select {
 .land-links {
   display: flex;
   align-items: center;
-  gap: 20px;
-  font-size: 15px;
+  gap: 6px;
+  font-size: 14px;
 }
-.land-links a:not(.btn-notion-primary):not(.btn-notion-utility) {
+.land-links a:not(.btn-notion-primary):not(.btn-notion-utility):not(.btn) {
   color: var(--notion-ink-secondary);
   text-decoration: none;
   font-weight: 500;
-  transition: color 0.15s ease;
+  padding: 6px 12px;
+  border-radius: 8px;
+  transition: color 0.15s ease, background 0.15s ease;
 }
-.land-links a:not(.btn-notion-primary):not(.btn-notion-utility):hover {
+.land-links a:not(.btn-notion-primary):not(.btn-notion-utility):not(.btn):hover {
   color: var(--notion-ink);
+  background: color-mix(in srgb, var(--notion-ink) 6%, transparent);
 }
 .btn-notion-utility {
   background: var(--notion-surface);

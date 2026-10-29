@@ -172,7 +172,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
             </div>
           </div>
         ) : (
-          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "4px 10px 12px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 10, padding: "10px 8px 6px", borderTop: "1px solid color-mix(in srgb, var(--border) 60%, transparent)", marginTop: 6 }}>
             <div className={ownedItem("pfp_ring") ? "pfp-ring" : ""} style={{ flexShrink: 0, padding: 2.5, borderRadius: "50%" }}>
             <div
               style={{
@@ -202,7 +202,11 @@ export default function AppShell({ user, children }: { user: Me; children: React
           </button>
           <div style={{ flex: 1, minWidth: 0 }}>
             <h1>{NAV.find((n) => pathname.startsWith(n.href))?.label ?? (pathname.startsWith("/admin") ? "Admin Panel" : "FocusFlow")}</h1>
-            <div className="sub">{now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })} · {daysLeft} days left in {now.getFullYear()}</div>
+            <div className="sub">
+              <span>{now.toLocaleDateString(undefined, { weekday: "long", month: "long", day: "numeric" })}</span>
+              <span>·</span>
+              <span className="badge" style={{ fontSize: 11, padding: "1px 8px", background: "var(--accent-soft)", color: "var(--accent)" }}>{daysLeft} days left in {now.getFullYear()}</span>
+            </div>
           </div>
           <button className="iconbtn" onClick={toggleSound} title={soundOn ? "Sound on" : "Sound off"} style={{ width: 34, height: 34, flexShrink: 0 }}>
             {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
