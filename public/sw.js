@@ -1,7 +1,23 @@
 // Service Worker for FocusFlow PWA
 // Provides offline support, caching, and background sync
 
-const CACHE_NAME = "focusflow-v5";
+// Self-unregister and bypass SW if running under legacy vercel.app domain
+if (self.location.hostname !== "tracker.devshivansh.in" && self.location.hostname.endsWith(".vercel.app")) {
+  self.addEventListener("install", () => self.skipWaiting());
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      self.registration.unregister().then(() => self.clients.matchAll({ type: "window" }))
+        .then((clients) => {
+          for (const client of clients) {
+            client.navigate("https://tracker.devshivansh.in" + self.location.pathname + self.location.search);
+          }
+        })
+    );
+  });
+  self.addEventListener("fetch", () => {});
+}
+
+const CACHE_NAME = "focusflow-v6";
 const STATIC_ASSETS = [
   "/",
   "/dsa",
@@ -55,6 +71,10 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("fetch", (event) => {
   const { request } = event;
+  if (self.location.hostname !== "tracker.devshivansh.in" && self.location.hostname.endsWith(".vercel.app")) {
+    self.registration.unregister().catch(() => {});
+    return;
+  }
   const url = new URL(request.url);
 
   // Skip non-GET requests
@@ -116,6 +136,9 @@ async function staleWhileRevalidate(request, event) {
 
   const networkFetch = event.preloadResponse || fetch(request);
   const fetchPromise = networkFetch.then((response) => {
+    if (response && response.redirected && request.mode === "navigate") {
+      return Response.redirect(response.url, 302);
+    }
     // Never cache redirected responses — a /dashboard -> /login redirect must
     // not poison the cache with a login page stored under the dashboard URL.
     if (response && response.ok && !response.redirected) {

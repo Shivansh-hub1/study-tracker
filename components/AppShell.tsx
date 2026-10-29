@@ -82,7 +82,11 @@ export default function AppShell({ user, children }: { user: Me; children: React
 
   // Offline app shell: register the service worker in production
   useEffect(() => {
-    if ("serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+    if (typeof window !== "undefined" && "serviceWorker" in navigator && process.env.NODE_ENV === "production") {
+      if (window.location.hostname.endsWith(".vercel.app") && window.location.hostname !== "tracker.devshivansh.in") {
+        navigator.serviceWorker.getRegistrations().then((regs) => { for (const r of regs) r.unregister(); });
+        return;
+      }
       navigator.serviceWorker.register("/sw.js").catch(() => {});
     }
   }, []);
