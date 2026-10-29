@@ -62,6 +62,11 @@ export async function flushOutbox(): Promise<{ synced: number; failed: boolean }
           body: it.body,
         });
         if (!res.ok) {
+          if (res.status >= 400 && res.status < 500 && res.status !== 401) {
+            items = items.filter((x) => x.id !== it.id);
+            saveOutbox(items);
+            continue;
+          }
           failed = true;
           break;
         }

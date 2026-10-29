@@ -145,7 +145,7 @@ export async function PATCH(req: NextRequest) {
         now, user.id, key
       );
       await autoAdvance(db, user.id, now);
-    } else if (idx < len) {
+    } else if (idx > 0 && idx < len) {
       // (Re)opened mid-module → it becomes current
       await demoteOthers(db, user.id, now);
       await db.run(

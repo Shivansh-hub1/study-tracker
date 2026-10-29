@@ -126,7 +126,7 @@ export default function TimersPage() {
         soundEngine.whoosh();
         reset();
       } else if ((e.key === "l" || e.key === "L") && mode === "stopwatch" && p.status === "running") {
-        soundEngine.stopwatchLap();
+        lap();
       }
     };
     window.addEventListener("keydown", onKey);

@@ -33,6 +33,9 @@ export async function saveSubscription(
   sub: { endpoint?: string; keys?: { p256dh?: string; auth?: string } }
 ): Promise<boolean> {
   if (!sub?.endpoint || !sub?.keys?.p256dh || !sub?.keys?.auth) return false;
+  if (typeof sub.endpoint !== "string" || !sub.endpoint.startsWith("https://") || sub.endpoint.length > 1024) return false;
+  if (typeof sub.keys.p256dh !== "string" || sub.keys.p256dh.length > 256) return false;
+  if (typeof sub.keys.auth !== "string" || sub.keys.auth.length > 128) return false;
   await db.run(
     `INSERT INTO push_subscriptions (endpoint, user_id, p256dh, auth, created_at)
      VALUES (?, ?, ?, ?, ?)
