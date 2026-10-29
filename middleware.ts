@@ -58,6 +58,9 @@ export async function middleware(req: NextRequest) {
       pathname.startsWith("/apple-icon") ||
       pathname.startsWith("/icon") ||
       pathname.startsWith("/api/auth") ||
+      pathname === "/api/features" ||
+      pathname === "/api/indexnow" ||
+      pathname === "/api/push/key" ||
       pathname.startsWith("/api/cron") ||
       PUBLIC_PATHS.some((p) => pathname === p || pathname.startsWith(p + "/"))
     ) {
