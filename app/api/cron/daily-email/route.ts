@@ -22,6 +22,8 @@ export async function GET(req: NextRequest) {
     if (auth !== `Bearer ${process.env.CRON_SECRET}`) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
+  } else if (process.env.NODE_ENV === "production") {
+    return NextResponse.json({ error: "CRON_SECRET not configured" }, { status: 401 });
   }
 
   const db = await getDb();

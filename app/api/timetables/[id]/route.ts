@@ -22,7 +22,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     id
   );
   const updated = (await db.get("SELECT * FROM timetables WHERE id = ?", id)) as any;
-  return NextResponse.json({ timetable: { ...updated, config: JSON.parse(updated.config), slots: JSON.parse(updated.slots) } });
+  const safe = (s: string, fb: any) => { try { return JSON.parse(s); } catch { return fb; } };
+  return NextResponse.json({ timetable: { ...updated, config: safe(updated.config, {}), slots: safe(updated.slots, []) } });
 }
 
 export async function DELETE(_req: NextRequest, { params }: { params: { id: string } }) {

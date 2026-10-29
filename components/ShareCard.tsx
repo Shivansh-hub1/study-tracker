@@ -68,16 +68,22 @@ export function drawShareCard(cv: HTMLCanvasElement, s: ShareStats) {
   numG.addColorStop(0, "#ffffff"); numG.addColorStop(1, "#f0abfc");
   x.fillStyle = numG;
   x.font = "800 200px system-ui, -apple-system, sans-serif";
-  x.fillText(`${s.streak}`, W / 2, 560);
+  const streak = Number(s?.streak) || 0;
+  const monthMin = Number(s?.monthMin) || 0;
+  const level = Number(s?.level) || 1;
+  const xp = Number(s?.xp) || 0;
+  const totalHours = Number(s?.totalHours) || 0;
+
+  x.fillText(`${streak}`, W / 2, 560);
   x.fillStyle = "rgba(255,255,255,.8)";
   x.font = "600 40px system-ui, -apple-system, sans-serif";
   x.fillText("DAY STREAK", W / 2, 600);
 
   const cells: Array<[string, string]> = [
-    [fmtShareHours(s.monthMin), "this month"],
-    [`${s.totalHours}h`, "total focus"],
-    [`Lv ${s.level}`, "level"],
-    [`${s.xp}`, "total xp"],
+    [fmtShareHours(monthMin), "this month"],
+    [`${totalHours}h`, "total focus"],
+    [`Lv ${level}`, "level"],
+    [`${xp}`, "total xp"],
   ];
   cells.forEach(([big, small], i) => {
     const cx = 90 + (i % 2) * 470, cy = 656 + Math.floor(i / 2) * 176;
@@ -94,7 +100,7 @@ export function drawShareCard(cv: HTMLCanvasElement, s: ShareStats) {
   x.fillStyle = "rgba(255,255,255,.6)";
   x.font = "600 26px system-ui, -apple-system, sans-serif";
   x.fillText("LAST 7 DAYS", W / 2, 1048);
-  const week = (s.daily && s.daily.length === 7 ? s.daily : [0, 0, 0, 0, 0, 0, 0]).map((v) => Math.max(0, v));
+  const week = (s?.daily && s.daily.length === 7 ? s.daily : [0, 0, 0, 0, 0, 0, 0]).map((v) => Math.max(0, Number(v) || 0));
   const mx = Math.max(30, ...week);
   const bw = 72, gap = 30, total = 7 * bw + 6 * gap;
   let bx = (W - total) / 2;
@@ -124,5 +130,10 @@ export function drawShareCard(cv: HTMLCanvasElement, s: ShareStats) {
 }
 
 export function shareText(s: ShareStats) {
-  return `🔥 ${s.streak}-day study streak on FocusFlow!\n⏱️ ${fmtShareHours(s.monthMin)} this month · ${s.totalHours}h total · Level ${s.level} (${s.xp} XP)\nSmall steps daily.`;
+  const streak = Number(s?.streak) || 0;
+  const monthMin = Number(s?.monthMin) || 0;
+  const level = Number(s?.level) || 1;
+  const xp = Number(s?.xp) || 0;
+  const totalHours = Number(s?.totalHours) || 0;
+  return `🔥 ${streak}-day study streak on FocusFlow!\n⏱️ ${fmtShareHours(monthMin)} this month · ${totalHours}h total · Level ${level} (${xp} XP)\nSmall steps daily.`;
 }

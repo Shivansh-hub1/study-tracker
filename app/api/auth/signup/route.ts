@@ -24,13 +24,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "Password must be 6–128 characters" }, { status: 400 });
   }
   const db = await getDb();
-  const exists = await db.get("SELECT id FROM users WHERE email = ?", String(email).toLowerCase().trim());
+  const exists = await db.get("SELECT id FROM users WHERE email = ?", em);
   if (exists) return NextResponse.json({ error: "An account with this email already exists" }, { status: 409 });
   const info = await db.run(
     "INSERT INTO users (name, email, password_hash, role, created_at) VALUES (?,?,?,?,?)",
-    String(name).trim(),
-    String(email).toLowerCase().trim(),
-    bcrypt.hashSync(String(password), 10),
+    nm,
+    em,
+    bcrypt.hashSync(pw, 10),
     "user",
     new Date().toISOString()
   );
@@ -38,7 +38,7 @@ export async function POST(req: NextRequest) {
   setAuthCookie(await signToken(info.lastInsertRowid));
   // welcome email (no-op when SMTP not configured; never blocks signup on failure)
   try {
-    await sendWelcome(String(email).toLowerCase().trim(), String(name).trim());
+    await sendWelcome(em, nm);
   } catch (e) {
     console.error("welcome email failed", e);
   }

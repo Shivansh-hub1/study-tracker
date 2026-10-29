@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
 import { getDb, deleteUserCascade } from "@/lib/db";
-import { getAdminUser } from "@/lib/auth";
+import { getAdminUser, bustAuthUser } from "@/lib/auth";
+import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -65,6 +66,8 @@ export async function PATCH(req: NextRequest, { params }: { params: { id: string
     await db.run("UPDATE users SET password_hash = ? WHERE id = ?", bcrypt.hashSync(String(password), 10), id);
   }
   const updated = await db.get("SELECT id, name, email, role, emails_opt_out, created_at, last_active_at FROM users WHERE id = ?", id);
+  bustUser(id);
+  bustAuthUser(id);
   return NextResponse.json({ user: updated });
 }
 
@@ -77,5 +80,7 @@ export async function DELETE(_req: NextRequest, { params }: { params: { id: stri
   const target = await db.get("SELECT id FROM users WHERE id = ?", id);
   if (!target) return NextResponse.json({ error: "Not found" }, { status: 404 });
   await deleteUserCascade(db, id);
+  bustUser(id);
+  bustAuthUser(id);
   return NextResponse.json({ ok: true });
 }
