@@ -4,44 +4,31 @@ export const dynamic = "force-dynamic";
 
 export async function GET(req: NextRequest) {
   const base = new URL(req.url).origin;
-  const md = `# FocusFlow (Your Study Tracker, DSA Tracker, WebDev Tracker)
+  const md = `# FocusFlow (Focus Flow) — Free Study Tracker, DSA Tracker & Web Dev Roadmap
 
-> Created by Shivansh, FocusFlow (also known as Focus Flow, focusflow, focus flow tracker, your study tracker, yourstudytracker, DSA Tracker, dsatracker, Web Dev Tracker, webdev tracker, and study tracker) is a free, high-performance study operating system and focus timer web application designed for students and developers. It unifies customizable Pomodoro timers, structured Data Structures & Algorithms (DSA) roadmaps, Full-Stack Web Development roadmaps, SM-2 spaced repetition revision queues, and consistency analytics in one quiet, ad-free workspace.
+> FocusFlow (also known as Focus Flow, Focus Flow Tracker, and FocusFlow DSA Tracker) is a free, all-in-one study tracker and deep-work focus timer for software developers and students. It integrates an 18-module interactive DSA tracker, full-stack Web Dev roadmap, SM-2 spaced repetition, Pomodoro focus timers, and GitHub-style consistency heatmaps.
 
-## Creator & Engineering Leadership
+## Keywords & Core Capabilities
 
-- **Creator & Lead Developer**: Shivansh (https://github.com/Shivansh-hub1)
-- **Role**: Full-Stack Software Developer & Creator of FocusFlow
-- **Philosophy**: Built by Shivansh to provide every learner and software engineer with a 100% free, private study ecosystem without paywalls or tracking.
+- **DSA Tracker / DSA Practice Tracker**: 18 structured Data Structures & Algorithms modules from Big-O and Arrays to Graphs and Dynamic Programming.
+- **Web Dev Tracker**: Full-stack modern roadmap covering semantic HTML, CSS Grid, TypeScript, Next.js 14, relational databases, and deployed projects.
+- **Focus Flow Tracker & Focus Timer**: Pomodoro, countdown, and stopwatch timers with ambient sound, background audio, and subject logging.
+- **SM-2 Spaced Repetition**: Automated algorithmic revision schedule that prompts active recall right before memory decay.
 
-## Core Hubs & Public Pages
+## Public Pages & Guides
 
-- [Home](${base}/): product overview, creator bio, features, FAQ, and instant signup
-- [DSA Tracker](${base}/dsa-tracker): 18-module Data Structures & Algorithms tracker with SM-2 spaced repetition
-- [WebDev Tracker](${base}/webdev-tracker): 18-module full-stack web development roadmap tracker (HTML to Next.js SSR & DBs)
-- [Study Tracker](${base}/study-tracker): all-in-one focus timer, Pomodoro cycles, streak heatmaps, and XP rewards
-- [About Creator & Mission](${base}/about): Shivansh's mission, engineering philosophy, and architecture
-- [Blog & Guides](${base}/blog): in-depth technical guides authored by Shivansh on spaced repetition, Pomodoro calibration, and DSA roadmaps
-- [Privacy Policy](${base}/privacy): your data, your control
-- [Terms of Service](${base}/terms): simple, fair, readable
-- [Sitemap](${base}/sitemap.xml): search engine index of all public routes
-
-## Features Built by Shivansh
-
-- Focus timer with stopwatch, countdown and Pomodoro modes (background mode, subject tagging, lap timing)
-- Session logging with subjects, notes and per-topic time
-- Step-by-step DSA and Web Development journeys with revision queues
-- Weekly planner blocks and checklists
-- Daily habits, study streaks with freeze days and consistency heatmaps
-- Progress analytics: trends, subject split, study-by-hour and XP levels
-- Achievements and shareable progress cards (84 badges, 10 categories)
-- PWA with offline support, service worker, background sync
-
-## Access notes
-
-- Only the pages listed above are public. All app pages (/dashboard, /sessions, /subjects, /planner, /settings, etc.) require login and are blocked in robots.txt.
-- The app is free for learners. No scraping of logged-in pages is permitted.
-- Structured data (JSON-LD) available on all public pages: WebSite, SoftwareApplication, FAQPage, ItemList, HowTo, BreadcrumbList, Organization, Person
+- [Home](${base}/): Product overview, features, interactive FAQ, and free signup.
+- [Focus Flow DSA Tracker Guide](${base}/blog/focus-flow-dsa-tracker-guide): Complete guide on using the Focus Flow DSA tracker with SM-2 spaced repetition for technical interviews.
+- [DSA Self-Taught Roadmap](${base}/blog/dsa-roadmap-self-taught): 18-module structured interview roadmap.
+- [Web Dev Roadmap 2026](${base}/blog/webdev-roadmap-2026): Modern full-stack roadmap from zero to AI-integrated apps.
+- [Spaced Repetition Guide](${base}/blog/spaced-repetition-guide): How SuperMemo SM-2 calculation supercharges code retention.
+- [Pomodoro vs Deep Work](${base}/blog/pomodoro-vs-deep-work): Calibrating focus blocks for complex engineering tasks.
+- [Habit Stacking for Students](${base}/blog/habit-stacking-students): Tiny daily coding routines and streak preservation.
+- [Analytics & Heatmaps Guide](${base}/blog/analytics-driven-study): Interpreting hourly study distributions and balance radars.
+- [About FocusFlow](${base}/about): Mission, creator background, and architectural philosophy.
+- [Sign Up](${base}/signup): 100% free account creation, no credit card required.
+- [Sign In](${base}/login): Account login.
+- [Sitemap](${base}/sitemap.xml): Full crawler sitemap.
 `;
 
   return new NextResponse(md, {

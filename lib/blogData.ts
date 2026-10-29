@@ -14,6 +14,35 @@ export interface BlogPost {
 
 export const BLOG_POSTS: BlogPost[] = [
   {
+    slug: "focus-flow-dsa-tracker-guide",
+    title: "Focus Flow DSA Tracker: The Free 18-Module Roadmap for Coding Interviews",
+    excerpt: "Why messy LeetCode spreadsheets fail, how to use the Focus Flow DSA tracker with SM-2 spaced repetition, and our complete 18-module milestone journey.",
+    date: "2026-10-20",
+    readTime: "10 min",
+    tags: ["DSA", "Focus Flow", "Roadmap", "Interview Prep"],
+    metaDescription: "Master coding interviews with the Focus Flow DSA tracker. 18 structured Data Structures & Algorithms modules, automated SM-2 spaced repetition, and Pomodoro focus timers.",
+    faqs: [
+      {
+        q: "What is the Focus Flow DSA tracker?",
+        a: "The Focus Flow DSA tracker is a free, structured preparation dashboard featuring 18 foundational Data Structures & Algorithms modules with milestone tracking and SM-2 spaced repetition."
+      },
+      {
+        q: "How does Focus Flow compare to an Excel or Notion DSA tracker sheet?",
+        a: "Unlike static spreadsheets, Focus Flow connects your topic milestones directly to an active Pomodoro timer, GitHub-style consistency heatmaps, and automatic review schedules so you never forget complex algorithm patterns."
+      },
+      {
+        q: "Is the Focus Flow DSA tracker free?",
+        a: "Yes, Focus Flow is 100% free with no paywalls or subscription fees."
+      }
+    ],
+    content: [
+      "Most software engineering students and self-taught developers make the same mistake when preparing for technical interviews: they jump between random LeetCode problems without a structured roadmap or revision cadence.",
+      "A spreadsheet tracker quickly becomes stale and disconnected from your daily routine. The Focus Flow DSA Tracker was engineered to solve this by tightly coupling your learning modules with focus session timers and automated active recall.",
+      "Our 18-module journey begins with Big-O complexity, basic Arrays, and Strings, then systematically progresses through Two Pointers, Linked Lists, Stacks, Binary Trees, BFS/DFS, Heaps, and Dynamic Programming.",
+      "Each module lets you track your status as Learning, Revising, or Mastered. Once marked Mastered, Focus Flow schedules intelligent SM-2 review dates so you retain key algorithmic patterns until interview day."
+    ]
+  },
+  {
     slug: "spaced-repetition-guide",
     title: "Spaced Repetition for Programmers: The Practical SM-2 Guide",
     excerpt: "Why cramming syntax and LeetCode solutions fails after 48 hours, how SuperMemo SM-2 calculation works, and how FocusFlow automates your daily revision queue.",
@@ -49,31 +78,31 @@ export const BLOG_POSTS: BlogPost[] = [
     date: "2026-09-08",
     readTime: "6 min",
     tags: ["Focus", "Productivity", "Timer"],
-    metaDescription: "Pomodoro vs. Deep Work for developers: why 25-minute timers break complex debugging flow and how to configure 50/10 focus sprints for software engineering.",
+    metaDescription: "Pomodoro vs. deep work for programmers: why 25-minute sprints break flow states, how attention residue degrades code quality, and how to use adaptive focus timers.",
     faqs: [
       {
-        q: "Is 25 minutes too short for coding?",
-        a: "For shallow tasks like code reviews or documentation, 25 minutes is great. For difficult debugging or writing complex algorithms, 50-minute or 90-minute focus blocks prevent attention fragmentation."
+        q: "Is 25 minutes really enough for coding?",
+        a: "For routine tasks and syntax drills, 25/5 works well. For deep architecture and hard algorithmic debugging, 50-minute or 90-minute blocks produce significantly higher flow without attention fragmentation."
       },
       {
-        q: "What should I do during Pomodoro breaks?",
-        a: "Step away from screens. Hydrate, stretch, or look out a window. Checking social media or Discord causes attention residue that ruins your next sprint."
+        q: "What is attention residue?",
+        a: "Dr. Sophie Leroy coined the term to explain why switching tasks leaves part of your cognitive capacity stuck on the previous task. Single-tasking with dedicated focus timers mitigates residue."
       },
       {
-        q: "Does FocusFlow support custom block lengths?",
-        a: "Yes. FocusFlow includes stopwatch, countdown, and fully customizable Pomodoro durations (e.g. 50m work / 10m break)."
+        q: "Can I customize the timer intervals in FocusFlow?",
+        a: "Yes. FocusFlow supports custom Pomodoro lengths, traditional count-up stopwatches, and countdown timers with background audio alerts."
       }
     ],
     content: [
-      "The classic 25/5 Pomodoro technique was invented by Francesco Cirillo using a kitchen tomato timer. It works wonders for administrative tasks, but software engineering has a unique requirement: context compilation.",
-      "Research by Gloria Mark at UC Irvine shows it takes an average of 23 minutes just to reload a complex mental model after an interruption. If your timer dings right at minute 25, you are cut off right when your brain enters peak flow.",
+      "The Pomodoro Technique was created by Francesco Cirillo in the late 1980s using a mechanical tomato kitchen timer. While it revolutionized task management for rote assignments, modern software engineering presents different cognitive demands.",
+      "Writing a complex database migration or debugging a race condition requires loading hundreds of mental variables into working memory. When an arbitrary bell rings at minute 25, that state collapses.",
       "Instead of dogmatic 25-minute sprints, productive engineers use 50/10 or 90/20 cycles. The 50-minute sprint provides ample runway to read stack traces, write test cases, and verify edge conditions.",
       "Use FocusFlow's session timer to log exact minutes against specific subjects. When you complete a sprint, tag your accomplishments so your consistency heatmap reflects real output, not just desk time."
     ]
   },
   {
     slug: "dsa-roadmap-self-taught",
-    title: "The Self-Taught Developer's DSA Roadmap: 18 Modules to Interview Ready",
+    title: "Best DSA Tracker & Self-Taught Roadmap: 18 Modules to Interview Ready",
     excerpt: "A structured, module-by-module breakdown from Big-O and arrays to graphs, DP, and bit manipulation. No tutorial hell, just focused deliberate practice.",
     date: "2026-09-01",
     readTime: "12 min",
@@ -114,29 +143,29 @@ export const BLOG_POSTS: BlogPost[] = [
         a: "Habit stacking pairs a new behavior with an established daily habit: 'After I pour my morning coffee, I will open FocusFlow and start a 25-minute session.'"
       },
       {
-        q: "What happens if I miss a day in my study streak?",
-        a: "FocusFlow includes built-in streak freeze tokens. Life happens; a freeze day preserves your hard-earned streak while you recharge."
+        q: "What should I do if I break my study streak?",
+        a: "Never miss twice. FocusFlow includes built-in streak freeze allowances so a sudden exam or illness doesn't erase weeks of hard-earned momentum."
       },
       {
-        q: "How long does it take to make coding a daily habit?",
-        a: "Studies indicate an average of 66 days for automaticity. Starting small (just 15 minutes daily) beats burning out with 4-hour weekend marathons."
+        q: "How long does it take to form a permanent coding habit?",
+        a: "Research by Dr. Phillippa Lally at University College London shows it takes an average of 66 days for a new behavior to become automatic."
       }
     ],
     content: [
-      "Relying on motivation is the quickest route to burnout. Motivation fluctuates with sleep, stress, and workload; systems and habits remain steady.",
-      "The formula for habit stacking is: 'After [CURRENT HABIT], I will [NEW HABIT].' For example: 'After I sit down at my desk at 8:00 AM, I will open FocusFlow and review my 3 due revision cards.'",
-      "Lower the barrier to entry until it is impossible to say no. A 15-minute focused session logged on your tracker builds the neurological identity of a consistent builder.",
-      "FocusFlow rewards this consistency with XP, level progression, and 84 unlockable achievements. Watch your consistency heatmap fill with vibrant green squares."
+      "Willpower is a depletable biological resource. If studying requires high willpower exertion every afternoon, you will inevitably succumb to procrastination.",
+      "Habit stacking bypasses willpower by hitchhiking on automatic neuro-pathways. The formula is: 'After [CURRENT HABIT], I will [NEW HABIT]'. For instance: 'After I close my laptop from lectures, I will start a 25-minute FocusFlow session on LeetCode.'",
+      "Keep the initial barrier absurdly low. Committing to a 25-minute sprint is non-threatening; once the timer is ticking, momentum carries you forward.",
+      "FocusFlow visualizes your daily consistency on a visual heatmap. Watching empty squares turn emerald green triggers a positive dopamine feedback loop that protects your streak."
     ]
   },
   {
     slug: "webdev-roadmap-2026",
-    title: "Web Development Roadmap 2026: Semantic HTML to Production Full-Stack",
-    excerpt: "The modern web engineering stack: semantic markup, TypeScript strictness, server-side rendering with Next.js, relational database architecture, and real deployment.",
+    title: "Web Dev Tracker & Full-Stack Roadmap 2026: HTML to Production AI Apps",
+    excerpt: "The modern full-stack web developer roadmap: semantic HTML5 → modern TypeScript → Next.js 14 Server Actions → building 3 production portfolio applications.",
     date: "2026-08-18",
     readTime: "15 min",
     tags: ["WebDev", "Career", "Roadmap"],
-    metaDescription: "The definitive 2026 Web Development Roadmap: Semantic HTML, strict TypeScript, Next.js App Router, SQLite/Postgres databases, and full-stack project milestones.",
+    metaDescription: "Complete Web Dev Tracker and full-stack roadmap 2026: master HTML, CSS, TypeScript, Next.js 14, relational databases, and build production web applications.",
     faqs: [
       {
         q: "Do I still need to learn vanilla CSS before Tailwind?",
