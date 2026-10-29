@@ -2,26 +2,26 @@ export type S = any;
 export type Badge = { id: string; name: string; desc: string; icon: string; rarity: string; category: string; test: (s: S) => boolean; prog: (s: S) => [number, number] };
 
 const num = (v: any) => (typeof v === "number" && !isNaN(v) ? v : 0);
-export const bestDay = (s: S) => Math.max(0, ...((s.daily || []).map((d: any) => num(d.minutes))));
-export const activeLast30 = (s: S) => (s.daily || []).filter((d: any) => num(d.minutes) > 0).length;
-export const earlyMin = (s: S) => [5, 6, 7].reduce((a: number, h: number) => a + num((s.hourly || [])[h]), 0);
-export const nightMin = (s: S) => [22, 23, 0, 1].reduce((a: number, h: number) => a + num((s.hourly || [])[h]), 0);
-export const pomoMin = (s: S) => num((s.byType || []).find((t: any) => t.type === "pomodoro")?.minutes);
-export const subjCount = (s: S) => (s.bySubjectAll || []).length;
-export const maxWeekly = (s: S) => Math.max(0, ...((s.weekly || []).map((w: any) => num(w.minutes))));
-export const maxMonthly = (s: S) => Math.max(0, ...((s.monthly || []).map((m: any) => num(m.minutes))));
-export const perfectWeek = (s: S) => (s.daily || []).slice(-7).every((d: any) => num(d.minutes) > 0) && (s.daily || []).length >= 7;
+export const bestDay = (s: S) => Math.max(0, ...((s?.daily || []).map((d: any) => num(d?.minutes))));
+export const activeLast30 = (s: S) => (s?.daily || []).filter((d: any) => num(d?.minutes) > 0).length;
+export const earlyMin = (s: S) => [5, 6, 7].reduce((a: number, h: number) => a + num((s?.hourly || [])[h]), 0);
+export const nightMin = (s: S) => [22, 23, 0, 1].reduce((a: number, h: number) => a + num((s?.hourly || [])[h]), 0);
+export const pomoMin = (s: S) => num((s?.byType || []).find((t: any) => t?.type === "pomodoro")?.minutes);
+export const subjCount = (s: S) => (s?.bySubjectAll || []).length;
+export const maxWeekly = (s: S) => Math.max(0, ...((s?.weekly || []).map((w: any) => num(w?.minutes))));
+export const maxMonthly = (s: S) => Math.max(0, ...((s?.monthly || []).map((m: any) => num(m?.minutes))));
+export const perfectWeek = (s: S) => (s?.daily || []).slice(-7).every((d: any) => num(d?.minutes) > 0) && (s?.daily || []).length >= 7;
 export const perfectMonth = (s: S) => activeLast30(s) >= 30;
-export const weekendCount = (s: S) => (s.daily || []).filter((d: any) => { try { const day = new Date(d.date + "T12:00:00").getDay(); return (day === 0 || day === 6) && num(d.minutes) > 0; } catch { return false; } }).length;
-export const timerTypesUsed = (s: S) => (s.byType || []).filter((t: any) => num(t.minutes) > 0).length;
-export const hourlyAt = (s: S, h: number) => num((s.hourly || [])[h]);
+export const weekendCount = (s: S) => (s?.daily || []).filter((d: any) => { try { const day = new Date(d?.date + "T12:00:00").getDay(); return (day === 0 || day === 6) && num(d?.minutes) > 0; } catch { return false; } }).length;
+export const timerTypesUsed = (s: S) => (s?.byType || []).filter((t: any) => num(t?.minutes) > 0).length;
+export const hourlyAt = (s: S, h: number) => num((s?.hourly || [])[h]);
 export const hasDawn = (s: S) => hourlyAt(s, 5) > 0;
 export const hasNoon = (s: S) => hourlyAt(s, 12) > 0;
-export const activeTotal140 = (s: S) => (s.heat || []).filter((d: any) => num(d.minutes) > 0).length;
-export const allHoursCovered = (s: S) => (s.hourly || []).filter((m: any) => num(m) > 0).length;
+export const activeTotal140 = (s: S) => (s?.heat || []).filter((d: any) => num(d?.minutes) > 0).length;
+export const allHoursCovered = (s: S) => (s?.hourly || []).filter((m: any) => num(m) > 0).length;
 export const perfect90 = (s: S) => activeTotal140(s) >= 90;
 export const perfect140 = (s: S) => activeTotal140(s) >= 140;
-export const maxSubjectMin = (s: S) => Math.max(0, ...((s.bySubjectAll || []).map((x: any) => num(x.minutes))));
+export const maxSubjectMin = (s: S) => Math.max(0, ...((s?.bySubjectAll || []).map((x: any) => num(x?.minutes))));
 
 export const BADGES: Badge[] = [
   // SESSIONS

@@ -75,6 +75,9 @@ export function generateTimetable(cfg: TTConfig): { slots: Slot[]; warnings: str
       q.push({ subjectId: s.id, minutes: m });
       left -= m;
     }
+    if (q.length === 0 && Number(s.weeklyMinutes) > 0) {
+      q.push({ subjectId: s.id, minutes: 20 });
+    }
     return { id: s.id, q, totalLeft: () => q.reduce((a, b) => a + b.minutes, 0) };
   });
 
