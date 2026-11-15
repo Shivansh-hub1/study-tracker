@@ -12,7 +12,7 @@ const PUBLIC_PATHS = [
 ];
 const AUTH_PATHS = ["/login", "/signup"];
 
-const CANONICAL_HOST = (process.env.VERCEL_PROJECT_PRODUCTION_URL || "tracker.devshivansh.in").toLowerCase();
+const CANONICAL_HOST = (process.env.CANONICAL_HOST || process.env.NEXT_PUBLIC_SITE_URL?.replace(/^https?:\/\//, "") || process.env.VERCEL_PROJECT_PRODUCTION_URL || "tracker.devshivansh.in").toLowerCase();
 
 export async function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
@@ -32,11 +32,15 @@ export async function middleware(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Always land on ONE domain: every *.vercel.app preview/deployment URL
-  // redirects to the production host, so the login cookie is never split
-  // across different domains (this was causing repeated logins).
+  // Always land on ONE canonical domain: any *.vercel.app or *.pages.dev preview URL
+  // redirects to the production host, so the login cookie is never split.
   const host = (req.headers.get("host") || "").toLowerCase();
-  if (pathname !== "/sw.js" && host && host !== CANONICAL_HOST && host.endsWith(".vercel.app")) {
+  if (
+    pathname !== "/sw.js" &&
+    host &&
+    host !== CANONICAL_HOST &&
+    (host.endsWith(".vercel.app") || host.endsWith(".pages.dev"))
+  ) {
     const url = req.nextUrl.clone();
     url.protocol = "https:";
     url.host = CANONICAL_HOST;

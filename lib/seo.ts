@@ -16,6 +16,7 @@ export const SITE_DESCRIPTION =
 
 export const CANONICAL_SITE_URL =
   process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
+  (process.env.CF_PAGES_URL ? process.env.CF_PAGES_URL.replace(/\/$/, "") : "") ||
   (process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "https://tracker.devshivansh.in");
 
 export const AUTHOR_INFO = {
