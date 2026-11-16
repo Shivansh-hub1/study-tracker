@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { bustUser } from "@/lib/api-cache";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
@@ -79,16 +79,23 @@ async function wallet(db: any, userId: number) {
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const __ck = `u${user.id}:shop`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
+
   const db = await getDb();
   const w = await wallet(db, user.id);
   const owned = (await db.all("SELECT item FROM xp_purchases WHERE user_id = ?", user.id)) as any[];
   const ownedSet = new Set(owned.map((o: any) => o.item));
-  return NextResponse.json({
+  const __data = {
     xp: w.earned,
     spent: w.spent,
     xpAvailable: w.available,
     items: SHOP_ITEMS.map((i) => ({ ...i, owned: !i.repeatable && ownedSet.has(i.key) })),
-  });
+  };
+  cacheSet(__ck, __data, 120);
+  return NextResponse.json(__data);
 }
 
 export async function POST(req: NextRequest) {

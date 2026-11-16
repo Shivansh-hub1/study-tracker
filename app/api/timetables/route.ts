@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { bustUser } from "@/lib/api-cache";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { generateTimetable, TTConfig } from "@/lib/timetable";
 
 export const dynamic = "force-dynamic";
@@ -9,11 +9,18 @@ export const dynamic = "force-dynamic";
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const __ck = `u${user.id}:timetables`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
+
   const db = await getDb();
   const rows = (await db.all("SELECT * FROM timetables WHERE user_id = ? ORDER BY created_at DESC", user.id)) as any[];
-  return NextResponse.json({
+  const __data = {
     timetables: rows.map((r) => { const safe = (s: string, fb: any) => { try { return JSON.parse(s); } catch { return fb; } }; return { ...r, config: safe(r.config, {}), slots: safe(r.slots, []) }; }),
-  });
+  };
+  cacheSet(__ck, __data, 300);
+  return NextResponse.json(__data);
 }
 
 // POST { name?, config } -> runs generator server-side; saves when save=true

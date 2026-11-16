@@ -1,17 +1,24 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { bustUser } from "@/lib/api-cache";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const __ck = `u${user.id}:settings`;
+  const __hit = cacheGet(__ck);
+  if (__hit) return NextResponse.json(__hit);
+
   const db = await getDb();
   await ensureSettings(db, user.id);
   const s = await db.get("SELECT * FROM settings WHERE user_id = ?", user.id);
-  return NextResponse.json({ settings: s });
+  const __data = { settings: s };
+  cacheSet(__ck, __data, 300);
+  return NextResponse.json(__data);
 }
 
 export async function PATCH(req: NextRequest) {
