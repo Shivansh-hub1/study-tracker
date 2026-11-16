@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { cacheGet, cacheSet } from "@/lib/api-cache";
+import { cacheGet, cacheGetAsync, cacheSet } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
 import { parseOffset } from "@/lib/utils";
 
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset")); // minutes ahead of UTC (e.g. 330 IST)
 
   const __ck = `u${user.id}:stats:${offsetMin}`;
-  const __hit = cacheGet(__ck);
+  const __hit = await cacheGetAsync(__ck);
   if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
 

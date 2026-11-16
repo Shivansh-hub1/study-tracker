@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, ensureSettings, DB } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
+import { cacheGet, cacheGetAsync, cacheSet, bustUser } from "@/lib/api-cache";
 import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
@@ -37,7 +37,7 @@ export async function GET(req: NextRequest) {
   const offsetMin = parseOffset(new URL(req.url).searchParams.get("offset"));
 
   const __ck = `u${user.id}:streak:${offsetMin}`;
-  const __hit = cacheGet(__ck);
+  const __hit = await cacheGetAsync(__ck);
   if (__hit) return NextResponse.json(__hit);
   const db = await getDb();
   const nowLocal = new Date(Date.now() + offsetMin * 60000);
