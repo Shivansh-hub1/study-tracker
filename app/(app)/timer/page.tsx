@@ -1,9 +1,10 @@
 "use client";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
+import Link from "next/link";
 import {
   Play, Pause, RotateCcw, Timer as TimerIcon, Hourglass, Watch, Bell, BellOff,
-  Coffee, Moon, Zap, Flag, BookOpen, Check, Route, History, Sparkles, Clock,
+  Coffee, Moon, Zap, Flag, BookOpen, Check, Route, History, Sparkles, Clock, Users,
 } from "lucide-react";
 import { useFetch, api, bustCache } from "@/lib/client";
 import { fmtClock } from "@/lib/utils";
@@ -489,6 +490,27 @@ export default function TimersPage() {
 
       {/* LEFT — TIMER HERO */}
       <div className="timer-hero card" style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 20, padding: "28px 24px 24px", position: "relative" }}>
+        {/* Study Room banner */}
+        <Link
+          href="/room"
+          className="btn btn-sm"
+          style={{
+            textDecoration: "none",
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 6,
+            borderRadius: 999,
+            padding: "5px 14px",
+            fontSize: 12,
+            background: "var(--surface-2)",
+            color: "var(--fg)",
+            border: "1px solid var(--border)",
+          }}
+        >
+          <Users size={13} color="var(--accent)" />
+          <span>Study with a Buddy in a live room →</span>
+        </Link>
+
         {/* Mode Tabs — pill with icons */}
         <div className="timer-tabs" style={{ padding: 5, borderRadius: 16, gap: 4 }}>
           <button className={`timer-tab ${mode === "pomodoro" ? "active" : ""}`} onClick={() => switchMode("pomodoro")} style={{ borderRadius: 12, padding: "10px 18px", fontSize: 13.5, fontWeight: 700 }}>

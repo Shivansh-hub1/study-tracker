@@ -8,7 +8,7 @@ const SECRET = new TextEncoder().encode(
 
 const PUBLIC_PATHS = [
   "/login", "/signup", "/forgot", "/reset", "/about", "/privacy", "/terms", "/blog",
-  "/timer", "/dsa-tracker", "/webdev-tracker", "/study-tracker"
+  "/timer", "/dsa-tracker", "/webdev-tracker", "/study-tracker", "/u",
 ];
 const AUTH_PATHS = ["/login", "/signup"];
 

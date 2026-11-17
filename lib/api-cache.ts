@@ -17,7 +17,7 @@ const MAX_ENTRIES = 500;
 let redisClient: Redis | null = null;
 let redisInitialized = false;
 
-function getRedis(): Redis | null {
+export function getRedis(): Redis | null {
   if (redisInitialized) return redisClient;
   redisInitialized = true;
   try {

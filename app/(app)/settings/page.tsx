@@ -23,6 +23,7 @@ export default function SettingsPage() {
   const [title, setTitle] = useState("");
   const [pet, setPet] = useState("");
   const [nameVal, setNameVal] = useState("");
+  const [usernameVal, setUsernameVal] = useState("");
   const [oldPw, setOldPw] = useState("");
   const [newPw, setNewPw] = useState("");
   const [newPw2, setNewPw2] = useState("");
@@ -120,7 +121,8 @@ export default function SettingsPage() {
   const { data: me, reload: reloadMe } = useFetch("/api/auth/me");
   useEffect(() => {
     if (me?.user?.name) setNameVal(me.user.name);
-  }, [me?.user?.name]);
+    if ((me?.user as any)?.username) setUsernameVal((me.user as any).username);
+  }, [me?.user?.name, (me?.user as any)?.username]);
   const { data: settingsData, loading, setData } = useFetch("/api/settings");
   const s = settingsData?.settings;
 
@@ -208,6 +210,8 @@ export default function SettingsPage() {
     const trimmed = nameVal.trim();
     const body: any = {};
     if (trimmed && trimmed !== me?.user?.name) body.name = trimmed;
+    const uname = usernameVal.trim().toLowerCase();
+    if (uname !== ((me?.user as any)?.username || "")) body.username = uname;
     if (newPw || newPw2) {
       if (!oldPw) { playSound("error"); toast("Enter your current password to change it", "error"); return; }
       if (newPw !== newPw2) { playSound("error"); toast("New passwords do not match", "error"); return; }
@@ -392,10 +396,27 @@ export default function SettingsPage() {
         </div>
 
         <div className="grid" style={{ gap: 12, marginTop: 16 }}>
-          <div className="field">
-            <label className="label">Display name</label>
-            <input className="input" value={nameVal} maxLength={60} onChange={(e) => setNameVal(e.target.value)} placeholder="Your name" />
+          <div className="grid grid-2">
+            <div className="field">
+              <label className="label">Display name</label>
+              <input className="input" value={nameVal} maxLength={60} onChange={(e) => setNameVal(e.target.value)} placeholder="Your name" />
+            </div>
+            <div className="field">
+              <label className="label">Public username <span style={{ color: "var(--muted)", fontWeight: 400 }}>(for /u/your-handle)</span></label>
+              <input
+                className="input"
+                value={usernameVal}
+                maxLength={30}
+                onChange={(e) => setUsernameVal(e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, ""))}
+                placeholder="e.g. shivansh_dev"
+              />
+            </div>
           </div>
+          {usernameVal.length >= 3 && (
+            <p style={{ margin: 0, fontSize: 12, color: "var(--muted)" }}>
+              Your public profile: <Link href={`/u/${usernameVal}`} target="_blank" style={{ color: "var(--accent)" }}>focusflow.app/u/{usernameVal}</Link>
+            </p>
+          )}
           <div className="grid grid-2">
             <div className="field">
               <label className="label">New password</label>

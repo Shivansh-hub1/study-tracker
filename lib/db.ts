@@ -201,7 +201,7 @@ const MIGRATIONS = [
 ];
 
 async function runMigrations(db: DB, v: number) {
-  if (v >= 5) return;
+  if (v >= 6) return;
   if (v < 1) {
     for (const sql of MIGRATIONS) {
       try { await db.run(sql); } catch {}
@@ -242,7 +242,11 @@ async function runMigrations(db: DB, v: number) {
     )`);
     await db.run("CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user ON push_subscriptions(user_id)");
   }
-  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v', '5')");
+  if (v < 6) {
+    // shortcut: no index on username — table is small, LOWER() scan is fine; add index if users > 10k
+    try { await db.run("ALTER TABLE users ADD COLUMN username TEXT"); } catch {}
+  }
+  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v', '6')");
 }
 
 async function migrateIfNeeded(db: DB) {

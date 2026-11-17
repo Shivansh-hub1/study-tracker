@@ -26,6 +26,21 @@ export async function PATCH(req: NextRequest) {
     vals.push(name);
   }
 
+  // Username for public /u/[username] profile
+  if (body.username !== undefined) {
+    if (body.username === "" || body.username === null) {
+      updates.push("username = NULL");
+    } else {
+      const uname = String(body.username).trim().toLowerCase();
+      if (!/^[a-z0-9_]{3,30}$/.test(uname))
+        return NextResponse.json({ error: "Username: 3–30 chars, letters/numbers/underscore only" }, { status: 400 });
+      const taken = await db.get("SELECT id FROM users WHERE LOWER(username) = ? AND id != ?", uname, user.id) as any;
+      if (taken) return NextResponse.json({ error: "That username is already taken" }, { status: 409 });
+      updates.push("username = ?");
+      vals.push(uname);
+    }
+  }
+
   // Profile picture — data URI, already resized client-side to a small square
   if (body.pfp !== undefined) {
     if (body.pfp === null || body.pfp === "") {

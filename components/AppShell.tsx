@@ -17,12 +17,13 @@ import { useFetch, api } from "@/lib/client";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck, RotateCcw, WifiOff,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
-  Trophy,
+  Trophy, Users,
 } from "lucide-react";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
   { href: "/timer", label: "Focus Timers", icon: Timer },
+  { href: "/room", label: "Study Room", icon: Users },
   { href: "/subjects", label: "Subjects", icon: BookOpen },
   { href: "/dsa", label: "DSA Journey", icon: Route },
   { href: "/webdev", label: "Web Dev", icon: Code2 },

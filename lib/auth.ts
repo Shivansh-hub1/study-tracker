@@ -7,7 +7,7 @@ const SECRET = new TextEncoder().encode(
 );
 export const COOKIE = "st_token";
 
-export type AuthUser = { id: number; name: string; email: string; role: string; pfp?: string | null };
+export type AuthUser = { id: number; name: string; email: string; role: string; pfp?: string | null; username?: string | null };
 
 const userSessionCache = new Map<number, { at: number; user: AuthUser }>();
 
@@ -41,7 +41,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   if (hit && Date.now() - hit.at < 30_000) return hit.user;
   const db = await getDb();
   const user = (await db.get(
-    "SELECT id, name, email, role, last_active_at, pfp FROM users WHERE id = ?",
+    "SELECT id, name, email, role, last_active_at, pfp, username FROM users WHERE id = ?",
     uid
   )) as (AuthUser & { last_active_at: string | null }) | undefined;
   if (!user) return null;
@@ -50,7 +50,7 @@ export async function getSessionUser(): Promise<AuthUser | null> {
   if (stale) {
     db.run("UPDATE users SET last_active_at = ? WHERE id = ?", new Date().toISOString(), uid).catch(() => {});
   }
-  const authUser: AuthUser = { id: user.id, name: user.name, email: user.email, role: user.role, pfp: user.pfp ?? null };
+  const authUser: AuthUser = { id: user.id, name: user.name, email: user.email, role: user.role, pfp: user.pfp ?? null, username: (user as any).username ?? null };
   userSessionCache.set(uid, { at: Date.now(), user: authUser });
   return authUser;
 }
