@@ -126,7 +126,7 @@ export default function StudyRoomPage() {
           if (fresh.length) {
             fresh.forEach((r) => seenReactionsRef.current.add(r.id));
             setFloatingReactions((prev) => [...prev, ...fresh].slice(-8));
-            playSound("bell");
+            playSound("pop");
           }
         }
       } catch {}
@@ -143,7 +143,7 @@ export default function StudyRoomPage() {
     const tick = setInterval(() => {
       setLocalRemaining((prev) => {
         if (prev <= 1) {
-          playSound("bell");
+          playSound("timer");
           return 0;
         }
         return prev - 1;
