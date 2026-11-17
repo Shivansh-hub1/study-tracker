@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getDb, featureOn } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
-import { bustUser } from "@/lib/api-cache";
+import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
 
@@ -15,13 +15,19 @@ export async function GET() {
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   if (!(await featureOn(await getDb(), "planner"))) return NextResponse.json({ disabled: true });
+  const key = `u${user.id}:planner`;
+  const cached = cacheGet(key);
+  if (cached) return NextResponse.json(cached);
+
   const db = await getDb();
   const blocks = await db.all(
     `SELECT b.*, s.name as subject_name, s.color as subject_color FROM planner_blocks b
      LEFT JOIN subjects s ON s.id = b.subject_id WHERE b.user_id = ? ORDER BY b.day ASC, b.id ASC`,
     user.id
   );
-  return NextResponse.json({ blocks, weekKey: mondayKey(new Date()) });
+  const payload = { blocks, weekKey: mondayKey(new Date()) };
+  cacheSet(key, payload);
+  return NextResponse.json(payload);
 }
 
 export async function POST(req: NextRequest) {

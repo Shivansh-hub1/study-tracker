@@ -638,7 +638,17 @@ async function seedIfEmpty(db: DB, exec: (stmts: Stmt[]) => Promise<void>, assum
   console.log("[db] Seeded demo + sample users");
 }
 
+const featureCache = new Map<string, { at: number; val: boolean }>();
+
+export function bustFeatureCache() {
+  featureCache.clear();
+}
+
 export async function featureOn(db: any, key: string) {
+  const cached = featureCache.get(key);
+  if (cached && Date.now() - cached.at < 60_000) return cached.val;
   const m = (await db.get("SELECT value FROM _meta WHERE key = ?", key)) as any;
-  return !m || m.value !== "0";
+  const val = !m || m.value !== "0";
+  featureCache.set(key, { at: Date.now(), val });
+  return val;
 }

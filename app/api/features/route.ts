@@ -11,5 +11,14 @@ export async function GET() {
     featureOn(db, "planner"),
     featureOn(db, "smart_plan"),
   ]);
-  return NextResponse.json({ habits, planner, smartPlan });
+  return NextResponse.json(
+    { habits, planner, smartPlan },
+    {
+      headers: {
+        "Cache-Control": "public, max-age=60, s-maxage=300, stale-while-revalidate=600",
+        "CDN-Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+        "Vercel-CDN-Cache-Control": "public, max-age=300, stale-while-revalidate=600",
+      },
+    }
+  );
 }

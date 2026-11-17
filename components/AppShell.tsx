@@ -9,7 +9,7 @@ const Pet = dynamic(() => import("./Pet"), { ssr: false });
 import Link from "next/link";
 import { Volume2, VolumeX, ShoppingBag } from "lucide-react";
 import { playSound, isSoundEnabled, setSoundEnabled } from "@/lib/sounds";
-import DevQuoteBar from "./DevQuoteBar";
+const DevQuoteBar = dynamic(() => import("./DevQuoteBar"), { ssr: false });
 import { usePathname } from "next/navigation";
 import { useToast } from "./Providers";
 import { useOfflineStatus, flushOutbox, loadOutbox } from "@/lib/offline";

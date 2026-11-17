@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getDb } from "@/lib/db";
+import { getDb, bustFeatureCache } from "@/lib/db";
 import { getAdminUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
@@ -30,5 +30,6 @@ export async function POST(req: NextRequest) {
   }
   const db = await getDb();
   await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES (?, ?)", key, value ? "1" : "0");
+  bustFeatureCache();
   return NextResponse.json({ ok: true, feature, value });
 }

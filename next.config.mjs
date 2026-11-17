@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  assetPrefix: process.env.NEXT_PUBLIC_CDN_URL || undefined,
   reactStrictMode: true,
   poweredByHeader: false,
   compress: true,
@@ -17,7 +18,7 @@ const nextConfig = {
   },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
-      async redirects() {
+  async redirects() {
     return [
       { source: "/focus-timer", destination: "/timer", permanent: true },
       { source: "/pomodoro", destination: "/timer", permanent: true },
@@ -41,43 +42,155 @@ const nextConfig = {
       },
       {
         source: "/_next/static/:path*",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
       {
         source: "/:path*.ico",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
       {
         source: "/:path*.svg",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
       {
         source: "/:path*.webp",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
       {
         source: "/:path*.png",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
       },
       {
         source: "/:path*.woff2",
-        headers: [{ key: "Cache-Control", value: "public, max-age=31536000, immutable" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=31536000, immutable" },
+        ],
+      },
+      {
+        source: "/sw.js",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=0, must-revalidate" },
+        ],
       },
       {
         source: "/sitemap.xml",
-        headers: [{ key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
       },
       {
         source: "/robots.txt",
-        headers: [{ key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
       },
       {
         source: "/manifest.webmanifest",
-        headers: [{ key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
       },
       {
         source: "/opengraph-image",
-        headers: [{ key: "Cache-Control", value: "public, max-age=86400, s-maxage=86400" }],
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/llms.txt",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/about",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/privacy",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/terms",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/blog/:path*",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/dsa-tracker",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/webdev-tracker",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
+      },
+      {
+        source: "/study-tracker",
+        headers: [
+          { key: "Cache-Control", value: "public, max-age=0, must-revalidate" },
+          { key: "CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+          { key: "Vercel-CDN-Cache-Control", value: "public, max-age=86400, stale-while-revalidate=86400" },
+        ],
       },
     ];
   },
