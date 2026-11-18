@@ -6,231 +6,218 @@ if (self.location.hostname !== "tracker.devshivansh.in" && self.location.hostnam
   self.addEventListener("install", () => self.skipWaiting());
   self.addEventListener("activate", (event) => {
     event.waitUntil(
-      self.registration.unregister().then(() => self.clients.matchAll({ type: "window" }))
-        .then((clients) => {
-          for (const client of clients) {
-            client.navigate("https://tracker.devshivansh.in" + self.location.pathname + self.location.search);
-          }
-        })
+      self.registration.unregister().then(() => self.clients.claim())
     );
   });
-  self.addEventListener("fetch", () => {});
-}
+  // Do not register any fetch listener on legacy domain so requests hit Vercel 308 redirect directly
+} else {
+  const CACHE_NAME = "focusflow-v7";
+  const STATIC_ASSETS = [
+    "/",
+    "/dsa",
+    "/webdev",
+    "/revision",
+    "/progress",
+    "/achievements",
+    "/timer",
+    "/about",
+    "/privacy",
+    "/terms",
+    "/offline",
+    "/manifest.webmanifest",
+    "/opengraph-image",
+  ];
 
-const CACHE_NAME = "focusflow-v6";
-const STATIC_ASSETS = [
-  "/",
-  "/dsa",
-  "/webdev",
-  "/revision",
+  const AUTH_PAGES = ["/login", "/signup", "/forgot", "/reset", "/dashboard"];
 
-  "/progress",
-  "/achievements",
-  "/timer",
-  "/about",
-  "/privacy",
-  "/terms",
-  "/offline",
-  "/manifest.webmanifest",
-  "/opengraph-image",
-];
-
-const AUTH_PAGES = ["/login", "/signup", "/forgot", "/reset", "/dashboard"];
-
-self.addEventListener("install", (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then((cache) => {
-      // allSettled: one failing URL must not break offline support entirely
-      return Promise.allSettled(
-        STATIC_ASSETS.map((url) => cache.add(new Request(url, { credentials: "same-origin" })))
-      );
-    })
-  );
-  self.skipWaiting();
-});
-
-self.addEventListener("activate", (event) => {
-  event.waitUntil(
-    (async () => {
-      // Navigation preload: the network request starts WHILE the worker boots —
-      // removes the SW-startup delay from every page open.
-      if (self.registration.navigationPreload) {
-        try { await self.registration.navigationPreload.enable(); } catch { /* not supported */ }
-      }
-      await caches.keys().then((cacheNames) => {
-        return Promise.all(
-          cacheNames
-            .filter((name) => name !== CACHE_NAME)
-            .map((name) => caches.delete(name))
-        );
-      });
-    })()
-  );
-  self.clients.claim();
-});
-
-self.addEventListener("fetch", (event) => {
-  const { request } = event;
-  if (self.location.hostname !== "tracker.devshivansh.in" && self.location.hostname.endsWith(".vercel.app")) {
-    self.registration.unregister().catch(() => {});
-    return;
-  }
-  const url = new URL(request.url);
-
-  // Skip non-GET requests
-  if (request.method !== "GET") return;
-
-  // Skip cross-origin requests
-  if (url.origin !== location.origin) return;
-
-  // Skip API routes - let them go to network
-  if (url.pathname.startsWith("/api/")) return;
-
-  // Auth-gated pages must ALWAYS hit the network so the server can redirect:
-  // logged-in users are redirected away from /login, logged-out users to it.
-  // Serving these from cache caused an endless re-login loop in the installed PWA.
-  // (Offline they fall back to the /offline page instead of a browser error.)
-  if (AUTH_PAGES.some((p) => url.pathname === p)) {
-    event.respondWith(
-      fetch(request).catch(() =>
-        caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
-      )
-    );
-    return;
-  }
-
-  // Determine cache strategy
-  const isStaticAsset =
-    url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2|woff|ttf|eot|webp|avif)$/) ||
-    url.pathname === "/opengraph-image";
-
-  const isPage = !isStaticAsset && !url.pathname.startsWith("/api/");
-
-  if (isStaticAsset) {
-    // Cache first for static assets
-    event.respondWith(cacheFirst(request));
-  } else if (isPage) {
-    // Stale while revalidate for pages
-    event.respondWith(staleWhileRevalidate(request, event));
-  }
-});
-
-async function cacheFirst(request) {
-  const cached = await caches.match(request);
-  if (cached) return cached;
-
-  try {
-    const response = await fetch(request);
-    if (response.ok) {
-      const cache = await caches.open(CACHE_NAME);
-      cache.put(request, response.clone());
-    }
-    return response;
-  } catch {
-    return new Response("Offline", { status: 503 });
-  }
-}
-
-async function staleWhileRevalidate(request, event) {
-  const cached = await caches.match(request);
-
-  const networkFetch = event.preloadResponse || fetch(request);
-  const fetchPromise = networkFetch.then((response) => {
-    if (response && response.redirected && request.mode === "navigate") {
-      return Response.redirect(response.url, 302);
-    }
-    // Never cache redirected responses — a /dashboard -> /login redirect must
-    // not poison the cache with a login page stored under the dashboard URL.
-    if (response && response.ok && !response.redirected) {
-      const cache = caches.open(CACHE_NAME).then((c) => c.put(request, response.clone()));
-    }
-    return response;
-  }).catch(() =>
-    // Offline: serve whatever we have, else the offline page
-    cached || caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
-  );
-
-  return cached || fetchPromise;
-}
-
-// Background sync for offline session logging
-self.addEventListener("sync", (event) => {
-  if (event.tag === "sync-sessions") {
-    event.waitUntil(syncSessions());
-  }
-});
-
-async function syncSessions() {
-  try {
-    const db = await openDB();
-    const tx = db.transaction("pendingSessions", "readwrite");
-    const store = tx.objectStore("pendingSessions");
-    const sessions = await store.getAll();
-
-    for (const session of sessions) {
-      try {
-        await fetch("/api/sessions", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(session.data),
-        });
-        await store.delete(session.id);
-      } catch {
-        // Keep in queue for next sync
-      }
-    }
-  } catch {
-    // IndexedDB not available or other error
-  }
-}
-
-function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open("FocusFlowOffline", 1);
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains("pendingSessions")) {
-        db.createObjectStore("pendingSessions", { keyPath: "id", autoIncrement: true });
-      }
-    };
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-  });
-}
-
-// Push notifications
-self.addEventListener("push", (event) => {
-  if (!event.data) return;
-
-  const data = event.data.json();
-  const options = {
-    body: data.body,
-    icon: "/icon-192.png",
-    badge: "/icon-72.png",
-    vibrate: [200, 100, 200],
-    data: { url: data.url || "/" },
-    actions: [
-      { action: "open", title: "Open FocusFlow" },
-      { action: "dismiss", title: "Dismiss" },
-    ],
-  };
-
-  event.waitUntil(self.registration.showNotification(data.title, options));
-});
-
-self.addEventListener("notificationclick", (event) => {
-  event.notification.close();
-
-  if (event.action === "open" || !event.action) {
+  self.addEventListener("install", (event) => {
     event.waitUntil(
-      clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
-        for (const client of clientList) {
-          if (client.url === event.notification.data.url && "focus" in client) {
-            return client.focus();
-          }
-        }
-        return clients.openWindow(event.notification.data.url);
+      caches.open(CACHE_NAME).then((cache) => {
+        // allSettled: one failing URL must not break offline support entirely
+        return Promise.allSettled(
+          STATIC_ASSETS.map((url) => cache.add(new Request(url, { credentials: "same-origin" })))
+        );
       })
     );
+    self.skipWaiting();
+  });
+
+  self.addEventListener("activate", (event) => {
+    event.waitUntil(
+      (async () => {
+        // Navigation preload: the network request starts WHILE the worker boots —
+        // removes the SW-startup delay from every page open.
+        if (self.registration.navigationPreload) {
+          try { await self.registration.navigationPreload.enable(); } catch { /* not supported */ }
+        }
+        await caches.keys().then((cacheNames) => {
+          return Promise.all(
+            cacheNames
+              .filter((name) => name !== CACHE_NAME)
+              .map((name) => caches.delete(name))
+          );
+        });
+      })()
+    );
+    self.clients.claim();
+  });
+
+  self.addEventListener("fetch", (event) => {
+    const { request } = event;
+    const url = new URL(request.url);
+
+    // Skip non-GET requests
+    if (request.method !== "GET") return;
+
+    // Skip cross-origin requests
+    if (url.origin !== location.origin) return;
+
+    // Skip API routes - let them go to network
+    if (url.pathname.startsWith("/api/")) return;
+
+    // Auth-gated pages must ALWAYS hit the network so the server can redirect:
+    // logged-in users are redirected away from /login, logged-out users to it.
+    // Serving these from cache caused an endless re-login loop in the installed PWA.
+    // (Offline they fall back to the /offline page instead of a browser error.)
+    if (AUTH_PAGES.some((p) => url.pathname === p)) {
+      event.respondWith(
+        fetch(request).catch(() =>
+          caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
+        )
+      );
+      return;
+    }
+
+    // Determine cache strategy
+    const isStaticAsset =
+      url.pathname.match(/\.(js|css|png|jpg|jpeg|gif|svg|ico|woff2|woff|ttf|eot|webp|avif)$/) ||
+      url.pathname === "/opengraph-image";
+
+    const isPage = !isStaticAsset && !url.pathname.startsWith("/api/");
+
+    if (isStaticAsset) {
+      // Cache first for static assets
+      event.respondWith(cacheFirst(request, CACHE_NAME));
+    } else if (isPage) {
+      // Stale while revalidate for pages
+      event.respondWith(staleWhileRevalidate(request, event, CACHE_NAME));
+    }
+  });
+
+  async function cacheFirst(request, cacheName) {
+    const cached = await caches.match(request);
+    if (cached) return cached;
+
+    try {
+      const response = await fetch(request);
+      if (response.ok) {
+        const cache = await caches.open(cacheName);
+        cache.put(request, response.clone());
+      }
+      return response;
+    } catch {
+      return new Response("Offline", { status: 503 });
+    }
   }
-});
+
+  async function staleWhileRevalidate(request, event, cacheName) {
+    const cached = await caches.match(request);
+
+    const networkFetch = event.preloadResponse || fetch(request);
+    const fetchPromise = networkFetch.then((response) => {
+      // Never cache redirected responses — a /dashboard -> /login redirect must
+      // not poison the cache with a login page stored under the dashboard URL.
+      if (response && response.ok && !response.redirected) {
+        caches.open(cacheName).then((c) => c.put(request, response.clone()));
+      }
+      return response;
+    }).catch(() =>
+      // Offline: serve whatever we have, else the offline page
+      cached || caches.match("/offline").then((r) => r || new Response("Offline", { status: 503 }))
+    );
+
+    return cached || fetchPromise;
+  }
+
+  // Background sync for offline session logging
+  self.addEventListener("sync", (event) => {
+    if (event.tag === "sync-sessions") {
+      event.waitUntil(syncSessions());
+    }
+  });
+
+  async function syncSessions() {
+    try {
+      const db = await openDB();
+      const tx = db.transaction("pendingSessions", "readwrite");
+      const store = tx.objectStore("pendingSessions");
+      const sessions = await store.getAll();
+
+      for (const session of sessions) {
+        try {
+          await fetch("/api/sessions", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(session.data),
+          });
+          await store.delete(session.id);
+        } catch {
+          // Keep in queue for next sync
+        }
+      }
+    } catch {
+      // IndexedDB not available or other error
+    }
+  }
+
+  function openDB() {
+    return new Promise((resolve, reject) => {
+      const request = indexedDB.open("FocusFlowOffline", 1);
+      request.onupgradeneeded = (event) => {
+        const db = event.target.result;
+        if (!db.objectStoreNames.contains("pendingSessions")) {
+          db.createObjectStore("pendingSessions", { keyPath: "id", autoIncrement: true });
+        }
+      };
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  // Push notifications
+  self.addEventListener("push", (event) => {
+    if (!event.data) return;
+
+    const data = event.data.json();
+    const options = {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/icon-72.png",
+      vibrate: [200, 100, 200],
+      data: { url: data.url || "/" },
+      actions: [
+        { action: "open", title: "Open FocusFlow" },
+        { action: "dismiss", title: "Dismiss" },
+      ],
+    };
+
+    event.waitUntil(self.registration.showNotification(data.title, options));
+  });
+
+  self.addEventListener("notificationclick", (event) => {
+    event.notification.close();
+
+    if (event.action === "open" || !event.action) {
+      event.waitUntil(
+        clients.matchAll({ type: "window", includeUncontrolled: true }).then((clientList) => {
+          for (const client of clientList) {
+            if (client.url === event.notification.data.url && "focus" in client) {
+              return client.focus();
+            }
+          }
+          return clients.openWindow(event.notification.data.url);
+        })
+      );
+    }
+  });
+}

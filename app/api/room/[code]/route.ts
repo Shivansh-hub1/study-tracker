@@ -35,6 +35,7 @@ export type RoomState = {
 
 // In-memory fallback if Redis is unconfigured or unavailable
 // shortcut: Map loses rooms on cold start without Redis, upgrade to durable DB if rooms need long persistence
+const MAX_MEMORY_ROOMS = 250;
 const memoryRooms = new Map<string, RoomState>();
 
 function computeRemaining(timer: RoomState["timer"]): number {
@@ -49,7 +50,7 @@ function pruneRoom(room: RoomState): RoomState {
   const now = Date.now();
   // Filter members inactive for > 75s
   const activeMembers: Record<string, RoomMember> = {};
-  for (const [id, m] of Object.entries(room.members)) {
+  for (const [id, m] of Object.entries(room.members || {})) {
     if (now - m.lastSeen < 75_000) {
       activeMembers[id] = m;
     }
@@ -114,6 +115,11 @@ async function saveRoom(room: RoomState): Promise<void> {
     } catch {}
   }
 
+  // Evict oldest room if capacity exceeded
+  if (memoryRooms.size >= MAX_MEMORY_ROOMS && !memoryRooms.has(room.code)) {
+    const oldest = memoryRooms.keys().next().value;
+    if (oldest) memoryRooms.delete(oldest);
+  }
   memoryRooms.set(room.code, room);
 }
 
@@ -153,8 +159,12 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
       if (!memberId || !name) {
         return NextResponse.json({ error: "Missing memberId or name" }, { status: 400 });
       }
+      room.members = room.members || {};
+      if (Object.keys(room.members).length >= 50 && !room.members[memberId]) {
+        return NextResponse.json({ error: "Room is full (max 50 members)" }, { status: 409 });
+      }
       room.members[memberId] = {
-        id: String(memberId),
+        id: String(memberId).slice(0, 50),
         name: String(name).slice(0, 40),
         pfp: pfp || null,
         task: task ? String(task).slice(0, 100) : "",
@@ -193,7 +203,9 @@ export async function POST(req: NextRequest, { params }: { params: { code: strin
     }
 
     case "reset": {
-      const durationSec = Number(body.durationSec) || (body.mode === "break" ? 300 : 1500);
+      const rawSec = body.durationSec == null || body.durationSec === "" ? NaN : Number(body.durationSec);
+      const defaultSec = body.mode === "break" ? 300 : 1500;
+      const durationSec = Number.isFinite(rawSec) ? Math.max(60, Math.min(7200, Math.round(rawSec))) : defaultSec;
       const mode = body.mode === "break" ? "break" : "work";
       room.timer.status = "idle";
       room.timer.startedAt = null;

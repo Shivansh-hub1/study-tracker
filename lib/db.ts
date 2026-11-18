@@ -31,6 +31,9 @@ const SCHEMA = [
     email TEXT NOT NULL UNIQUE,
     password_hash TEXT NOT NULL,
     role TEXT NOT NULL DEFAULT 'user',
+    pfp TEXT,
+    emails_opt_out INTEGER NOT NULL DEFAULT 0,
+    username TEXT,
     last_active_at TEXT,
     created_at TEXT NOT NULL
   )`,
