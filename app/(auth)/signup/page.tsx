@@ -1,11 +1,12 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GraduationCap, UserPlus } from "lucide-react";
 import { FieldError } from "@/components/ui";
 import { useToast } from "@/components/Providers";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 export default function SignupPage() {
   const router = useRouter();
@@ -15,6 +16,27 @@ export default function SignupPage() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [nextUrl, setNextUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const n = params.get("next");
+    if (n && n.startsWith("/") && !n.startsWith("//")) setNextUrl(n);
+
+    const errorParam = params.get("error");
+    if (errorParam) {
+      const errorMap: Record<string, string> = {
+        google_not_configured: "Google Sign-In is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.",
+        access_denied: "Google sign-up was cancelled.",
+        invalid_state: "Authentication session expired. Please try again.",
+        token_exchange_failed: "Failed to authenticate with Google. Please try again.",
+        userinfo_failed: "Failed to retrieve your Google profile.",
+        no_email: "Google did not provide a verified email address.",
+      };
+      setErr(errorMap[errorParam] || "Google sign-up failed. Please try again.");
+    }
+  }, []);
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -32,7 +54,8 @@ export default function SignupPage() {
       return;
     }
     toast("Account created — let's get studying!", "success");
-    router.push("/dashboard");
+    const dest = nextUrl && nextUrl.startsWith("/") && !nextUrl.startsWith("//") ? nextUrl : "/dashboard";
+    router.push(dest);
     router.refresh();
   };
 
@@ -45,8 +68,17 @@ export default function SignupPage() {
           <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>Track sessions, follow DSA + WebDev journeys, watch yourself grow</p>
         </div>
         <div className="card">
+          <FieldError msg={err} />
+
+          <GoogleAuthButton mode="signup" nextUrl={nextUrl} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0", color: "var(--muted)", fontSize: 12 }}>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            <span>OR SIGN UP WITH EMAIL</span>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          </div>
+
           <form onSubmit={submit}>
-            <FieldError msg={err} />
             <div className="field">
               <label className="label">Name</label>
               <input className="input" required value={name} onChange={(e) => setName(e.target.value)} placeholder="Ada Lovelace" autoComplete="name" />

@@ -1,12 +1,13 @@
 "use client";
 
 import { playSound } from "@/lib/sounds";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { GraduationCap, LogIn, Sparkles } from "lucide-react";
 import { FieldError } from "@/components/ui";
 import { useToast } from "@/components/Providers";
+import GoogleAuthButton from "@/components/GoogleAuthButton";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -15,6 +16,27 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [nextUrl, setNextUrl] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const n = params.get("next");
+    if (n && n.startsWith("/") && !n.startsWith("//")) setNextUrl(n);
+
+    const errorParam = params.get("error");
+    if (errorParam) {
+      const errorMap: Record<string, string> = {
+        google_not_configured: "Google Sign-In is not configured yet. Add GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET in .env.",
+        access_denied: "Google sign-in was cancelled.",
+        invalid_state: "Authentication session expired. Please try again.",
+        token_exchange_failed: "Failed to authenticate with Google. Please try again.",
+        userinfo_failed: "Failed to retrieve your Google profile.",
+        no_email: "Google did not provide a verified email address.",
+      };
+      setErr(errorMap[errorParam] || "Google sign-in failed. Please try again.");
+    }
+  }, []);
 
   const submit = async (e?: React.FormEvent, creds?: { email: string; password: string }) => {
     e?.preventDefault();
@@ -31,9 +53,8 @@ export default function LoginPage() {
       setErr(j.error || "Login failed");
       return;
     }
-    playSound("success"); toast("Welcome back!", "success");
-    const params = typeof window !== "undefined" ? new URLSearchParams(window.location.search) : null;
-    const nextUrl = params?.get("next");
+    playSound("success");
+    toast("Welcome back!", "success");
     const dest = nextUrl && nextUrl.startsWith("/") && !nextUrl.startsWith("//") ? nextUrl : "/dashboard";
     router.push(dest);
     router.refresh();
@@ -48,8 +69,17 @@ export default function LoginPage() {
           <p style={{ color: "var(--muted)", fontSize: 14, marginTop: 6 }}>Sign in to continue your learning streak</p>
         </div>
         <div className="card">
+          <FieldError msg={err} />
+
+          <GoogleAuthButton mode="signin" nextUrl={nextUrl} />
+
+          <div style={{ display: "flex", alignItems: "center", gap: 12, margin: "16px 0", color: "var(--muted)", fontSize: 12 }}>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+            <span>OR CONTINUE WITH EMAIL</span>
+            <div style={{ flex: 1, height: 1, background: "var(--border)" }} />
+          </div>
+
           <form onSubmit={submit}>
-            <FieldError msg={err} />
             <div className="field">
               <label className="label">Email</label>
               <input className="input" type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@example.com" autoComplete="email" />
