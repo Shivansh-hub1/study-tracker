@@ -81,7 +81,16 @@ const SCHEMA = [
     auto_next INTEGER NOT NULL DEFAULT 1,
     week_start INTEGER NOT NULL DEFAULT 1,
     freeze_stock INTEGER NOT NULL DEFAULT 1,
-    freeze_week TEXT NOT NULL DEFAULT ''
+    freeze_week TEXT NOT NULL DEFAULT '',
+    sprint_active_day INTEGER NOT NULL DEFAULT 1,
+    sprint_mode TEXT NOT NULL DEFAULT 'standard',
+    daily_target_min INTEGER NOT NULL DEFAULT 120
+  )`,
+  `CREATE TABLE IF NOT EXISTS sprint_tasks (
+    user_id INTEGER NOT NULL,
+    task_id TEXT NOT NULL,
+    completed_at TEXT,
+    PRIMARY KEY (user_id, task_id)
   )`,
   `CREATE TABLE IF NOT EXISTS dsa_progress (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -249,7 +258,19 @@ async function runMigrations(db: DB, v: number) {
     // shortcut: no index on username — table is small, LOWER() scan is fine; add index if users > 10k
     try { await db.run("ALTER TABLE users ADD COLUMN username TEXT"); } catch {}
   }
-  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v', '6')");
+  if (v < 7) {
+    await db.run(`CREATE TABLE IF NOT EXISTS sprint_tasks (
+      user_id INTEGER NOT NULL,
+      task_id TEXT NOT NULL,
+      completed_at TEXT,
+      PRIMARY KEY (user_id, task_id)
+    )`);
+    await db.run("CREATE INDEX IF NOT EXISTS idx_sprint_user ON sprint_tasks(user_id)");
+    try { await db.run("ALTER TABLE settings ADD COLUMN sprint_active_day INTEGER NOT NULL DEFAULT 1"); } catch {}
+    try { await db.run("ALTER TABLE settings ADD COLUMN sprint_mode TEXT NOT NULL DEFAULT 'standard'"); } catch {}
+    try { await db.run("ALTER TABLE settings ADD COLUMN daily_target_min INTEGER NOT NULL DEFAULT 120"); } catch {}
+  }
+  await db.run("INSERT OR REPLACE INTO _meta (key, value) VALUES ('schema_v', '7')");
 }
 
 async function migrateIfNeeded(db: DB) {

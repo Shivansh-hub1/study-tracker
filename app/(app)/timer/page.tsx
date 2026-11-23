@@ -109,6 +109,20 @@ export default function TimersPage() {
   }, []);
 
   useEffect(() => {
+    if (typeof window === "undefined") return;
+    const params = new URLSearchParams(window.location.search);
+    const taskParam = params.get("task");
+    const subjectParam = params.get("subject");
+    if (taskParam) {
+      setP((prev) => ({ ...prev, topic: taskParam }));
+    }
+    if (subjectParam && subjects.length > 0) {
+      const match = subjects.find((s: any) => s.name.toLowerCase().includes(subjectParam.toLowerCase()));
+      if (match) setP((prev) => ({ ...prev, subjectId: match.id }));
+    }
+  }, [subjects]);
+
+  useEffect(() => {
     setNotif(typeof Notification !== "undefined" && Notification.permission === "granted");
   }, []);
 

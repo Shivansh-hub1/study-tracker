@@ -17,11 +17,13 @@ import { useFetch, api } from "@/lib/client";
 import {
   LayoutDashboard, Timer, BookOpen, TrendingUp, ShieldCheck, RotateCcw, WifiOff,
   ListChecks, Settings, GraduationCap, Menu, X, Route, Code2, History,
-  Trophy, Users,
+  Trophy, Users, CheckSquare,
 } from "lucide-react";
+import DailyGoalRing from "./DailyGoalRing";
 
 const NAV = [
   { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+  { href: "/tasks", label: "Daily Tasks", icon: CheckSquare },
   { href: "/timer", label: "Focus Timers", icon: Timer },
   { href: "/room", label: "Study Room", icon: Users },
   { href: "/subjects", label: "Subjects", icon: BookOpen },
@@ -213,6 +215,7 @@ export default function AppShell({ user, children }: { user: Me; children: React
               <span className="badge" style={{ fontSize: 11, padding: "1px 8px", background: "var(--accent-soft)", color: "var(--accent)" }}>{daysLeft} days left in {now.getFullYear()}</span>
             </div>
           </div>
+          <DailyGoalRing />
           <button className="iconbtn" onClick={toggleSound} title={soundOn ? "Sound on" : "Sound off"} style={{ width: 34, height: 34, flexShrink: 0 }}>
             {soundOn ? <Volume2 size={16} /> : <VolumeX size={16} />}
           </button>

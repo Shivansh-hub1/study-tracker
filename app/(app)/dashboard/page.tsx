@@ -12,7 +12,9 @@ import Link from "next/link";
 import {
   Flame, Clock, CalendarDays, TrendingUp, Play, Plus, Target, Trash2,
   BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2, Coffee, RotateCcw, CheckCheck,
+  CheckSquare, Square, ArrowRight,
 } from "lucide-react";
+import { SPRINT_TASKS } from "@/lib/sprint-tasks";
 
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
@@ -41,6 +43,7 @@ export default function DashboardPage() {
   const setStreakData = (r: any) => setDashData((prev: any) => ({ ...prev, ...r }));
   const [shareOpen, setShareOpen] = useState(false);
   const { data: smartPlan } = useFetch(`/api/smart-plan?offset=${dashOffset}`);
+  const { data: tasksData, setData: setTasksData } = useFetch("/api/tasks");
   const { data: shopData } = useFetch("/api/shop");
   const goldenFlame = (shopData?.items || []).some((i: any) => i.key === "flame" && i.owned);
   const rainbowStreak = (shopData?.items || []).some((i: any) => i.key === "rainbow_streak" && i.owned);
@@ -203,6 +206,90 @@ export default function DashboardPage() {
           <button className="btn btn-primary" onClick={() => setShareOpen(true)}><Share2 size={15} /> Share</button>
         </div>
       )}
+
+      {/* Today's Tasks & JEE Sprint Widget */}
+      <div className="card" style={{ padding: "18px 20px" }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+            <span style={{ fontSize: 16 }}>🎯</span>
+            <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>
+              {tasksData?.mode === "bed"
+                ? "Bed Daily Target (Surgery Recovery)"
+                : tasksData?.mode === "mock"
+                ? "Jan Mock Shift Target"
+                : `Today's Daily Tasks (Day ${tasksData?.activeDay ?? 1})`}
+            </h2>
+            <span className="badge" style={{ fontSize: 10.5, background: "var(--accent-soft)", color: "var(--accent)" }}>
+              Sprint
+            </span>
+          </div>
+          <Link href="/tasks" className="btn btn-sm" style={{ fontSize: 11.5, textDecoration: "none" }}>
+            View Full 42-Day Plan <ArrowRight size={12} />
+          </Link>
+        </div>
+
+        <div className="grid grid-2" style={{ gap: 10 }}>
+          {SPRINT_TASKS.filter((t) =>
+            tasksData?.mode === "bed"
+              ? t.day === "bed"
+              : tasksData?.mode === "mock"
+              ? t.day === "mock"
+              : t.day === (tasksData?.activeDay ?? 1)
+          ).slice(0, 4).map((task) => {
+            const isDone = (tasksData?.completedTaskIds || []).includes(task.id);
+            return (
+              <div
+                key={task.id}
+                onClick={async () => {
+                  const nextDone = !isDone;
+                  playSound(nextDone ? "success" : "pop");
+                  const nextIds = nextDone
+                    ? [...(tasksData?.completedTaskIds || []), task.id]
+                    : (tasksData?.completedTaskIds || []).filter((id: string) => id !== task.id);
+                  setTasksData((prev: any) => ({ ...prev, completedTaskIds: nextIds }));
+                  await api("/api/tasks", { method: "POST", body: JSON.stringify({ taskId: task.id, completed: nextDone }) }).catch(() => {});
+                }}
+                className="card"
+                style={{
+                  padding: "10px 12px",
+                  display: "flex",
+                  gap: 10,
+                  alignItems: "center",
+                  cursor: "pointer",
+                  border: isDone ? "1px solid var(--border)" : "1px solid color-mix(in srgb, var(--accent) 30%, var(--border))",
+                  background: isDone ? "var(--surface-2)" : "var(--surface)",
+                  opacity: isDone ? 0.65 : 1,
+                  transition: "all 0.15s ease",
+                }}
+              >
+                <div style={{ color: isDone ? "#10b981" : "var(--muted)", display: "grid", placeItems: "center" }}>
+                  {isDone ? <CheckSquare size={18} /> : <Square size={18} />}
+                </div>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                    <span className="badge" style={{ fontSize: 9.5, padding: "1px 5px" }}>{task.subject}</span>
+                    <span style={{ fontSize: 13, fontWeight: 700, textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                      {task.title}
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                    {task.details}
+                  </div>
+                </div>
+                <Link
+                  href={`/timer?task=${encodeURIComponent(task.title)}&subject=${encodeURIComponent(task.subject)}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="btn btn-sm"
+                  style={{ padding: "4px 8px", fontSize: 11, flexShrink: 0, textDecoration: "none" }}
+                  title="Focus"
+                >
+                  <TimerIcon size={12} />
+                </Link>
+              </div>
+            );
+          })}
+        </div>
+      </div>
 
       {/* Time transfer: appears when a day has 6h+ of study time */}
       <TimeTransfer transferable={stats?.transferable || []} daily={stats?.daily || []} onDone={reloadStats} />
