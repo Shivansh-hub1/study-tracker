@@ -17,19 +17,10 @@ import {
   ShieldAlert,
   GraduationCap,
 } from "lucide-react";
-import { SPRINT_PHASES, SPRINT_TASKS, SprintTask, SubjectCode } from "@/lib/sprint-tasks";
+import { SPRINT_PHASES, SPRINT_TASKS, SPRINT_SUBJECT_THEME as SUBJECT_COLORS, SprintTask, SubjectCode } from "@/lib/sprint-tasks";
 import { useFetch, api } from "@/lib/client";
 import { playSound } from "@/lib/sounds";
 import { useToast } from "@/components/Providers";
-
-const SUBJECT_COLORS: Record<SubjectCode, { bg: string; text: string; border: string }> = {
-  P: { bg: "#0284c718", text: "#38bdf8", border: "#0284c744" },
-  C: { bg: "#05966918", text: "#34d399", border: "#05966944" },
-  M: { bg: "#7c3aed18", text: "#a78bfa", border: "#7c3aed44" },
-  Night: { bg: "#d9770618", text: "#fbbf24", border: "#d9770644" },
-  Break: { bg: "#e11d4818", text: "#fb7185", border: "#e11d4844" },
-  Mock: { bg: "#6366f118", text: "#818cf8", border: "#6366f144" },
-};
 
 export default function TasksPage() {
   const { data: taskData, setData: setTaskData, reload: reloadTasks } = useFetch("/api/tasks");

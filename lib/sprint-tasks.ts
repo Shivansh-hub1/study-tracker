@@ -23,6 +23,15 @@ export type SprintPhase = {
   note?: string;
 };
 
+export const SPRINT_SUBJECT_THEME: Record<SubjectCode, { bg: string; text: string; border: string }> = {
+  P: { bg: "#0284c718", text: "#38bdf8", border: "#0284c744" },
+  C: { bg: "#05966918", text: "#34d399", border: "#05966944" },
+  M: { bg: "#7c3aed18", text: "#a78bfa", border: "#7c3aed44" },
+  Night: { bg: "#d9770618", text: "#fbbf24", border: "#d9770644" },
+  Break: { bg: "#e11d4818", text: "#fb7185", border: "#e11d4844" },
+  Mock: { bg: "#6366f118", text: "#818cf8", border: "#6366f144" },
+};
+
 export const SPRINT_PHASES: SprintPhase[] = [
   { id: 1, title: "Phase 1: Foundation Sprint", subtitle: "Nuclei, Bonding, Vectors, Current & 3D", days: "Days 1–6", color: "#38bdf8" },
   { id: 2, title: "Phase 2: Core Mechanics & Organic 1", subtitle: "Electrostatics, GOC, Limits & Magnetism", days: "Days 7–12", color: "#818cf8" },

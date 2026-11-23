@@ -98,7 +98,7 @@ export default function DailyGoalRing() {
             <Target size={12} style={{ color: "var(--accent)" }} />
           )}
         </div>
-        <span style={{ whiteSpace: "nowrap" }}>
+        <span style={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
           {todayMin} / {targetMin}m
           <span style={{ opacity: 0.65, marginLeft: 4, fontSize: 11 }}>({Math.round(pct * 100)}%)</span>
         </span>

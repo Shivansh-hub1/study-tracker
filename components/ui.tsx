@@ -123,7 +123,7 @@ export function Stat({
   accent?: string;
 }) {
   return (
-    <div className="card" style={{ display: "flex", gap: 14, alignItems: "center" }}>
+    <div className="card" style={{ display: "flex", gap: 14, alignItems: "center", minWidth: 0 }}>
       <div
         style={{
           width: 46,
@@ -139,10 +139,10 @@ export function Stat({
       >
         {icon}
       </div>
-      <div style={{ minWidth: 0 }}>
-        <div className="stat-label">{label}</div>
-        <div className="stat-num" style={{ fontSize: 24 }}>{value}</div>
-        {sub && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>{sub}</div>}
+      <div style={{ minWidth: 0, flex: 1 }}>
+        <div className="stat-label" style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{label}</div>
+        <div className="stat-num" style={{ fontSize: 24, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{value}</div>
+        {sub && <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{sub}</div>}
       </div>
     </div>
   );

@@ -14,7 +14,7 @@ import {
   BookOpen, Timer as TimerIcon, Snowflake, Share2, Sparkles as Sparkles2, Coffee, RotateCcw, CheckCheck,
   CheckSquare, Square, ArrowRight,
 } from "lucide-react";
-import { SPRINT_TASKS } from "@/lib/sprint-tasks";
+import { SPRINT_TASKS, SPRINT_SUBJECT_THEME } from "@/lib/sprint-tasks";
 
 import { useFetch, api } from "@/lib/client";
 import { fmtMinutes, prettyDT, SUBJECT_COLORS } from "@/lib/utils";
@@ -197,20 +197,22 @@ export default function DashboardPage() {
             <div style={{ fontSize: 13, color: "var(--muted)" }}>{stats.xp ?? 0} XP total · {(stats.xpNeed ?? 0) - (stats.xpInto ?? 0)} XP to level {(stats.level ?? 1) + 1}</div>
             <div style={{ fontSize: 13, color: "var(--muted)", marginTop: 4, display: "flex", alignItems: "center", gap: 5 }}><Snowflake size={13} style={{ color: "var(--accent)" }} /> {stock} freeze{stock === 1 ? "" : "s"} left{frozenToday ? " · today frozen" : atRisk ? " · streak at risk!" : ""}</div>
           </div>
-          {atRisk && stock > 0 && (
-            <button className="btn" onClick={useFreeze}><Snowflake size={15} /> Freeze streak</button>
-          )}
-          {frozenToday && (
-            <button className="btn" onClick={unFreeze}>Unfreeze</button>
-          )}
-          <button className="btn btn-primary" onClick={() => setShareOpen(true)}><Share2 size={15} /> Share</button>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap", marginLeft: "auto" }}>
+            {atRisk && stock > 0 && (
+              <button className="btn" onClick={useFreeze}><Snowflake size={15} /> Freeze streak</button>
+            )}
+            {frozenToday && (
+              <button className="btn" onClick={unFreeze}>Unfreeze</button>
+            )}
+            <button className="btn btn-primary" onClick={() => setShareOpen(true)}><Share2 size={15} /> Share</button>
+          </div>
         </div>
       )}
 
       {/* Today's Tasks & JEE Sprint Widget */}
       <div className="card" style={{ padding: "18px 20px" }}>
-        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 12, flexWrap: "wrap", gap: 10 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 14, flexWrap: "wrap", gap: 10 }}>
+          <div style={{ display: "flex", alignItems: "center", gap: 8, minWidth: 0, flexWrap: "wrap" }}>
             <span style={{ fontSize: 16 }}>🎯</span>
             <h2 style={{ fontSize: 15, fontWeight: 800, margin: 0 }}>
               {tasksData?.mode === "bed"
@@ -219,12 +221,16 @@ export default function DashboardPage() {
                 ? "Jan Mock Shift Target"
                 : `Today's Daily Tasks (Day ${tasksData?.activeDay ?? 1})`}
             </h2>
-            <span className="badge" style={{ fontSize: 10.5, background: "var(--accent-soft)", color: "var(--accent)" }}>
+            <span className="badge" style={{ fontSize: 10.5, background: "var(--accent-soft)", color: "var(--accent)", flexShrink: 0 }}>
               Sprint
             </span>
           </div>
-          <Link href="/tasks" className="btn btn-sm" style={{ fontSize: 11.5, textDecoration: "none" }}>
-            View Full 42-Day Plan <ArrowRight size={12} />
+          <Link
+            href="/tasks"
+            className="btn btn-sm"
+            style={{ fontSize: 11.5, textDecoration: "none", flexShrink: 0, whiteSpace: "nowrap" }}
+          >
+            All 42 Days <ArrowRight size={12} />
           </Link>
         </div>
 
@@ -237,6 +243,7 @@ export default function DashboardPage() {
               : t.day === (tasksData?.activeDay ?? 1)
           ).slice(0, 4).map((task) => {
             const isDone = (tasksData?.completedTaskIds || []).includes(task.id);
+            const theme = SPRINT_SUBJECT_THEME[task.code] || { bg: "var(--surface-2)", text: "var(--muted)", border: "var(--border)" };
             return (
               <div
                 key={task.id}
@@ -256,34 +263,75 @@ export default function DashboardPage() {
                   gap: 10,
                   alignItems: "center",
                   cursor: "pointer",
+                  minWidth: 0,
                   border: isDone ? "1px solid var(--border)" : "1px solid color-mix(in srgb, var(--accent) 30%, var(--border))",
                   background: isDone ? "var(--surface-2)" : "var(--surface)",
                   opacity: isDone ? 0.65 : 1,
                   transition: "all 0.15s ease",
                 }}
               >
-                <div style={{ color: isDone ? "#10b981" : "var(--muted)", display: "grid", placeItems: "center" }}>
+                <div style={{ color: isDone ? "#10b981" : "var(--muted)", display: "grid", placeItems: "center", flexShrink: 0 }}>
                   {isDone ? <CheckSquare size={18} /> : <Square size={18} />}
                 </div>
                 <div style={{ minWidth: 0, flex: 1 }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-                    <span className="badge" style={{ fontSize: 9.5, padding: "1px 5px" }}>{task.subject}</span>
-                    <span style={{ fontSize: 13, fontWeight: 700, textDecoration: isDone ? "line-through" : "none", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                    <span
+                      className="badge"
+                      style={{
+                        fontSize: 9.5,
+                        padding: "1px 6px",
+                        background: theme.bg,
+                        color: theme.text,
+                        border: `1px solid ${theme.border}`,
+                        flexShrink: 0,
+                        fontWeight: 700,
+                      }}
+                    >
+                      {task.subject}
+                    </span>
+                    <span
+                      style={{
+                        fontSize: 13,
+                        fontWeight: 700,
+                        textDecoration: isDone ? "line-through" : "none",
+                        overflow: "hidden",
+                        textOverflow: "ellipsis",
+                        whiteSpace: "nowrap",
+                      }}
+                    >
                       {task.title}
                     </span>
                   </div>
-                  <div style={{ fontSize: 11.5, color: "var(--muted)", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
+                  <div
+                    style={{
+                      fontSize: 11.5,
+                      color: "var(--muted)",
+                      lineHeight: 1.35,
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden",
+                    }}
+                    title={task.details}
+                  >
                     {task.details}
                   </div>
                 </div>
                 <Link
                   href={`/timer?task=${encodeURIComponent(task.title)}&subject=${encodeURIComponent(task.subject)}`}
                   onClick={(e) => e.stopPropagation()}
-                  className="btn btn-sm"
-                  style={{ padding: "4px 8px", fontSize: 11, flexShrink: 0, textDecoration: "none" }}
-                  title="Focus"
+                  className="iconbtn"
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: 7,
+                    flexShrink: 0,
+                    textDecoration: "none",
+                    border: "1px solid var(--border)",
+                  }}
+                  title="Start Focus Timer"
                 >
-                  <TimerIcon size={12} />
+                  <TimerIcon size={13} />
                 </Link>
               </div>
             );
