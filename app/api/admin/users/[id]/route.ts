@@ -5,6 +5,7 @@ import { getAdminUser, bustAuthUser } from "@/lib/auth";
 import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET(_req: NextRequest, { params }: { params: { id: string } }) {
   const admin = await getAdminUser();

@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function POST(req: NextRequest) {
   const me = await getSessionUser();

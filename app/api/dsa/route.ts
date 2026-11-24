@@ -6,6 +6,7 @@ import { DSA_TOPICS, DSA_KEY_SET, DsaStatus } from "@/lib/dsa";
 import { DSA_LECTURES } from "@/lib/dsa-lectures";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 async function payload(userId: number) {
   const db = await getDb();

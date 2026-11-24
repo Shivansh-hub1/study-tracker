@@ -5,6 +5,7 @@ import { bustUser } from "@/lib/api-cache";
 import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 /*
  * Time transfer: move half of a 6h+ day's study time to an earlier day.

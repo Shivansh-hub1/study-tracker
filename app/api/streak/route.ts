@@ -5,6 +5,7 @@ import { cacheGet, cacheGetAsync, cacheSet, bustUser } from "@/lib/api-cache";
 import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 function pad(n: number) { return String(n).padStart(2, "0"); }
 function dateKey(d: Date) { return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }

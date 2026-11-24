@@ -5,6 +5,7 @@ import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { generateTimetable, TTConfig } from "@/lib/timetable";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET() {
   const user = await getSessionUser();

@@ -6,6 +6,7 @@ import { WEBDEV_TOPICS, WEBDEV_KEY_SET, WebdevStatus } from "@/lib/webdev";
 import { WEBDEV_LECTURES } from "@/lib/webdev-lectures";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 async function payload(userId: number) {
   const db = await getDb();

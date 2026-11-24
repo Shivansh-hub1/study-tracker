@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRedis } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export type RoomMember = {
   id: string;

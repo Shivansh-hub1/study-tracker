@@ -6,6 +6,7 @@ import { computeStats } from "@/lib/stats";
 import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 // Combined dashboard payload: 1 server call instead of 5, 1 auth check,
 // all reads in parallel. Same shapes as the individual endpoints.

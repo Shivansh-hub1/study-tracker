@@ -18,6 +18,23 @@ const nextConfig = {
   },
   typescript: { ignoreBuildErrors: true },
   eslint: { ignoreDuringBuilds: true },
+  webpack: (config, { nextRuntime }) => {
+    if (nextRuntime === "edge") {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        path: false,
+        crypto: false,
+        http: false,
+        https: false,
+        net: false,
+        tls: false,
+        stream: false,
+        zlib: false,
+      };
+    }
+    return config;
+  },
   async redirects() {
     return [
       { source: "/focus-timer", destination: "/timer", permanent: true },

@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 const KINDS = ["daily_minutes", "weekly_minutes", "monthly_minutes", "weekly_sessions"];
 

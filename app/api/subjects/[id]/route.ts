@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 async function own(db: DB, userId: number, id: number) {
   return db.get("SELECT * FROM subjects WHERE id = ? AND user_id = ?", id, userId);

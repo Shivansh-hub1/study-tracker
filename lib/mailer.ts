@@ -1,4 +1,3 @@
-import nodemailer from "nodemailer";
 import { CANONICAL_SITE_URL } from "./seo";
 
 /*
@@ -16,24 +15,31 @@ import { CANONICAL_SITE_URL } from "./seo";
 
 const FROM = process.env.MAIL_FROM || `FocusFlow <${process.env.SMTP_USER || "no-reply@focusflow.app"}>`;
 
-function transport() {
+async function transport() {
   const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
-  const port = Number(process.env.SMTP_PORT) || 465;
-  return nodemailer.createTransport({
-    host: SMTP_HOST,
-    port,
-    secure: port === 465,
-    auth: { user: SMTP_USER, pass: SMTP_PASS },
-  });
+  try {
+    const mailerMod = "nodemailer";
+    const nodemailer = (await import(/* webpackIgnore: true */ mailerMod)).default;
+    const port = Number(process.env.SMTP_PORT) || 465;
+    return nodemailer.createTransport({
+      host: SMTP_HOST,
+      port,
+      secure: port === 465,
+      auth: { user: SMTP_USER, pass: SMTP_PASS },
+    });
+  } catch {
+    return null;
+  }
 }
 
 export function mailConfigured(): boolean {
-  return !!transport();
+  const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
+  return !!(SMTP_HOST && SMTP_USER && SMTP_PASS);
 }
 
 async function send(to: string, subject: string, html: string, text: string): Promise<boolean> {
-  const t = transport();
+  const t = await transport();
   if (!t) {
     console.log(`[mailer] not configured — would send "${subject}" to ${to}`);
     return false;

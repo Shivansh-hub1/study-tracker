@@ -7,6 +7,7 @@ import { DSA_TOPICS } from "@/lib/dsa";
 import { WEBDEV_TOPICS } from "@/lib/webdev";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 const DAY = 86400000;
 

@@ -4,6 +4,7 @@ import { getDb } from "@/lib/db";
 import { getSessionUser, bustAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 // Account self-service: name, profile picture, password change.
 // Email is intentionally NOT editable. Password change requires the current password.

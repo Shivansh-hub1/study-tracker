@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getDb, featureOn } from "@/lib/db";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 // Public feature flags (read by AppShell to show/hide nav links).
 export async function GET() {

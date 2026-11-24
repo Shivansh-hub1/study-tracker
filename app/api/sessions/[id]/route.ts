@@ -4,6 +4,7 @@ import { getSessionUser } from "@/lib/auth";
 import { bustUser } from "@/lib/api-cache";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function PATCH(req: NextRequest, { params }: { params: { id: string } }) {
   const user = await getSessionUser();

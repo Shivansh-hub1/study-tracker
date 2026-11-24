@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getAdminUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET() {
   const admin = await getAdminUser();

@@ -5,6 +5,7 @@ import { getUserEmailContext } from "@/lib/email-ctx";
 import { renderTemplate, sendRaw, mailConfigured, EMAIL_TEMPLATE_IDS, EmailTemplateId } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 /*
  * Admin email tool — preview (GET) and send (POST) any template to any user.

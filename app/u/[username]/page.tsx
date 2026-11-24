@@ -9,6 +9,7 @@ import { Flame, Clock, Trophy, Target, ArrowRight, ShieldCheck, Code2, BookOpen,
 import { SITE_NAME, CANONICAL_SITE_URL } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 async function getProfileData(rawIdentifier: string) {
   const raw = decodeURIComponent(rawIdentifier || "").trim().toLowerCase();

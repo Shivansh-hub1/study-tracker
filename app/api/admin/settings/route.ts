@@ -3,6 +3,7 @@ import { getDb, bustFeatureCache } from "@/lib/db";
 import { getAdminUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 const FEATURES: Record<string, string> = { smartPlan: "smart_plan", habits: "habits", planner: "planner" };
 

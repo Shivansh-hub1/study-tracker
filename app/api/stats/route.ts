@@ -6,6 +6,7 @@ import { computeStats } from "@/lib/stats";
 import { parseOffset } from "@/lib/utils";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const user = await getSessionUser();

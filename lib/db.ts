@@ -1,5 +1,3 @@
-import fs from "fs";
-import path from "path";
 import bcrypt from "bcryptjs";
 import { DSA_TOPICS } from "./dsa";
 import { WEBDEV_TOPICS } from "./webdev";
@@ -320,7 +318,7 @@ function wrapTurso(client: any): DB {
 }
 
 async function initTurso(): Promise<DB> {
-  const { createClient } = await import("@libsql/client");
+  const { createClient } = await import("@libsql/client/web");
   const client = createClient({
     url: process.env.TURSO_DATABASE_URL!,
     authToken: process.env.TURSO_AUTH_TOKEN,
@@ -362,12 +360,17 @@ async function initTurso(): Promise<DB> {
 }
 
 async function initLocal(): Promise<DB> {
+  const fsMod = "fs";
+  const pathMod = "path";
+  const fs = (await import(/* webpackIgnore: true */ fsMod)).default;
+  const path = (await import(/* webpackIgnore: true */ pathMod)).default;
   const DATA_DIR = path.join(process.cwd(), "data");
   if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
   const dbPath = path.join(DATA_DIR, "study.db");
 
   try {
-    const Database = (await import("better-sqlite3")).default;
+    const dbMod = "better-sqlite3";
+    const Database = (await import(/* webpackIgnore: true */ dbMod)).default;
     const raw = new Database(dbPath);
     raw.pragma("journal_mode = WAL");
     raw.pragma("synchronous = NORMAL");
@@ -395,7 +398,8 @@ async function initLocal(): Promise<DB> {
     return db;
   } catch {
     // Fallback: @libsql/client file driver (works on Node 24+ without C++ build tools)
-    const { createClient } = await import("@libsql/client");
+    const libMod = "@libsql/client";
+    const { createClient } = await import(/* webpackIgnore: true */ libMod);
     const client = createClient({ url: `file:${dbPath.replace(/\\/g, "/")}` });
     for (const s of SCHEMA) await client.execute(s);
     const db = wrapTurso(client);

@@ -1,10 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
+function randomBytesHex(len: number) {
+  const bytes = new Uint8Array(len);
+  crypto.getRandomValues(bytes);
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+async function sha256Hex(str: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
 import { getDb } from "@/lib/db";
 import { sendPasswordReset, mailConfigured } from "@/lib/mailer";
 import { CANONICAL_SITE_URL } from "@/lib/seo";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 /*
  * Request a password reset link. Always returns ok:true (never reveals
@@ -28,8 +38,8 @@ export async function POST(req: NextRequest) {
     if (Number((recent as any)?.n || 0) < 3) {
       // invalidate previous tokens, then create a fresh one
       await db.run("UPDATE password_resets SET used = 1 WHERE user_id = ? AND used = 0", user.id);
-      const token = crypto.randomBytes(32).toString("hex");
-      const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+      const token = randomBytesHex(32);
+      const tokenHash = await sha256Hex(token);
       const expiresAt = new Date(Date.now() + 60 * 60 * 1000).toISOString();
       await db.run(
         "INSERT INTO password_resets (token_hash, user_id, email, expires_at, used, created_at) VALUES (?, ?, ?, ?, 0, ?)",

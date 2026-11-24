@@ -1,4 +1,3 @@
-import webpush from "web-push";
 import type { DB } from "@/lib/db";
 
 /*
@@ -9,14 +8,22 @@ import type { DB } from "@/lib/db";
  */
 
 let inited = false;
-function ensureInit(): boolean {
-  if (inited) return true;
+let webpushClient: any = null;
+
+async function ensureInit(): Promise<any> {
+  if (inited) return webpushClient;
   const pub = process.env.VAPID_PUBLIC_KEY;
   const priv = process.env.VAPID_PRIVATE_KEY;
-  if (!pub || !priv) return false;
-  webpush.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:no-reply@focusflow.app", pub, priv);
-  inited = true;
-  return true;
+  if (!pub || !priv) return null;
+  try {
+    const wpMod = "web-push";
+    webpushClient = (await import(/* webpackIgnore: true */ wpMod)).default;
+    webpushClient.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:no-reply@focusflow.app", pub, priv);
+    inited = true;
+    return webpushClient;
+  } catch {
+    return null;
+  }
 }
 
 export function pushConfigured(): boolean {
@@ -57,7 +64,8 @@ export interface PushPayload {
 
 /** Send to every subscription of a user. Removes stale ones (410/404). No-op if push unconfigured. */
 export async function sendPushToUser(db: DB, userId: number, payload: PushPayload): Promise<number> {
-  if (!ensureInit()) return 0;
+  const wp = await ensureInit();
+  if (!wp) return 0;
   const rows = (await db.all(
     "SELECT endpoint, p256dh, auth FROM push_subscriptions WHERE user_id = ?",
     userId
@@ -65,7 +73,7 @@ export async function sendPushToUser(db: DB, userId: number, payload: PushPayloa
   let sent = 0;
   for (const r of rows) {
     try {
-      await webpush.sendNotification(
+      await wp.sendNotification(
         { endpoint: r.endpoint, keys: { p256dh: r.p256dh, auth: r.auth } },
         JSON.stringify(payload)
       );

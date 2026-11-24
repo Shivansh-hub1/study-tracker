@@ -1,17 +1,23 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import bcrypt from "bcryptjs";
 import { getDb } from "@/lib/db";
 import { bustAuthUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
+async function sha256Hex(str: string) {
+  const buf = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf), (b) => b.toString(16).padStart(2, "0")).join("");
+}
+
 
 export async function POST(req: NextRequest) {
   const { token, password } = await req.json().catch(() => ({}));
   const pw = String(password || "");
   if (!token || !pw) return NextResponse.json({ error: "Token and new password are required" }, { status: 400 });
   if (pw.length < 6 || pw.length > 128) return NextResponse.json({ error: "Password must be 6–128 characters" }, { status: 400 });
-  const tokenHash = crypto.createHash("sha256").update(String(token)).digest("hex");
+  const tokenHash = await sha256Hex(String(token));
   const db = await getDb();
   const row = (await db.get("SELECT * FROM password_resets WHERE token_hash = ?", tokenHash)) as any;
   if (!row || row.used || new Date(row.expires_at).getTime() < Date.now()) {

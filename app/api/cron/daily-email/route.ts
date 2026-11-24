@@ -5,6 +5,7 @@ import { sendDaily } from "@/lib/mailer";
 import { sendPushToUser } from "@/lib/push";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 export const maxDuration = 60;
 
 /*

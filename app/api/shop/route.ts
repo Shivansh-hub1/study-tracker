@@ -5,6 +5,7 @@ import { cacheGet, cacheSet, bustUser } from "@/lib/api-cache";
 import { computeStats } from "@/lib/stats";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 const SHOP_ITEMS = [
   { key: "freeze1", cat: "Utility", name: "Streak Freeze +1", desc: "Bank one extra day off without losing your streak (max 3 stocked, 5 with Deep Freeze, 7 with Cryo Chamber).", icon: "❄️", cost: 125, repeatable: true },

@@ -4,6 +4,7 @@ import { getUserEmailContext, istDateKey } from "@/lib/email-ctx";
 import { renderTemplate, sendRaw, mailConfigured } from "@/lib/mailer";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 export const maxDuration = 60;
 
 /*

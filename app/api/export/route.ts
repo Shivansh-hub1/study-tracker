@@ -3,6 +3,7 @@ import { getDb } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 function csvEsc(v: any) {
   let s = String(v ?? "");

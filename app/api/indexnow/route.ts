@@ -1,6 +1,9 @@
 import { NextResponse } from "next/server";
 import { CANONICAL_SITE_URL } from "@/lib/seo";
 
+export const dynamic = "force-dynamic";
+export const runtime = "edge";
+
 const INDEXNOW_KEY = "e3d7b892a0144f80927c3d182b8f411b";
 const HOST = new URL(CANONICAL_SITE_URL).host;
 
