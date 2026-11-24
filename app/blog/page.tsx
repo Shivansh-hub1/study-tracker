@@ -4,7 +4,6 @@ import { GraduationCap, ArrowRight, Calendar, Clock, BookOpen, User, Tag, Chevro
 import { SITE_NAME, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 import { BLOG_POSTS } from "@/lib/blogData";
 
-export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {

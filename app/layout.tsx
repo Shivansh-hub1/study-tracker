@@ -4,6 +4,8 @@ import "./globals.css";
 import { Providers } from "@/components/Providers";
 import { SITE_DESCRIPTION, SITE_KEYWORDS, SITE_NAME, SITE_ALTERNATE_NAMES, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 
+export const runtime = "edge";
+
 const inter = Inter({ subsets: ["latin"], display: "swap", variable: "--font-inter" });
 
 export async function generateMetadata(): Promise<Metadata> {

@@ -3,7 +3,6 @@ import Link from "next/link";
 import { GraduationCap, ArrowRight, FileText, Scale, ChevronRight } from "lucide-react";
 import { SITE_NAME, CANONICAL_SITE_URL } from "@/lib/seo";
 
-export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {

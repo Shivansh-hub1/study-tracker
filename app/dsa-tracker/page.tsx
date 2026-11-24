@@ -3,7 +3,6 @@ import Link from "next/link";
 import { GraduationCap, ArrowRight, Route, CheckCircle2, ChevronRight, Brain, Clock, ShieldCheck, Sparkles, Layers, Award } from "lucide-react";
 import { SITE_NAME, CANONICAL_SITE_URL, AUTHOR_INFO } from "@/lib/seo";
 
-export const dynamic = "force-static";
 
 export function generateMetadata(): Metadata {
   return {

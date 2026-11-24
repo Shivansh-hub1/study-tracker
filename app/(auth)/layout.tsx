@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { CANONICAL_SITE_URL } from "@/lib/seo";
 
+export const runtime = "edge";
 export const metadata: Metadata = {
   title: {
     default: "Sign in or create your account",

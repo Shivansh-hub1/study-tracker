@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { GraduationCap, ArrowRight, Home, BookOpen, Compass } from "lucide-react";
 
+export const runtime = "edge";
 export const metadata: Metadata = {
   title: "Page Not Found (404) — FocusFlow",
   description: "The page you are looking for does not exist or has been moved. Explore FocusFlow's study timer, roadmaps, and blog guides.",
