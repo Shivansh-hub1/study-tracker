@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import crypto from "crypto";
 import { cookies } from "next/headers";
 import { getGoogleConfig, getGoogleRedirectUri, verifyGoogleIdToken, findOrCreateGoogleUser } from "@/lib/google-auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const { clientId, isConfigured } = getGoogleConfig();

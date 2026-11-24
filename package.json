@@ -24,7 +24,7 @@
     "web-push": "^3.6.7"
   },
   "devDependencies": {
-    "@cloudflare/next-on-pages": "^1.13.16",
+    "@cloudflare/next-on-pages": "1.13.7",
     "@types/bcryptjs": "2.4.6",
     "@types/better-sqlite3": "7.6.12",
     "@types/node": "20.16.11",

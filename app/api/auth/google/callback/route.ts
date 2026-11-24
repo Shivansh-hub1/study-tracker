@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { getGoogleConfig, getGoogleRedirectUri, findOrCreateGoogleUser } from "@/lib/google-auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET(req: NextRequest) {
   const { clientId, clientSecret, isConfigured } = getGoogleConfig();

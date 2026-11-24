@@ -3,6 +3,7 @@ import { getDb, ensureSettings } from "@/lib/db";
 import { getSessionUser } from "@/lib/auth";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 export async function GET() {
   const user = await getSessionUser();
