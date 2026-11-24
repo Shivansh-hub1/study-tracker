@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { SITE_DESCRIPTION, SITE_NAME } from "@/lib/seo";
 
+export const runtime = "edge";
+
 export default function manifest(): MetadataRoute.Manifest {
   return {
     name: `${SITE_NAME} — Study Tracker`,

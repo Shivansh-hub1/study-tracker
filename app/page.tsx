@@ -6,6 +6,7 @@ import { getSessionUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
+export const runtime = "edge";
 
 const FEATURES = [
   { icon: Route, title: "DSA tracker & roadmap", text: "Interactive 18-module Data Structures & Algorithms tracker with LeetCode pattern milestones and progress status." },

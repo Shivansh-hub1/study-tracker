@@ -1,7 +1,7 @@
 import type { MetadataRoute } from "next";
 import { CANONICAL_SITE_URL } from "@/lib/seo";
 
-export const dynamic = "force-static";
+export const runtime = "edge";
 
 interface RouteItem {
   path: string;

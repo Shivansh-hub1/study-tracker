@@ -1,6 +1,8 @@
 import type { MetadataRoute } from "next";
 import { CANONICAL_SITE_URL } from "@/lib/seo";
 
+export const runtime = "edge";
+
 const DISALLOWED_ROUTES = [
   "/api/",
   "/dashboard",

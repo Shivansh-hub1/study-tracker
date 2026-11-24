@@ -9,7 +9,7 @@ interface Props {
   params: { slug: string };
 }
 
-export const dynamic = "force-static";
+export const runtime = "edge";
 
 export function generateStaticParams() {
   return BLOG_POSTS.map((post) => ({ slug: post.slug }));

@@ -49,6 +49,10 @@ export async function generateMetadata(): Promise<Metadata> {
       googleBot: { index: true, follow: true, "max-image-preview": "large", "max-snippet": -1, "max-video-preview": -1 },
     },
     verification: { google: process.env.NEXT_PUBLIC_GOOGLE_SITE_VERIFICATION || "google-site-verification-focusflow" },
+    icons: {
+      icon: "/icon.svg",
+      apple: "/apple-icon.svg",
+    },
     other: {
       "theme-color": "#191919",
       "color-scheme": "dark light",
