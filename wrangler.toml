@@ -7,3 +7,11 @@ no_bundle = true
 [assets]
 directory = ".vercel/output/static"
 binding = "ASSETS"
+
+[[rules]]
+type = "ESModule"
+globs = ["**/*.js", "**/*.mjs"]
+
+[[rules]]
+type = "Data"
+globs = ["**/*.bin"]
