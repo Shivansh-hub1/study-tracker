@@ -16,8 +16,7 @@ async function ensureInit(): Promise<any> {
   const priv = process.env.VAPID_PRIVATE_KEY;
   if (!pub || !priv) return null;
   try {
-    const wpMod = "web-push";
-    webpushClient = (await import(/* webpackIgnore: true */ wpMod)).default;
+    webpushClient = (await import("web-push")).default;
     webpushClient.setVapidDetails(process.env.VAPID_SUBJECT || "mailto:no-reply@focusflow.app", pub, priv);
     inited = true;
     return webpushClient;

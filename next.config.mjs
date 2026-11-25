@@ -20,6 +20,16 @@ const nextConfig = {
   eslint: { ignoreDuringBuilds: true },
   webpack: (config, { nextRuntime }) => {
     if (nextRuntime === "edge") {
+      // Stub Node-only optional/local-dev deps out of edge bundles so esbuild in next-on-pages never sees them
+      config.resolve.alias = {
+        ...config.resolve.alias,
+        fs: false,
+        path: false,
+        "better-sqlite3": false,
+        "@libsql/client$": false,
+        nodemailer: false,
+        "web-push": false,
+      };
       config.resolve.fallback = {
         ...config.resolve.fallback,
         fs: false,

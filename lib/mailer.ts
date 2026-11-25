@@ -19,8 +19,7 @@ async function transport() {
   const { SMTP_HOST, SMTP_USER, SMTP_PASS } = process.env;
   if (!SMTP_HOST || !SMTP_USER || !SMTP_PASS) return null;
   try {
-    const mailerMod = "nodemailer";
-    const nodemailer = (await import(/* webpackIgnore: true */ mailerMod)).default;
+    const nodemailer = (await import("nodemailer")).default;
     const port = Number(process.env.SMTP_PORT) || 465;
     return nodemailer.createTransport({
       host: SMTP_HOST,
