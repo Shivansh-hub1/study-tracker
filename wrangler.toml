@@ -2,12 +2,8 @@ name = "studytracker"
 main = ".vercel/output/static/_worker.js/index.js"
 compatibility_date = "2024-09-23"
 compatibility_flags = ["nodejs_compat"]
+no_bundle = true
 
 [assets]
 directory = ".vercel/output/static"
 binding = "ASSETS"
-
-[[rules]]
-type = "Data"
-globs = ["**/*.bin"]
-fallthrough = true
